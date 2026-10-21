@@ -88,12 +88,22 @@ class AndroidGenerator {
         'userAgentSuffix': m.webView.userAgentSuffix,
       };
 
+  /// Permissions the generated app declares, shared by every build engine.
+  static List<String> permissionsFor(ProjectManifest m) => <String>{
+        if (m.requiresInternet) 'android.permission.INTERNET',
+        ...m.permissions,
+      }.toList()
+        ..sort();
+
+  /// `android:screenOrientation` value (ActivityInfo constants).
+  static int screenOrientationValue(Orientation o) => switch (o) {
+        Orientation.unspecified => -1,
+        Orientation.landscape => 0,
+        Orientation.portrait => 1,
+      };
+
   static String buildAndroidManifest(ProjectManifest m) {
-    final permissions = <String>{
-      if (m.requiresInternet) 'android.permission.INTERNET',
-      ...m.permissions,
-    }.toList()
-      ..sort();
+    final permissions = permissionsFor(m);
     // Always written (even "unspecified") so prebuilt base APKs carry the
     // attribute and the on-device engine can change it in place.
     final orientation = switch (m.orientation) {

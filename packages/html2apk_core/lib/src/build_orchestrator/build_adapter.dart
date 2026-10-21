@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../project_core/project_store.dart';
+
 /// Output formats a build can produce. An APK is never renamed to an AAB.
 enum ArtifactFormat { apk, aab }
 
@@ -50,9 +52,25 @@ class CancellationToken {
 
 typedef BuildLogSink = void Function(String line);
 
-/// Platform-specific engine that turns a generated Gradle project into an
-/// artifact on this device. Windows uses [GradleProcessBuildAdapter]; the
-/// Android on-device engine will implement this same interface.
+/// Builds a project into an installable artifact on this device.
+///
+/// This is the interface the UI and project system use. Windows composes
+/// the generator with Gradle ([GradleProjectBuildEngine]); Android assembles
+/// a prebuilt base APK in Kotlin (ADR 0002).
+abstract interface class ProjectBuildEngine {
+  /// Short identifier stored in build history, e.g. `gradle` or `on-device`.
+  String get id;
+
+  /// Writes a debug-signed APK for [project] to [outputPath].
+  Future<BuildResult> buildProject(
+    ProjectHandle project, {
+    required String outputPath,
+    required BuildLogSink log,
+    CancellationToken? cancel,
+  });
+}
+
+/// Runs Gradle on a generated project. Used by [GradleProjectBuildEngine].
 abstract interface class AndroidBuildAdapter {
   Future<BuildResult> build(BuildRequest request, {required BuildLogSink log, CancellationToken? cancel});
 }

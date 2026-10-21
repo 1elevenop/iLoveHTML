@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Projects live in files/workspace/projects/<id>/; APKs in their exports/ folder. -->
+    <files-path name="workspace" path="workspace/projects/" />
+</paths>

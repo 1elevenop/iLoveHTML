@@ -1,4 +1,4 @@
-package com.html2apk.ondevice
+package com.html2apk.engine
 
 import com.android.apksig.ApkSigner
 import com.android.apksig.ApkVerifier
@@ -28,6 +28,9 @@ data class AppSpec(
 /** Metadata recorded when the base APK was built with Gradle. */
 data class BaseInfo(val basePackage: String, val iconEntry: String)
 
+/** One website file, opened lazily so large sites are streamed, not buffered. */
+class WebsiteFile(val path: String, val size: Long, val open: () -> InputStream)
+
 /**
  * Turns the prebuilt wrapper APK into a user's app without a compiler:
  * swap website assets and config, rewrite the binary manifest, replace
@@ -43,9 +46,16 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         }
     }
 
-    /** Writes an unsigned APK with the website from [siteZip] and [spec] applied. */
-    fun assembleUnsigned(siteZip: InputStream, spec: AppSpec, out: File, timings: Timings) {
-        val site = timings.step("read website") { readWebsite(siteZip) }
+    /** Writes an unsigned APK with [site] and [spec] applied. */
+    fun assembleUnsigned(site: List<WebsiteFile>, spec: AppSpec, out: File, timings: Timings) {
+        val paths = HashSet<String>()
+        for (f in site) {
+            val normalized = normalize(f.path) ?: throw IllegalArgumentException("Unsafe path: ${f.path}")
+            require(normalized == f.path) { "Path not normalized: ${f.path}" }
+            require(paths.add(f.path.lowercase())) { "Duplicate: ${f.path}" }
+        }
+        require(site.size <= MAX_FILES && site.sumOf { it.size } <= MAX_TOTAL_BYTES) { "Website too large" }
+
         ZipFile(base).use { zip ->
             ZipOutputStream(out.outputStream().buffered()).use { zos ->
                 for (entry in zip.entries()) {
@@ -53,22 +63,23 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
                     when {
                         name.startsWith("assets/www/") -> continue
                         name == "assets/app_config.json" -> continue
-                        // Old signatures would no longer match.
                         name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") ||
                             name.endsWith(".EC") || name.endsWith(".DSA") || name == "META-INF/MANIFEST.MF") -> continue
                         name == "AndroidManifest.xml" -> {
                             val bytes = zip.getInputStream(entry).use { it.readBytes() }
                             val patched = timings.step("patch manifest") { patchManifest(bytes, spec) }
-                            put(zos, name, patched, ZipEntry.DEFLATED)
+                            putBytes(zos, name, patched, ZipEntry.DEFLATED)
                         }
                         name == baseInfo.iconEntry && spec.iconPng != null ->
-                            put(zos, name, spec.iconPng, entry.method)
-                        else -> put(zos, name, zip.getInputStream(entry).use { it.readBytes() }, entry.method)
+                            putBytes(zos, name, spec.iconPng, entry.method)
+                        entry.method == ZipEntry.STORED ->
+                            putBytes(zos, name, zip.getInputStream(entry).use { it.readBytes() }, ZipEntry.STORED)
+                        else -> putStream(zos, name) { zip.getInputStream(entry) }
                     }
                 }
-                put(zos, "assets/app_config.json", spec.configJson.toByteArray(), ZipEntry.DEFLATED)
+                putBytes(zos, "assets/app_config.json", spec.configJson.toByteArray(), ZipEntry.DEFLATED)
                 timings.step("add website") {
-                    for ((path, bytes) in site) put(zos, "assets/www/$path", bytes, ZipEntry.DEFLATED)
+                    for (f in site) putStream(zos, "assets/www/${f.path}", f.open)
                 }
             }
         }
@@ -101,6 +112,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
     /** Signs and aligns with apksig, then verifies the result. */
     fun sign(unsigned: File, out: File, key: PrivateKey, cert: X509Certificate, timings: Timings): ApkVerifier.Result {
         timings.step("sign") {
+            @Suppress("DEPRECATION") // Replacement takes a KeyConfig; migrate with the Phase 3 signing manager.
             val signer = ApkSigner.SignerConfig.Builder("CERT", key, listOf(cert)).build()
             ApkSigner.Builder(listOf(signer))
                 .setInputApk(unsigned)
@@ -115,7 +127,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         return timings.step("verify") { ApkVerifier.Builder(out).setMinCheckedPlatformVersion(MIN_SDK).build().verify() }
     }
 
-    private fun put(zos: ZipOutputStream, name: String, bytes: ByteArray, method: Int) {
+    private fun putBytes(zos: ZipOutputStream, name: String, bytes: ByteArray, method: Int) {
         val e = ZipEntry(name)
         e.method = method
         if (method == ZipEntry.STORED) {
@@ -128,37 +140,43 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         zos.closeEntry()
     }
 
+    private fun putStream(zos: ZipOutputStream, name: String, open: () -> InputStream) {
+        zos.putNextEntry(ZipEntry(name).apply { method = ZipEntry.DEFLATED })
+        open().use { it.copyTo(zos) }
+        zos.closeEntry()
+    }
+
     companion object {
         const val MIN_SDK = 24
         private const val MAX_FILES = 10_000
-        private const val MAX_TOTAL_BYTES = 200L * 1024 * 1024
+        private const val MAX_TOTAL_BYTES = 500L * 1024 * 1024
 
-        /** Reads a website ZIP with the same path rules as the desktop importer. */
-        fun readWebsite(input: InputStream): Map<String, ByteArray> {
+        /** Lists a website directory as normalized relative paths. */
+        fun websiteFromDirectory(root: File): List<WebsiteFile> =
+            root.walkTopDown().filter { it.isFile }.map { f ->
+                val rel = f.relativeTo(root).invariantSeparatorsPath
+                WebsiteFile(rel, f.length()) { f.inputStream() }
+            }.sortedBy { it.path }.toList()
+
+        /** Reads a website ZIP into memory (prototype input only). */
+        fun websiteFromZip(input: InputStream): List<WebsiteFile> {
             val files = linkedMapOf<String, ByteArray>()
-            var total = 0L
             ZipInputStream(input).use { zis ->
                 while (true) {
                     val e = zis.nextEntry ?: break
                     if (e.isDirectory) continue
                     val path = normalize(e.name) ?: throw IllegalArgumentException("Unsafe path: ${e.name}")
                     if (path.startsWith("__MACOSX/") || path.endsWith(".DS_Store")) continue
-                    val bytes = zis.readBytes()
-                    total += bytes.size
-                    require(total <= MAX_TOTAL_BYTES && files.size < MAX_FILES) { "Website too large" }
-                    require(files.keys.none { it.equals(path, ignoreCase = true) }) { "Duplicate: $path" }
-                    files[path] = bytes
+                    files[path] = zis.readBytes()
                 }
             }
-            // Strip a single top-level folder, as the desktop importer does.
             val tops = files.keys.map { it.substringBefore('/', "") }.toSet()
-            return if (tops.size == 1 && tops.single().isNotEmpty()) {
-                val prefix = tops.single() + "/"
-                files.mapKeys { it.key.removePrefix(prefix) }
-            } else files
+            val prefix = if (tops.size == 1 && tops.single().isNotEmpty()) tops.single() + "/" else ""
+            return files.map { (p, b) -> WebsiteFile(p.removePrefix(prefix), b.size.toLong()) { b.inputStream() } }
         }
 
-        private fun normalize(raw: String): String? {
+        /** Same rules as the Dart importer's normalizeRelativePath, minus Windows-only names. */
+        fun normalize(raw: String): String? {
             val unified = raw.replace('\\', '/')
             if (unified.startsWith("/") || Regex("^[A-Za-z]:").containsMatchIn(unified)) return null
             val parts = unified.split('/').filter { it.isNotEmpty() && it != "." }

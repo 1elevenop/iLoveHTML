@@ -215,6 +215,76 @@ void main() {
     });
   });
 
+  group('project store', () {
+    Uint8List png(int w, int h) {
+      final b = Uint8List(24)
+        ..setAll(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13])
+        ..setAll(12, 'IHDR'.codeUnits);
+      ByteData.sublistView(b)
+        ..setUint32(16, w)
+        ..setUint32(20, h);
+      return b;
+    }
+
+    test('lists projects and reports broken ones', () async {
+      final store = ProjectStore(p.join(tmp.path, 'ws'));
+      expect(store.listProjects().$1, isEmpty);
+      final a = await store.importZip(zipPath: writeZip({'index.html': 'a'}, name: 'a.zip'), name: 'A', applicationId: 'com.example.a');
+      await store.importZip(zipPath: writeZip({'index.html': 'b'}, name: 'b.zip'), name: 'B', applicationId: 'com.example.b');
+      Directory(p.join(store.projectsDir, 'junk')).createSync();
+      File(p.join(store.projectsDir, 'junk', 'project.json')).writeAsStringSync('{"schemaVersion": 99}');
+      final (projects, broken) = store.listProjects();
+      expect(projects.map((x) => x.manifest.name).toSet(), {'A', 'B'});
+      expect(broken.single.directory, endsWith('junk'));
+      store.delete(a.project);
+      expect(store.listProjects().$1.single.manifest.name, 'B');
+    });
+
+    test('update validates and persists', () async {
+      final store = ProjectStore(p.join(tmp.path, 'ws'));
+      final r = await store.importZip(
+          zipPath: writeZip({'index.html': 'a', 'b.html': 'b'}), name: 'A', applicationId: 'com.example.a');
+      final m = r.project.manifest;
+      final updated = store.update(r.project,
+          m.copyWith(source: const ProjectSource.local('b.html'), orientation: Orientation.portrait));
+      expect(store.load(updated.directory).manifest.source.entry, 'b.html');
+      expect(store.load(updated.directory).manifest.orientation, Orientation.portrait);
+      expect(() => store.update(r.project, m.copyWith(source: const ProjectSource.local('missing.html'))),
+          throwsA(isA<InvalidProjectException>()));
+      expect(() => store.update(r.project, m.copyWith(android: m.android.copyWith(applicationId: 'bad'))),
+          throwsA(isA<InvalidProjectException>()));
+    });
+
+    test('setIcon accepts square PNGs only', () async {
+      final store = ProjectStore(p.join(tmp.path, 'ws'));
+      final r = await store.importZip(zipPath: writeZip({'index.html': 'a'}), name: 'A', applicationId: 'com.example.a');
+      final bad = File(p.join(tmp.path, 'bad.png'))..writeAsBytesSync(png(100, 50));
+      expect(() => store.setIcon(r.project, bad.path), throwsA(isA<InvalidProjectException>()));
+      final good = File(p.join(tmp.path, 'good.png'))..writeAsBytesSync(png(512, 512));
+      final updated = store.setIcon(r.project, good.path);
+      expect(updated.manifest.iconPath, 'branding/icon.png');
+      expect(File(updated.iconFile!).existsSync(), isTrue);
+    });
+
+    test('records build history newest first', () async {
+      final store = ProjectStore(p.join(tmp.path, 'ws'));
+      final r = await store.importZip(zipPath: writeZip({'index.html': 'a'}), name: 'A', applicationId: 'com.example.a');
+      for (final s in ['failed', 'succeeded']) {
+        store.recordBuild(r.project, BuildRecord(time: DateTime.now(), engine: 'test', status: s, durationMs: 5));
+      }
+      final h = store.buildHistory(r.project);
+      expect(h.map((b) => b.status), ['succeeded', 'failed']);
+      expect(h.first.succeeded, isTrue);
+    });
+
+    test('permissions and orientation mapping', () {
+      expect(AndroidGenerator.permissionsFor(manifest()), isEmpty);
+      expect(AndroidGenerator.permissionsFor(manifest().copyWith(internetAccess: true)), ['android.permission.INTERNET']);
+      expect(AndroidGenerator.screenOrientationValue(Orientation.portrait), 1);
+      expect(AndroidGenerator.screenOrientationValue(Orientation.unspecified), -1);
+    });
+  });
+
   group('build orchestration', () {
     test('maps variants and formats to Gradle tasks', () {
       expect(const BuildRequest(projectDir: '.').gradleTask, 'assembleDebug');

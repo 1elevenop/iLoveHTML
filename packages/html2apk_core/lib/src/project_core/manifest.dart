@@ -89,6 +89,21 @@ class WebViewSettings {
         'userAgentSuffix': userAgentSuffix,
       };
 
+  WebViewSettings copyWith({
+    bool? javaScriptEnabled,
+    bool? domStorageEnabled,
+    ExternalLinkPolicy? externalLinks,
+    List<String>? allowedHosts,
+    String? Function()? userAgentSuffix,
+  }) =>
+      WebViewSettings(
+        javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
+        domStorageEnabled: domStorageEnabled ?? this.domStorageEnabled,
+        externalLinks: externalLinks ?? this.externalLinks,
+        allowedHosts: allowedHosts ?? this.allowedHosts,
+        userAgentSuffix: userAgentSuffix != null ? userAgentSuffix() : this.userAgentSuffix,
+      );
+
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
         javaScriptEnabled: json['javaScriptEnabled'] as bool? ?? true,
         domStorageEnabled: json['domStorageEnabled'] as bool? ?? true,
@@ -188,7 +203,9 @@ class ProjectManifest {
     ProjectSource? source,
     AndroidSettings? android,
     String? iconPath,
+    Orientation? orientation,
     WebViewSettings? webView,
+    List<String>? permissions,
     bool? internetAccess,
   }) =>
       ProjectManifest(
@@ -198,9 +215,9 @@ class ProjectManifest {
         android: android ?? this.android,
         iconPath: iconPath ?? this.iconPath,
         splashPath: splashPath,
-        orientation: orientation,
+        orientation: orientation ?? this.orientation,
         webView: webView ?? this.webView,
-        permissions: permissions,
+        permissions: permissions ?? this.permissions,
         internetAccess: internetAccess ?? this.internetAccess,
         offlineFallbackPage: offlineFallbackPage,
         buildProfiles: buildProfiles,

@@ -4,7 +4,11 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $template = Join-Path $root 'android_template'
-$dest = Join-Path $root 'android_ondevice_prototype\app\src\main\assets'
+# Every app that embeds the on-device engine gets a copy.
+$destinations = @(
+    (Join-Path $root 'app\android\app\src\main\assets'),
+    (Join-Path $root 'android_ondevice_prototype\app\src\main\assets')
+)
 $sdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
 if (-not $env:JAVA_HOME) { $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr' }
 
@@ -21,7 +25,9 @@ $entry = ([regex]::Match($dump[$i + 1], '\(file\) (\S+)')).Groups[1].Value
 if (-not $entry.EndsWith('.png')) { throw "Icon entry is not a PNG: $entry" }
 $pkg = ([regex]::Match(($dump | Select-Object -First 3) -join "`n", 'Package name=(\S+)')).Groups[1].Value
 
-New-Item -ItemType Directory -Force (Join-Path $dest 'base') | Out-Null
-Copy-Item $apk (Join-Path $dest 'base\base.apk')
-@{ basePackage = $pkg; iconEntry = $entry } | ConvertTo-Json | Set-Content (Join-Path $dest 'base\base_info.json')
+foreach ($dest in $destinations) {
+    New-Item -ItemType Directory -Force (Join-Path $dest 'base') | Out-Null
+    Copy-Item $apk (Join-Path $dest 'base\base.apk')
+    @{ basePackage = $pkg; iconEntry = $entry } | ConvertTo-Json | Set-Content (Join-Path $dest 'base\base_info.json')
+}
 Write-Output "Base: $((Get-Item $apk).Length) bytes, package $pkg, icon $entry"

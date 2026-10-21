@@ -29,3 +29,6 @@ dependencies {
     // Google's pure-Java APK signer/verifier; runs on ART.
     implementation("com.android.tools.build:apksig:9.4.1")
 }
+
+// Shared on-device engine sources (also used by the Flutter app).
+android.sourceSets.getByName("main").kotlin.srcDir("../../android_engine/src/main/kotlin")

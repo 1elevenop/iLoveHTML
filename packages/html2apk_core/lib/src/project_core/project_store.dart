@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../android_generator/android_generator.dart';
+import '../android_generator/resource_writers.dart';
 import '../project_importer/site_analysis.dart';
 import '../project_importer/zip_importer.dart';
 import 'manifest.dart';
@@ -24,6 +27,72 @@ class ProjectHandle {
   String get brandingDir => p.join(directory, 'branding');
   String get exportsDir => p.join(directory, 'exports');
   String? get iconFile => manifest.iconPath == null ? null : p.join(directory, manifest.iconPath!);
+
+  /// Default location for a debug APK of the current version.
+  String get debugApkPath =>
+      p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-debug.apk');
+
+  ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
+}
+
+/// A project directory that could not be loaded, kept so the UI can report it.
+class BrokenProject {
+  BrokenProject(this.directory, this.error);
+
+  final String directory;
+  final Object error;
+}
+
+class BuildRecord {
+  BuildRecord({
+    required this.time,
+    required this.engine,
+    required this.status,
+    required this.durationMs,
+    this.artifactPath,
+    this.bytes,
+    this.versionName,
+    this.versionCode,
+    this.message,
+  });
+
+  final DateTime time;
+  final String engine;
+
+  /// `succeeded`, `failed` or `cancelled`.
+  final String status;
+  final int durationMs;
+  final String? artifactPath;
+  final int? bytes;
+  final String? versionName;
+  final int? versionCode;
+  final String? message;
+
+  bool get succeeded => status == 'succeeded';
+
+  Map<String, Object?> toJson() => {
+        'time': time.toUtc().toIso8601String(),
+        'engine': engine,
+        'status': status,
+        'durationMs': durationMs,
+        'artifactPath': artifactPath,
+        'bytes': bytes,
+        'versionName': versionName,
+        'versionCode': versionCode,
+        'message': message,
+      };
+
+  factory BuildRecord.fromJson(Map<String, Object?> j) => BuildRecord(
+        time: DateTime.parse(j['time'] as String),
+        engine: j['engine'] as String,
+        status: j['status'] as String,
+        durationMs: j['durationMs'] as int,
+        artifactPath: j['artifactPath'] as String?,
+        bytes: j['bytes'] as int?,
+        versionName: j['versionName'] as String?,
+        versionCode: j['versionCode'] as int?,
+        message: j['message'] as String?,
+      );
 }
 
 class ImportReport {
@@ -53,6 +122,80 @@ class ProjectStore {
     final file = File(p.join(project.directory, 'project.json'));
     final tmp = File('${file.path}.tmp')..writeAsStringSync(project.manifest.toJsonString());
     tmp.renameSync(file.path);
+  }
+
+  /// Validates and saves [manifest] for [project]. Throws on validation errors.
+  ProjectHandle update(ProjectHandle project, ProjectManifest manifest) {
+    final errors = validateManifest(manifest).where((i) => i.severity == IssueSeverity.error).toList();
+    if (errors.isNotEmpty) throw InvalidProjectException(errors);
+    if (manifest.source.type == SourceType.local &&
+        !File(p.join(project.sourceDir, manifest.source.entry)).existsSync()) {
+      throw InvalidProjectException(
+          [ValidationIssue('source.entry', 'Entry file "${manifest.source.entry}" does not exist')]);
+    }
+    final updated = project.withManifest(manifest);
+    save(updated);
+    return updated;
+  }
+
+  /// All projects in the workspace, newest first. Unreadable ones are
+  /// returned separately instead of hiding them.
+  (List<ProjectHandle>, List<BrokenProject>) listProjects() {
+    final dir = Directory(projectsDir);
+    if (!dir.existsSync()) return (const [], const []);
+    final ok = <(ProjectHandle, DateTime)>[];
+    final broken = <BrokenProject>[];
+    for (final d in dir.listSync().whereType<Directory>()) {
+      final file = File(p.join(d.path, 'project.json'));
+      if (!file.existsSync()) continue;
+      try {
+        ok.add((load(d.path), file.lastModifiedSync()));
+      } on Object catch (e) {
+        broken.add(BrokenProject(d.path, e));
+      }
+    }
+    ok.sort((a, b) => b.$2.compareTo(a.$2));
+    return ([for (final e in ok) e.$1], broken);
+  }
+
+  void delete(ProjectHandle project) {
+    final dir = Directory(project.directory);
+    if (!p.isWithin(p.absolute(projectsDir), p.absolute(dir.path))) {
+      throw ArgumentError.value(project.directory, 'project', 'is outside the workspace');
+    }
+    dir.deleteSync(recursive: true);
+  }
+
+  /// Copies a validated square PNG into `branding/icon.png` and saves the manifest.
+  ProjectHandle setIcon(ProjectHandle project, String pngPath) {
+    final bytes = File(pngPath).readAsBytesSync();
+    final info = readPngInfo(bytes);
+    if (info == null) {
+      throw InvalidProjectException([const ValidationIssue('branding.icon', 'Icon must be a PNG file')]);
+    }
+    if (info.width != info.height || info.width < AndroidGenerator.minIconSize) {
+      throw InvalidProjectException([ValidationIssue('branding.icon',
+          'Icon must be square and at least ${AndroidGenerator.minIconSize}px (got ${info.width}x${info.height})')]);
+    }
+    Directory(project.brandingDir).createSync(recursive: true);
+    File(p.join(project.brandingDir, 'icon.png')).writeAsBytesSync(bytes);
+    return update(project, project.manifest.copyWith(iconPath: 'branding/icon.png'));
+  }
+
+  static const _historyLimit = 50;
+
+  List<BuildRecord> buildHistory(ProjectHandle project) {
+    final f = File(p.join(project.exportsDir, 'builds.json'));
+    if (!f.existsSync()) return const [];
+    final list = jsonDecode(f.readAsStringSync()) as List;
+    return [for (final e in list) BuildRecord.fromJson((e as Map).cast())];
+  }
+
+  void recordBuild(ProjectHandle project, BuildRecord record) {
+    final history = [record, ...buildHistory(project)].take(_historyLimit).toList();
+    Directory(project.exportsDir).createSync(recursive: true);
+    File(p.join(project.exportsDir, 'builds.json'))
+        .writeAsStringSync(const JsonEncoder.withIndent('  ').convert([for (final r in history) r.toJson()]));
   }
 
   /// Imports a website ZIP as a new local project.

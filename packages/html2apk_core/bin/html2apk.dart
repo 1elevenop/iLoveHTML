@@ -53,29 +53,39 @@ Future<void> main(List<String> args) async {
     stdout.writeln('Warning: missing asset $m');
   }
 
-  final buildDir = p.join(workspace, 'builds', project.manifest.id, 'android');
-  try {
-    AndroidGenerator(templateDir: template).generate(project, buildDir, androidSdkDir: toolchain.androidSdk);
-  } on Exception catch (e) {
-    stderr.writeln(e);
-    exitCode = 65;
-    return;
-  }
-  stdout.writeln('Generated Android project: $buildDir');
+  final buildsDir = p.join(workspace, 'builds');
+  final engine = GradleProjectBuildEngine(toolchain: toolchain, templateDir: template, buildsDir: buildsDir);
+  final outDir = opts['out'];
+  final dest = outDir == null ? project.debugApkPath : p.join(outDir, p.basename(project.debugApkPath));
 
-  final logFile = File(p.join(workspace, 'builds', project.manifest.id, 'build.log')).openWrite();
+  Directory(p.join(buildsDir, project.manifest.id)).createSync(recursive: true);
+  final logFile = File(p.join(buildsDir, project.manifest.id, 'build.log')).openWrite();
   final cancel = CancellationToken();
   final sub = ProcessSignal.sigint.watch().listen((_) => cancel.cancel());
-  final result = await GradleProcessBuildAdapter(toolchain).build(
-    BuildRequest(projectDir: buildDir),
+  final result = await engine.buildProject(
+    project,
+    outputPath: dest,
     cancel: cancel,
     log: (line) {
       logFile.writeln(line);
-      if (line.startsWith('> Task') || line.contains('BUILD') || line.contains('error')) stdout.writeln(line);
+      if (line.startsWith('> Task') || line.contains('BUILD') || line.contains('error') || line.startsWith('Generated')) {
+        stdout.writeln(line);
+      }
     },
   );
   await sub.cancel();
   await logFile.close();
+  store.recordBuild(project, BuildRecord(
+    time: DateTime.now(),
+    engine: engine.id,
+    status: result.status.name,
+    durationMs: result.duration.inMilliseconds,
+    artifactPath: result.artifactPath,
+    bytes: result.artifactPath == null ? null : File(result.artifactPath!).lengthSync(),
+    versionName: project.manifest.android.versionName,
+    versionCode: project.manifest.android.versionCode,
+    message: result.message,
+  ));
 
   stdout.writeln('Status: ${result.status.name} in ${result.duration.inSeconds}s');
   if (result.status != BuildStatus.succeeded) {
@@ -83,9 +93,5 @@ Future<void> main(List<String> args) async {
     exitCode = 1;
     return;
   }
-  final outDir = opts['out'] ?? project.exportsDir;
-  Directory(outDir).createSync(recursive: true);
-  final dest = p.join(outDir, '${id}-${project.manifest.android.versionName}-debug.apk');
-  File(result.artifactPath!).copySync(dest);
   stdout.writeln('APK: $dest (${File(dest).lengthSync()} bytes)');
 }

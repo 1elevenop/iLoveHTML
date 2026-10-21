@@ -5,22 +5,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Log
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.html2apk.engine.ApkAssembler
+import com.html2apk.engine.AppSpec
+import com.html2apk.engine.BaseInfo
+import com.html2apk.engine.DeviceSigningKey
 import org.json.JSONObject
 import java.io.File
-import java.math.BigInteger
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.PrivateKey
-import java.security.cert.X509Certificate
-import java.util.Date
-import javax.security.auth.x500.X500Principal
 import kotlin.concurrent.thread
 
 /**
@@ -87,9 +82,10 @@ class PrototypeActivity : Activity() {
             val assembler = ApkAssembler(base, baseInfo)
             val unsigned = File(work, "unsigned.apk")
             timings.step("assemble total") {
-                assets.open("input/demo-site.zip").use { assembler.assembleUnsigned(it, spec, unsigned, timings) }
+                val site = timings.step("read website") { assets.open("input/demo-site.zip").use { ApkAssembler.websiteFromZip(it) } }
+                assembler.assembleUnsigned(site, spec, unsigned, timings)
             }
-            val (key, cert) = timings.step("signing key") { signingKey() }
+            val (key, cert) = timings.step("signing key") { DeviceSigningKey.getOrCreate(KEY_ALIAS, "HTML2APK On-Device Prototype") }
             val outDir = getExternalFilesDir(null) ?: filesDir
             val signed = File(outDir, "generated.apk")
             val verify = assembler.sign(unsigned, signed, key, cert, timings)
@@ -112,26 +108,6 @@ class PrototypeActivity : Activity() {
         }
         File(getExternalFilesDir(null) ?: filesDir, "result.json").writeText(result.toString(2))
         log("DONE")
-    }
-
-    /** Release-style key kept in Android Keystore; the private key never leaves secure hardware. */
-    private fun signingKey(): Pair<PrivateKey, X509Certificate> {
-        val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        if (!ks.containsAlias(KEY_ALIAS)) {
-            val now = System.currentTimeMillis()
-            val spec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_SIGN)
-                .setKeySize(2048)
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                .setCertificateSubject(X500Principal("CN=HTML2APK On-Device Prototype"))
-                .setCertificateSerialNumber(BigInteger.valueOf(now))
-                .setCertificateNotBefore(Date(now - 86_400_000L))
-                .setCertificateNotAfter(Date(now + 25L * 365 * 86_400_000L))
-                .build()
-            KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore").apply { initialize(spec) }.generateKeyPair()
-        }
-        val entry = ks.getEntry(KEY_ALIAS, null) as KeyStore.PrivateKeyEntry
-        return entry.privateKey to entry.certificate as X509Certificate
     }
 
     private fun vmHwmKb(): Long = File("/proc/self/status").readLines()

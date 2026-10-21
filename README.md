@@ -3,21 +3,27 @@
 Converts a website (ZIP of HTML/CSS/JS/assets, later folders and URLs) into
 an Android WebView app, built entirely on the local machine.
 
-**Status: Phase 1 (Windows pipeline prototype).** Working today, through a
-CLI: ZIP import → project on disk → generated Gradle project → local
-`assembleDebug` → validated, debug-signed APK, verified on a Galaxy S25
-Ultra (Android 17). An on-device build prototype (Android) assembles and
-signs an APK on the phone in about 0.3 s without Gradle; see
-[ADR 0002](docs/adr/0002-android-on-device-build.md). The Flutter UI,
-release signing and AAB are not built yet.
+**Status: Phase 2 started.**
+
+- **Android app (`app/`, Flutter):** project list, ZIP import, project
+  settings, icon, and an on-device Build tab that produces a debug-signed
+  APK with Install and Share. Builds run on the phone without Gradle
+  ([ADR 0002](docs/adr/0002-android-on-device-build.md)).
+- **Windows:** the same pipeline through the CLI (ZIP → generated Gradle
+  project → local `assembleDebug`). The Flutter desktop UI is not built
+  yet (see Requirements).
+- Not built yet: URL import, live preview, release signing, AAB, SQLite
+  index, templates.
 
 ## Layout
 
 | Path | What |
 |---|---|
+| `app/` | Flutter app (Android today, Windows later) on top of `html2apk_core` |
 | `android_template/` | Native Kotlin WebView wrapper (Gradle project) used for every generated app |
+| `android_engine/` | Kotlin on-device build engine (binary manifest editor, APK assembler, Keystore signing), shared by `app/` and the prototype |
 | `packages/html2apk_core/` | Shared Dart core: project model, importer, security, generator, build orchestration |
-| `android_ondevice_prototype/` | Android app that builds an APK on the phone from a prebuilt base APK |
+| `android_ondevice_prototype/` | Minimal Android test app for the on-device engine |
 | `tools/build_ondevice_base.ps1` | Builds the base APK and `base_info.json` for the on-device engine |
 | `samples/` | Demo site, icon and ZIP for the end-to-end test |
 | `docs/adr/` | Architecture decisions |
@@ -28,7 +34,24 @@ release signing and AAB are not built yet.
 - JDK 17+ (Android Studio's bundled `jbr` is detected automatically)
 - Flutter 3.47+ / Dart 3.13+ (for the Dart core; tested with Flutter 3.47.7 at `C:\src\flutter`)
 - Internet on the first build only (Gradle, AGP, AndroidX go into `~/.gradle`)
-- Later, for the Windows desktop UI: Visual Studio 2022 with "Desktop development with C++"
+- For the Windows desktop UI (not built yet): Visual Studio 2022 with
+  "Desktop development with C++", and the repo on an NTFS drive. Flutter's
+  Windows plugin setup needs symlinks, which exFAT drives cannot hold.
+
+## Run the Android app
+
+```bash
+powershell -File tools/build_ondevice_base.ps1
+```
+
+Then, with a phone connected over adb:
+
+```bash
+cd app
+flutter run
+```
+
+The base APK must be rebuilt whenever `android_template/` changes.
 
 Pinned build versions are in [ADR 0003](docs/adr/0003-toolchain-versions.md).
 
