@@ -7,6 +7,7 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_controller.dart';
+import 'preview_screen.dart';
 import 'theme.dart';
 
 class ProjectScreen extends StatelessWidget {
@@ -27,6 +28,14 @@ class ProjectScreen extends StatelessWidget {
           child: Scaffold(
             appBar: AppBar(
               title: Text(project.manifest.name, overflow: TextOverflow.ellipsis),
+              actions: [
+                IconButton(
+                  tooltip: 'Preview',
+                  icon: const Icon(Icons.play_circle_outline),
+                  onPressed: () => Navigator.push(
+                      context, MaterialPageRoute(builder: (_) => PreviewScreen(project: controller.project(projectId)!))),
+                ),
+              ],
               bottom: const TabBar(tabs: [
                 Tab(icon: Icon(Icons.tune), text: 'Settings'),
                 Tab(icon: Icon(Icons.build_outlined), text: 'Build'),
@@ -63,6 +72,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   late final _versionName = TextEditingController(text: _m.android.versionName);
   late final _versionCode = TextEditingController(text: '${_m.android.versionCode}');
   late final _ua = TextEditingController(text: _m.webView.userAgentSuffix ?? '');
+  late final _siteUrl = TextEditingController(text: _m.source.type == SourceType.url ? _m.source.entry : '');
+  late final _hosts = TextEditingController(text: _m.webView.allowedHosts.join(', '));
   late final List<String> _pages = findEntryCandidates(listRelativeFiles(widget.project.sourceDir));
   bool _dirty = false;
 
@@ -71,7 +82,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   @override
   void dispose() {
-    for (final c in [_name, _id, _versionName, _versionCode, _ua]) {
+    for (final c in [_name, _id, _versionName, _versionCode, _ua, _siteUrl, _hosts]) {
       c.dispose();
     }
     super.dispose();
@@ -87,12 +98,16 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     final ua = _ua.text.trim();
     final m = _m.copyWith(
       name: _name.text.trim(),
+      source: _m.source.type == SourceType.url ? ProjectSource.url(_siteUrl.text.trim()) : null,
       android: AndroidSettings(
         applicationId: _id.text.trim(),
         versionName: _versionName.text.trim(),
         versionCode: int.parse(_versionCode.text.trim()),
       ),
-      webView: _m.webView.copyWith(userAgentSuffix: () => ua.isEmpty ? null : ua),
+      webView: _m.webView.copyWith(
+        userAgentSuffix: () => ua.isEmpty ? null : ua,
+        allowedHosts: _parseHosts(_hosts.text),
+      ),
     );
     try {
       final saved = widget.controller.update(widget.controller.project(m.id)!, m);
@@ -223,8 +238,36 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 items: [for (final page in _pages) DropdownMenuItem(value: page, child: Text(page, overflow: TextOverflow.ellipsis))],
                 onChanged: (v) => _change(_m.copyWith(source: ProjectSource.local(v!))),
               )
-            else
-              ListTile(contentPadding: EdgeInsets.zero, title: const Text('Website URL'), subtitle: Text(_m.source.entry)),
+            else ...[
+              TextFormField(
+                controller: _siteUrl,
+                decoration: const InputDecoration(
+                  labelText: 'Website URL',
+                  helperText: 'Loaded live; the app needs an internet connection.',
+                ),
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                style: monoStyle(context, size: 14),
+                validator: (v) => validateRemoteUrl((v ?? '').trim()),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _hosts,
+                decoration: const InputDecoration(
+                  labelText: 'Other sites that open inside the app (optional)',
+                  hintText: 'login.example.com, cdn.example.com',
+                  helperText: 'Comma-separated. Links to any other site open in the browser.',
+                  helperMaxLines: 2,
+                ),
+                autocorrect: false,
+                validator: (v) {
+                  for (final h in _parseHosts(v ?? '')) {
+                    if (validateRemoteUrl('https://$h/') != null || h.contains('/')) return 'Invalid host "$h"';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 12),
             Text('Orientation', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -287,6 +330,13 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     );
   }
 }
+
+List<String> _parseHosts(String text) => text
+    .split(RegExp(r'[,\s]+'))
+    .map((h) => h.trim().toLowerCase())
+    .where((h) => h.isNotEmpty)
+    .toSet()
+    .toList();
 
 class _Section extends StatelessWidget {
   const _Section(this.title);

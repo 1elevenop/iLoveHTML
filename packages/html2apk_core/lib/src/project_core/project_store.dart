@@ -198,6 +198,30 @@ class ProjectStore {
         .writeAsStringSync(const JsonEncoder.withIndent('  ').convert([for (final r in history) r.toJson()]));
   }
 
+  /// Creates a project that wraps a live website. [url] should already have
+  /// been checked with UrlProbe; it is validated again here.
+  ProjectHandle createFromUrl({
+    required String url,
+    required String name,
+    required String applicationId,
+    List<String> allowedHosts = const [],
+  }) {
+    final manifest = ProjectManifest(
+      id: newProjectId(),
+      name: name,
+      source: ProjectSource.url(url),
+      android: AndroidSettings(applicationId: applicationId),
+      webView: WebViewSettings(allowedHosts: allowedHosts),
+    );
+    final errors = validateManifest(manifest).where((i) => i.severity == IssueSeverity.error).toList();
+    if (errors.isNotEmpty) throw InvalidProjectException(errors);
+    final dir = p.join(projectsDir, manifest.id);
+    Directory(p.join(dir, 'source')).createSync(recursive: true);
+    final handle = ProjectHandle(dir, manifest);
+    save(handle);
+    return handle;
+  }
+
   /// Imports a website ZIP as a new local project.
   Future<ImportReport> importZip({
     required String zipPath,

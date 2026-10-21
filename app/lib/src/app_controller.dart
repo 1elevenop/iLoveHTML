@@ -61,6 +61,12 @@ class AppController extends ChangeNotifier {
     return report;
   }
 
+  ProjectHandle createFromUrl(String url, String name, String applicationId) {
+    final project = store.createFromUrl(url: url, name: name, applicationId: applicationId);
+    refresh();
+    return project;
+  }
+
   ProjectHandle update(ProjectHandle project, ProjectManifest manifest) {
     final updated = store.update(project, manifest);
     refresh();

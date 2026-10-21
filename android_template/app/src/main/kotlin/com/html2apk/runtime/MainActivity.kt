@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowInsets
@@ -23,13 +24,18 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.ProgressBar
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
+    private lateinit var progress: ProgressBar
     private lateinit var config: AppConfig
+
+    /** Last main-frame URL that failed to load; the error page's "Try again" reloads it. */
+    private var failedUrl: String? = null
     private val isDebuggable get() = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     // Bundled content is served from https://appassets.androidplatform.net/assets/...
@@ -72,6 +78,12 @@ class MainActivity : Activity() {
         val root = FrameLayout(this)
         root.setBackgroundColor(SYSTEM_BAR_BACKGROUND)
         root.addView(content, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            visibility = View.GONE
+        }
+        val barHeight = (3 * resources.displayMetrics.density).toInt()
+        root.addView(progress, FrameLayout.LayoutParams(MATCH_PARENT, barHeight, Gravity.TOP))
         if (Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
             // Light icons on the dark bar background.
@@ -113,7 +125,10 @@ class MainActivity : Activity() {
     private fun isInternal(uri: Uri): Boolean {
         if (uri.scheme != "https") return false
         val host = uri.host?.lowercase() ?: return false
-        return host == startHost || host in config.allowedHosts
+        // example.com and www.example.com are treated as the same site, since
+        // sites commonly redirect between the two.
+        return host == startHost || host == "www.$startHost" || "www.$host" == startHost ||
+            host in config.allowedHosts
     }
 
     private fun openExternally(uri: Uri) {
@@ -150,8 +165,14 @@ class MainActivity : Activity() {
             assetLoader.shouldInterceptRequest(request.url)
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            if (isInternal(request.url)) return false
-            if (request.isForMainFrame || request.hasGesture()) openExternally(request.url)
+            val url = request.url
+            // The bundled error page links here so "Try again" works even with JavaScript off.
+            if (url.scheme == "https" && url.host == ASSET_HOST && url.path == RETRY_PATH) {
+                view.loadUrl(failedUrl ?: startUrl())
+                return true
+            }
+            if (isInternal(url)) return false
+            if (request.isForMainFrame || request.hasGesture()) openExternally(url)
             return true
         }
 
@@ -162,12 +183,18 @@ class MainActivity : Activity() {
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             if (request.isForMainFrame) {
                 Log.w(TAG, "Main frame error ${error.errorCode}: ${error.description}")
+                failedUrl = request.url.toString()
                 view.loadUrl("https://$ASSET_HOST/assets/html2apk/error.html")
             }
         }
     }
 
     private inner class WrapperChromeClient : WebChromeClient() {
+        override fun onProgressChanged(view: WebView, newProgress: Int) {
+            progress.progress = newProgress
+            progress.visibility = if (newProgress in 1..99) View.VISIBLE else View.GONE
+        }
+
         override fun onConsoleMessage(message: ConsoleMessage): Boolean {
             if (isDebuggable) {
                 Log.i(TAG, "console ${message.messageLevel()}: ${message.message()} (${message.sourceId()}:${message.lineNumber()})")
@@ -179,6 +206,7 @@ class MainActivity : Activity() {
     companion object {
         private const val TAG = "HTML2APK"
         private const val ASSET_HOST = WebViewAssetLoader.DEFAULT_DOMAIN
+        private const val RETRY_PATH = "/html2apk/retry"
         // Becomes configurable with status/navigation bar colors in the configuration editor.
         private const val SYSTEM_BAR_BACKGROUND = Color.BLACK
         private val EXTERNAL_SCHEMES = setOf("https", "http", "mailto", "tel", "sms", "geo")

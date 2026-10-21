@@ -9,6 +9,7 @@ import '../app_controller.dart';
 import 'app_settings_screen.dart';
 import 'project_screen.dart';
 import 'theme.dart';
+import 'url_import_dialog.dart';
 
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key, required this.controller});
@@ -31,9 +32,9 @@ class ProjectsScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => importZip(context, controller),
-        icon: const Icon(Icons.folder_zip_outlined),
-        label: const Text('Import ZIP'),
+        onPressed: () => _newProject(context),
+        icon: const Icon(Icons.add),
+        label: const Text('New app'),
       ),
       body: projects.isEmpty && controller.brokenProjects.isEmpty
           ? const _EmptyState()
@@ -58,6 +59,39 @@ class ProjectsScreen extends StatelessWidget {
   }
 }
 
+extension on ProjectsScreen {
+  Future<void> _newProject(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.folder_zip_outlined),
+            title: const Text('Website files (ZIP)'),
+            subtitle: const Text('HTML, CSS, JavaScript and images bundled into the app. Works offline.'),
+            onTap: () => Navigator.pop(c, 'zip'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Website URL'),
+            subtitle: const Text('Wrap a live https website. Needs an internet connection.'),
+            onTap: () => Navigator.pop(c, 'url'),
+          ),
+        ]),
+      ),
+    );
+    if (!context.mounted) return;
+    if (choice == 'zip') {
+      await importZip(context, controller);
+    } else if (choice == 'url') {
+      final id = await showDialog<String>(context: context, builder: (_) => UrlImportDialog(controller: controller));
+      if (id != null && context.mounted) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: id)));
+      }
+    }
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -75,8 +109,8 @@ class _EmptyState extends StatelessWidget {
             Text('No projects yet', style: t.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Import a ZIP of your website (HTML, CSS, JavaScript, images) to turn it into an Android app. '
-              'Everything stays on this device.',
+              'Turn a ZIP of your website (HTML, CSS, JavaScript, images) or a live https website '
+              'into an Android app. Builds happen on this device.',
               textAlign: TextAlign.center,
               style: t.bodyMedium,
             ),
@@ -124,6 +158,9 @@ class _ProjectCard extends StatelessWidget {
                     Text(m.name, style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
                     Text(m.android.applicationId, style: monoStyle(context, size: 12), overflow: TextOverflow.ellipsis),
+                    if (m.source.type == SourceType.url)
+                      Text(Uri.parse(m.source.entry).host,
+                          style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Text(
                       controller.building.contains(m.id)
