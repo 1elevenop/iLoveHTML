@@ -13,6 +13,7 @@
         <activity
             android:name="com.html2apk.runtime.MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+            android:screenOrientation="unspecified"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

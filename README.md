@@ -5,9 +5,11 @@ an Android WebView app, built entirely on the local machine.
 
 **Status: Phase 1 (Windows pipeline prototype).** Working today, through a
 CLI: ZIP import → project on disk → generated Gradle project → local
-`assembleDebug` → validated, debug-signed APK. The Flutter UI, signing,
-AAB and the Android on-device engine are not built yet. See
-[docs/adr](docs/adr).
+`assembleDebug` → validated, debug-signed APK, verified on a Galaxy S25
+Ultra (Android 17). An on-device build prototype (Android) assembles and
+signs an APK on the phone in about 0.3 s without Gradle; see
+[ADR 0002](docs/adr/0002-android-on-device-build.md). The Flutter UI,
+release signing and AAB are not built yet.
 
 ## Layout
 
@@ -15,6 +17,8 @@ AAB and the Android on-device engine are not built yet. See
 |---|---|
 | `android_template/` | Native Kotlin WebView wrapper (Gradle project) used for every generated app |
 | `packages/html2apk_core/` | Shared Dart core: project model, importer, security, generator, build orchestration |
+| `android_ondevice_prototype/` | Android app that builds an APK on the phone from a prebuilt base APK |
+| `tools/build_ondevice_base.ps1` | Builds the base APK and `base_info.json` for the on-device engine |
 | `samples/` | Demo site, icon and ZIP for the end-to-end test |
 | `docs/adr/` | Architecture decisions |
 
@@ -38,6 +42,22 @@ dart run bin/html2apk.dart --zip ../../samples/demo-site.zip --name "HTML2APK De
 
 Projects go to `.workspace/projects/<id>/`, generated Gradle projects and
 `build.log` to `.workspace/builds/<id>/`.
+
+## On-device build prototype
+
+```bash
+powershell -File tools/build_ondevice_base.ps1
+```
+
+Then build `android_ondevice_prototype` with `gradlew.bat assembleDebug`,
+install it, and start it with:
+
+```bash
+adb shell am start -n com.html2apk.ondevice/.PrototypeActivity --ez autorun true
+```
+
+The generated APK and `result.json` (timings, memory) are written to
+`/sdcard/Android/data/com.html2apk.ondevice/files/`.
 
 ## Tests
 

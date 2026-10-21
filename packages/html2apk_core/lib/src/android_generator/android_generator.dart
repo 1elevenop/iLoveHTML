@@ -68,9 +68,9 @@ class AndroidGenerator {
         throw InvalidProjectException([ValidationIssue('branding.icon',
             'Icon must be square and at least ${minIconSize}px (got ${info.width}x${info.height}); 512x512 recommended')]);
       }
-      File(p.join(main, 'res', 'drawable', 'app_icon.xml')).deleteSync();
-      final nodpi = Directory(p.join(main, 'res', 'drawable-nodpi'))..createSync();
-      File(p.join(nodpi.path, 'app_icon.png')).writeAsBytesSync(bytes);
+      // The template ships a PNG default here; the on-device engine swaps the
+      // same entry inside a prebuilt APK, so the icon must stay a PNG.
+      File(p.join(main, 'res', 'drawable-nodpi', 'app_icon.png')).writeAsBytesSync(bytes);
     }
   }
 
@@ -94,8 +94,10 @@ class AndroidGenerator {
       ...m.permissions,
     }.toList()
       ..sort();
+    // Always written (even "unspecified") so prebuilt base APKs carry the
+    // attribute and the on-device engine can change it in place.
     final orientation = switch (m.orientation) {
-      Orientation.unspecified => null,
+      Orientation.unspecified => 'unspecified',
       Orientation.portrait => 'portrait',
       Orientation.landscape => 'landscape',
     };
@@ -117,8 +119,8 @@ class AndroidGenerator {
       ..writeln('        <activity')
       ..writeln('            android:name="com.html2apk.runtime.MainActivity"')
       ..writeln('            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"');
-    if (orientation != null) b.writeln('            android:screenOrientation="$orientation"');
     b
+      ..writeln('            android:screenOrientation="$orientation"')
       ..writeln('            android:exported="true">')
       ..writeln('            <intent-filter>')
       ..writeln('                <action android:name="android.intent.action.MAIN" />')
