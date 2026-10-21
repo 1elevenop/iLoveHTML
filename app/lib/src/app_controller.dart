@@ -95,17 +95,29 @@ class AppController extends ChangeNotifier {
     refresh();
   }
 
-  /// Builds a debug APK and records the result in the project's history.
-  Future<BuildResult> build(ProjectHandle project, BuildLogSink log) async {
+  /// Builds an APK and records the result in the project's history. For the
+  /// first successful release, the signing certificate is remembered in the
+  /// project so later releases can be checked against it.
+  Future<BuildResult> build(ProjectHandle project, BuildLogSink log,
+      {BuildVariant variant = BuildVariant.debug, ReleaseSigning? signing}) async {
     final engine = this.engine;
     if (engine == null) {
       return const BuildResult(BuildStatus.failed,
           message: 'Building on this platform is not available in this version.', duration: Duration.zero);
     }
+    final release = variant == BuildVariant.release;
+    if (release) {
+      final blocker = store.releaseBlocker(project);
+      if (blocker != null) return BuildResult(BuildStatus.failed, message: blocker, duration: Duration.zero);
+    }
     building.add(project.manifest.id);
     notifyListeners();
     try {
-      final result = await engine.buildProject(project, outputPath: project.debugApkPath, log: log);
+      final result = await engine.buildProject(project,
+          outputPath: release ? project.releaseApkPath : project.debugApkPath,
+          log: log,
+          variant: variant,
+          signing: signing);
       final artifact = result.artifactPath;
       store.recordBuild(
         project,
@@ -119,8 +131,14 @@ class AppController extends ChangeNotifier {
           versionName: project.manifest.android.versionName,
           versionCode: project.manifest.android.versionCode,
           message: result.message,
+          variant: variant.name,
+          signerSha256: result.signerSha256,
         ),
       );
+      if (release && result.status == BuildStatus.succeeded && project.manifest.releaseCertSha256 == null) {
+        store.update(project, project.manifest.copyWith(releaseCertSha256: () => result.signerSha256));
+        refresh();
+      }
       return result;
     } finally {
       building.remove(project.manifest.id);

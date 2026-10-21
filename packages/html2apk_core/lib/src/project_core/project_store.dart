@@ -33,6 +33,10 @@ class ProjectHandle {
   String get debugApkPath =>
       p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-debug.apk');
 
+  /// Default location for a release APK of the current version.
+  String get releaseApkPath =>
+      p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-release.apk');
+
   ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
 }
 
@@ -55,6 +59,8 @@ class BuildRecord {
     this.versionName,
     this.versionCode,
     this.message,
+    this.variant = 'debug',
+    this.signerSha256,
   });
 
   final DateTime time;
@@ -69,7 +75,12 @@ class BuildRecord {
   final int? versionCode;
   final String? message;
 
+  /// `debug` or `release`.
+  final String variant;
+  final String? signerSha256;
+
   bool get succeeded => status == 'succeeded';
+  bool get isRelease => variant == 'release';
 
   Map<String, Object?> toJson() => {
         'time': time.toUtc().toIso8601String(),
@@ -81,6 +92,8 @@ class BuildRecord {
         'versionName': versionName,
         'versionCode': versionCode,
         'message': message,
+        'variant': variant,
+        'signerSha256': signerSha256,
       };
 
   factory BuildRecord.fromJson(Map<String, Object?> j) => BuildRecord(
@@ -93,6 +106,8 @@ class BuildRecord {
         versionName: j['versionName'] as String?,
         versionCode: j['versionCode'] as int?,
         message: j['message'] as String?,
+        variant: j['variant'] as String? ?? 'debug',
+        signerSha256: j['signerSha256'] as String?,
       );
 }
 
@@ -238,6 +253,19 @@ class ProjectStore {
       if (f.existsSync()) f.deleteSync();
     }
     return update(project, project.manifest.copyWith(offlineFallbackPage: () => null));
+  }
+
+  /// Problems that should stop a release build, e.g. a version code that
+  /// is not higher than the last release (Android refuses such updates and
+  /// Google Play rejects the upload).
+  String? releaseBlocker(ProjectHandle project) {
+    final last = buildHistory(project).where((b) => b.isRelease && b.succeeded).firstOrNull;
+    final code = project.manifest.android.versionCode;
+    if (last?.versionCode != null && code <= last!.versionCode!) {
+      return 'Version code $code is not higher than the last release (${last.versionCode}). '
+          'Increase it in Settings before building a new release.';
+    }
+    return null;
   }
 
   static const _historyLimit = 50;

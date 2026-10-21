@@ -191,6 +191,7 @@ class ProjectManifest {
     this.offlineFallbackPage,
     this.buildProfiles = const ['debug'],
     this.exportFormats = const ['apk'],
+    this.releaseCertSha256,
   });
 
   final String id;
@@ -216,6 +217,12 @@ class ProjectManifest {
   final List<String> buildProfiles;
   final List<String> exportFormats;
 
+  /// SHA-256 fingerprint of the certificate used for the first release.
+  /// Only a reference: keys and passwords never go into project.json.
+  /// Updates must be signed with the same key, so later releases are
+  /// checked against it.
+  final String? releaseCertSha256;
+
   bool get requiresInternet => internetAccess || source.type == SourceType.url;
 
   Map<String, Object?> toJson() => {
@@ -233,6 +240,7 @@ class ProjectManifest {
         'offline': {'fallbackPage': offlineFallbackPage},
         'buildProfiles': buildProfiles,
         'exportFormats': exportFormats,
+        'signing': {'releaseCertSha256': releaseCertSha256},
       };
 
   String toJsonString() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -262,6 +270,7 @@ class ProjectManifest {
       offlineFallbackPage: offline['fallbackPage'] as String?,
       buildProfiles: [...?(json['buildProfiles'] as List?)?.cast<String>()],
       exportFormats: [...?(json['exportFormats'] as List?)?.cast<String>()],
+      releaseCertSha256: ((json['signing'] as Map?)?.cast<String, Object?>() ?? const {})['releaseCertSha256'] as String?,
     );
   }
 
@@ -278,6 +287,7 @@ class ProjectManifest {
     List<String>? permissions,
     bool? internetAccess,
     String? Function()? offlineFallbackPage,
+    String? Function()? releaseCertSha256,
   }) =>
       ProjectManifest(
         id: id,
@@ -294,6 +304,7 @@ class ProjectManifest {
         offlineFallbackPage: offlineFallbackPage != null ? offlineFallbackPage() : this.offlineFallbackPage,
         buildProfiles: buildProfiles,
         exportFormats: exportFormats,
+        releaseCertSha256: releaseCertSha256 != null ? releaseCertSha256() : this.releaseCertSha256,
       );
 }
 

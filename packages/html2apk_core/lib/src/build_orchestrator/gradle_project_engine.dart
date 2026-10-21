@@ -28,8 +28,26 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
     required String outputPath,
     required BuildLogSink log,
     CancellationToken? cancel,
+    BuildVariant variant = BuildVariant.debug,
+    ReleaseSigning? signing,
   }) async {
     final sw = Stopwatch()..start();
+    final env = <String, String>{};
+    if (variant == BuildVariant.release) {
+      if (signing is! KeystoreFileSigning) {
+        return BuildResult(BuildStatus.failed, message: 'Release builds need a keystore file', duration: sw.elapsed);
+      }
+      if (!File(signing.path).existsSync()) {
+        return BuildResult(BuildStatus.failed, message: 'Keystore not found: ${signing.path}', duration: sw.elapsed);
+      }
+      // Read by android_template/app/build.gradle.kts.
+      env.addAll({
+        'HTML2APK_KEYSTORE': File(signing.path).absolute.path,
+        'HTML2APK_KEYSTORE_PASSWORD': signing.storePassword,
+        'HTML2APK_KEY_ALIAS': signing.alias,
+        'HTML2APK_KEY_PASSWORD': signing.keyPassword,
+      });
+    }
     final projectDir = p.join(buildsDir, project.manifest.id, 'android');
     try {
       AndroidGenerator(templateDir: templateDir).generate(project, projectDir, androidSdkDir: toolchain.androidSdk);
@@ -38,11 +56,35 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
     }
     log('Generated Android project: $projectDir');
     final result = await GradleProcessBuildAdapter(toolchain)
-        .build(BuildRequest(projectDir: projectDir), log: log, cancel: cancel);
+        .build(BuildRequest(projectDir: projectDir, variant: variant, environment: env), log: log, cancel: cancel);
     if (result.status != BuildStatus.succeeded) return result;
     File(outputPath).parent.createSync(recursive: true);
     File(result.artifactPath!).copySync(outputPath);
+
+    String? signer;
+    final apksigner = toolchain.apksigner;
+    if (apksigner != null) {
+      final verify = await Process.run(apksigner, ['verify', '--print-certs', outputPath],
+          environment: {'JAVA_HOME': toolchain.javaHome}, runInShell: Platform.isWindows);
+      if (verify.exitCode != 0) {
+        return BuildResult(BuildStatus.failed,
+            message: 'APK signature verification failed: ${verify.stderr}'.trim(), duration: sw.elapsed);
+      }
+      signer = parseSignerSha256('${verify.stdout}');
+      if (signer != null) log('Signed by certificate SHA-256 $signer');
+    } else {
+      log('apksigner not found; signature not verified');
+    }
     return BuildResult(BuildStatus.succeeded,
-        artifactPath: outputPath, exitCode: result.exitCode, duration: sw.elapsed);
+        artifactPath: outputPath, exitCode: result.exitCode, duration: sw.elapsed, signerSha256: signer);
   }
+}
+
+/// Reads `Signer #1 certificate SHA-256 digest: ab12…` from `apksigner verify --print-certs`
+/// and formats it like Android's fingerprints: `AB:12:…`.
+String? parseSignerSha256(String output) {
+  final m = RegExp(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]{64})').firstMatch(output);
+  if (m == null) return null;
+  final hex = m.group(1)!.toUpperCase();
+  return [for (var i = 0; i < hex.length; i += 2) hex.substring(i, i + 2)].join(':');
 }

@@ -114,10 +114,10 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
     }
 
     /** Signs and aligns with apksig, then verifies the result. */
-    fun sign(unsigned: File, out: File, key: PrivateKey, cert: X509Certificate, timings: Timings): ApkVerifier.Result {
+    fun sign(unsigned: File, out: File, key: PrivateKey, chain: List<X509Certificate>, timings: Timings): ApkVerifier.Result {
         timings.step("sign") {
             @Suppress("DEPRECATION") // Replacement takes a KeyConfig; migrate with the Phase 3 signing manager.
-            val signer = ApkSigner.SignerConfig.Builder("CERT", key, listOf(cert)).build()
+            val signer = ApkSigner.SignerConfig.Builder("CERT", key, chain).build()
             ApkSigner.Builder(listOf(signer))
                 .setInputApk(unsigned)
                 .setOutputApk(out)

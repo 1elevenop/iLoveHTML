@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_controller.dart';
+import 'signing_keys_screen.dart';
 import 'theme.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -40,6 +41,19 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               onSelectionChanged: (s) => c.setThemeMode(s.single),
             ),
             const SizedBox(height: 24),
+            if (c.engine != null) ...[
+              Text('Signing', style: t.titleSmall),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.vpn_key_outlined),
+                title: const Text('Release keys'),
+                subtitle: const Text('Create, import and back up the keys that sign your releases'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => SigningKeysScreen(engine: c.engine!))),
+              ),
+              const SizedBox(height: 16),
+            ],
             Text('Storage', style: t.titleSmall),
             ListTile(
               contentPadding: EdgeInsets.zero,

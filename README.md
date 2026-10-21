@@ -25,8 +25,14 @@ an Android WebView app, built entirely on the local machine.
 - **Windows:** the same pipeline through the CLI (ZIP → generated Gradle
   project → local `assembleDebug`). The Flutter desktop UI is not built
   yet (see Requirements).
-- Not built yet: release signing, AAB, camera/location and other native
-  features, SQLite index, templates.
+- **Release signing** ([ADR 0004](docs/adr/0004-release-signing.md)):
+  create or import release keys on the phone (.jks / .keystore / .p12,
+  including legacy JKS), back them up as password-protected `.jks`,
+  build release APKs. The same backup signs on Windows:
+  `--release --keystore upload.jks --alias upload` with the password in
+  `HTML2APK_KEYSTORE_PASSWORD`.
+- Not built yet: AAB, camera/location and other native features, SQLite
+  index, templates.
 
 ## Layout
 
@@ -94,6 +100,13 @@ adb shell am start -n com.html2apk.ondevice/.PrototypeActivity --ez autorun true
 
 The generated APK and `result.json` (timings, memory) are written to
 `/sdcard/Android/data/com.html2apk.ondevice/files/`.
+
+## Signing tests (desktop JVM)
+
+```bash
+cd android_engine
+gradlew.bat test
+```
 
 ## Tests
 

@@ -13,6 +13,13 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, EngineChannel.CHANNEL).setMethodCallHandler(handler)
     }
 
+    @Deprecated("FlutterActivity still routes results through this callback")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        if (engineChannel?.onActivityResult(requestCode, resultCode, data) == true) return
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
     override fun onDestroy() {
         engineChannel?.dispose()
         super.onDestroy()

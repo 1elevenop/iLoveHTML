@@ -13,6 +13,10 @@ import com.html2apk.engine.ApkAssembler
 import com.html2apk.engine.AppSpec
 import com.html2apk.engine.BaseInfo
 import com.html2apk.engine.DeviceSigningKey
+import com.html2apk.engine.SigningKeyStore
+import com.html2apk.engine.signing.DistinguishedName
+import com.html2apk.engine.signing.KeystoreException
+import com.html2apk.engine.signing.ReleaseKeystore
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONObject
@@ -29,6 +33,10 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
     private val executor = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private val workspace: File get() = File(activity.filesDir, "workspace").canonicalFile
+    private val keys by lazy { SigningKeyStore(File(activity.filesDir, "signing")) }
+
+    /** Export waiting for the user to pick a destination in the system "save" screen. */
+    private var pendingExport: Pair<ByteArray, MethodChannel.Result>? = null
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
@@ -40,6 +48,17 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                         reply.fold(result::success) { result.error("BUILD_FAILED", it.message ?: it.toString(), null) }
                     }
                 }
+                "keysList" -> result.success(keys.list().map { it.toMap() })
+                "keysCreate", "keysInspect", "keysImport", "keysDelete" -> executor.execute {
+                    // Key generation and keystore decryption are slow; keep them off the UI thread.
+                    val reply = runCatching { keyOperation(call) }
+                    main.post {
+                        reply.fold(result::success) { e ->
+                            result.error(if (e is KeystoreException) "KEYSTORE" else "KEY_ERROR", e.message ?: e.toString(), null)
+                        }
+                    }
+                }
+                "keysExport" -> exportKey(call.argument<String>("id")!!, result)
                 "installApk" -> result.success(install(insideWorkspace(call.argument<String>("path")!!)))
                 "shareApk" -> { share(insideWorkspace(call.argument<String>("path")!!)); result.success(null) }
                 else -> result.notImplemented()
@@ -97,12 +116,15 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
             val unsigned = File(work, "unsigned.apk")
             val assembler = ApkAssembler(base, info)
             timings.step("assemble") { assembler.assembleUnsigned(site, spec, unsigned, timings) }
-            val (key, cert) = timings.step("signing key") {
-                DeviceSigningKey.getOrCreate(DEBUG_KEY_ALIAS, "HTML2APK Debug (on-device)")
+            val releaseKeyId = call.argument<String>("signingKeyId")
+            val (key, chain) = timings.step("signing key") {
+                if (releaseKeyId != null) keys.unlock(releaseKeyId).let { it.key to it.chain }
+                else DeviceSigningKey.getOrCreate(DEBUG_KEY_ALIAS, "HTML2APK Debug (on-device)").let { it.first to listOf(it.second) }
             }
+            val cert = chain.first()
             output.parentFile?.mkdirs()
             val tmp = File(output.path + ".tmp")
-            val verify = assembler.sign(unsigned, tmp, key, cert, timings)
+            val verify = assembler.sign(unsigned, tmp, key, chain, timings)
             if (!verify.isVerified) {
                 tmp.delete()
                 error("Signature verification failed: ${verify.errors.joinToString()}")
@@ -114,12 +136,80 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                 "files" to site.size,
                 "timingsMs" to timings.steps.mapValues { it.value.toInt() },
                 "signer" to cert.subjectX500Principal.name,
+                "signerSha256" to ReleaseKeystore.fingerprint(cert),
                 "v2" to verify.isVerifiedUsingV2Scheme,
                 "v3" to verify.isVerifiedUsingV3Scheme,
             )
         } finally {
             work.deleteRecursively()
         }
+    }
+
+    private fun keyOperation(call: MethodCall): Any? {
+        fun password(name: String) = call.argument<String>(name)!!.toCharArray()
+        return when (call.method) {
+            "keysCreate" -> {
+                val dn = try {
+                    DistinguishedName(
+                        commonName = call.argument<String>("commonName")!!.trim(),
+                        organization = call.argument<String>("organization")?.trim()?.takeIf { it.isNotEmpty() },
+                        country = call.argument<String>("country")?.trim()?.uppercase()?.takeIf { it.isNotEmpty() },
+                    )
+                } catch (e: IllegalArgumentException) {
+                    throw KeystoreException(e.message ?: "Invalid name")
+                }
+                val pw = password("password")
+                try { keys.create(call.argument<String>("alias")!!.trim(), dn, pw).toMap() } finally { pw.fill('\u0000') }
+            }
+            "keysInspect" -> {
+                val pw = password("storePassword")
+                try { keys.inspect(insideCache(call.argument<String>("path")!!), pw) } finally { pw.fill('\u0000') }
+            }
+            "keysImport" -> {
+                val store = password("storePassword")
+                val key = password("keyPassword")
+                try {
+                    keys.import(insideCache(call.argument<String>("path")!!), store, call.argument<String>("alias")!!, key).toMap()
+                } finally {
+                    store.fill('\u0000'); key.fill('\u0000')
+                }
+            }
+            "keysDelete" -> { keys.delete(call.argument<String>("id")!!); null }
+            else -> throw IllegalArgumentException(call.method)
+        }
+    }
+
+    /** Opens the system "save as" screen; the keystore is written where the user chooses. */
+    private fun exportKey(id: String, result: MethodChannel.Result) {
+        val info = keys.info(id)
+        pendingExport?.second?.error("CANCELLED", "Another export started", null)
+        pendingExport = keys.exportBytes(id) to result
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("application/octet-stream")
+            .putExtra(Intent.EXTRA_TITLE, "${info.alias}.jks")
+        @Suppress("DEPRECATION")
+        activity.startActivityForResult(intent, REQUEST_EXPORT)
+    }
+
+    /** Called from MainActivity. Returns true when the result belonged to this channel. */
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode != REQUEST_EXPORT) return false
+        val (bytes, result) = pendingExport ?: return true
+        pendingExport = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            result.success(null)
+            return true
+        }
+        executor.execute {
+            val reply = runCatching {
+                activity.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) }
+                uri.toString()
+            }
+            main.post { reply.fold(result::success) { result.error("EXPORT_FAILED", it.message ?: it.toString(), null) } }
+        }
+        return true
     }
 
     /** Returns "started", or "needsPermission" after opening the settings page for the user. */
@@ -158,11 +248,19 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         return f
     }
 
+    /** Files picked for import are copied into the cache by the file picker. */
+    private fun insideCache(path: String): File {
+        val f = File(path).canonicalFile
+        require(f.path.startsWith(activity.cacheDir.canonicalPath + File.separator)) { "Path is outside the app cache" }
+        return f
+    }
+
     fun dispose() = executor.shutdown()
 
     companion object {
         const val CHANNEL = "html2apk/engine"
         private const val APK_MIME = "application/vnd.android.package-archive"
         private const val DEBUG_KEY_ALIAS = "html2apk-debug-signing"
+        private const val REQUEST_EXPORT = 4301
     }
 }

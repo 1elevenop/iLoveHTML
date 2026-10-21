@@ -7,7 +7,9 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_controller.dart';
+import '../engine/on_device_engine.dart';
 import 'preview_screen.dart';
+import 'signing_keys_screen.dart';
 import 'theme.dart';
 
 class ProjectScreen extends StatelessWidget {
@@ -111,6 +113,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
         userAgentSuffix: () => ua.isEmpty ? null : ua,
         allowedHosts: _parseHosts(_hosts.text),
       ),
+      // Set by release builds, not by this form: always keep the stored value.
+      releaseCertSha256: () => _current.manifest.releaseCertSha256,
       appearance: _m.appearance.copyWith(
         statusBarColor: _statusColor.text.trim().toUpperCase(),
         navigationBarColor: _navColor.text.trim().toUpperCase(),
@@ -557,15 +561,78 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
 
   bool get _building => widget.controller.building.contains(widget.project.manifest.id);
 
+  BuildVariant _variant = BuildVariant.debug;
+  List<SigningKey>? _keys;
+  String? _keyId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeys();
+  }
+
+  Future<void> _loadKeys() async {
+    final engine = widget.controller.engine;
+    if (engine == null) return;
+    try {
+      final keys = await engine.listKeys();
+      if (!mounted) return;
+      final pinned = widget.project.manifest.releaseCertSha256;
+      setState(() {
+        _keys = keys;
+        // Prefer the key this app was first released with.
+        _keyId = keys.where((k) => k.sha256 == pinned).firstOrNull?.id ??
+            (keys.any((k) => k.id == _keyId) ? _keyId : keys.firstOrNull?.id);
+      });
+    } on PlatformException catch (e) {
+      if (mounted) setState(() => _log.add('Could not load release keys: ${e.message}'));
+    }
+  }
+
+  SigningKey? get _selectedKey => _keys?.where((k) => k.id == _keyId).firstOrNull;
+
   Future<void> _build() async {
+    final release = _variant == BuildVariant.release;
+    final key = _selectedKey;
+    if (release) {
+      if (key == null) return;
+      final pinned = widget.project.manifest.releaseCertSha256;
+      if (pinned != null && pinned != key.sha256) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: const Text('Different release key'),
+            content: Text('This app was first released with a different key (SHA-256 ${pinned.substring(0, 8)}…). '
+                'Phones that installed that release cannot update to an APK signed with "${key.alias}", '
+                'and Google Play will reject it as an update.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Build anyway')),
+            ],
+          ),
+        );
+        if (ok != true) return;
+      }
+    }
     setState(() {
       _log.clear();
       _result = null;
     });
-    final result = await widget.controller.build(widget.project, (line) {
-      if (mounted) setState(() => _log.add(line));
-    });
+    final result = await widget.controller.build(
+      widget.project,
+      (line) {
+        if (mounted) setState(() => _log.add(line));
+      },
+      variant: _variant,
+      signing: release ? DeviceKeySigning(key!) : null,
+    );
     if (mounted) setState(() => _result = result);
+  }
+
+  Future<void> _openKeys() async {
+    await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => SigningKeysScreen(engine: widget.controller.engine!)));
+    await _loadKeys();
   }
 
   Future<void> _install(String path) async {
@@ -602,19 +669,65 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Debug APK', style: t.titleMedium),
-                const SizedBox(height: 4),
+                SegmentedButton<BuildVariant>(
+                  segments: const [
+                    ButtonSegment(value: BuildVariant.debug, label: Text('Debug'), icon: Icon(Icons.bug_report_outlined)),
+                    ButtonSegment(value: BuildVariant.release, label: Text('Release'), icon: Icon(Icons.verified_outlined)),
+                  ],
+                  selected: {_variant},
+                  onSelectionChanged: (s) => setState(() => _variant = s.single),
+                ),
+                const SizedBox(height: 12),
                 Text('${m.android.applicationId} · v${m.android.versionName} (${m.android.versionCode})',
                     style: monoStyle(context, size: 12)),
                 const SizedBox(height: 4),
-                Text('Built on this device and signed with a debug key kept in Android Keystore. '
-                    'Release signing comes later.',
-                    style: t.bodySmall),
+                if (_variant == BuildVariant.debug)
+                  Text('For testing. Signed with a debug key that stays on this phone; '
+                      'not for publishing.',
+                      style: t.bodySmall)
+                else ...[
+                  Text('For publishing. Signed with your release key; every later update must use the same key '
+                      'and a higher version code.',
+                      style: t.bodySmall),
+                  const SizedBox(height: 12),
+                  if (_keys == null)
+                    const LinearProgressIndicator()
+                  else if (_keys!.isEmpty)
+                    OutlinedButton.icon(
+                      onPressed: _openKeys,
+                      icon: const Icon(Icons.key),
+                      label: const Text('Create or import a release key'),
+                    )
+                  else
+                    Row(children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _keyId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(labelText: 'Release key'),
+                          items: [
+                            for (final k in _keys!)
+                              DropdownMenuItem(value: k.id, child: Text('${k.alias} · ${k.shortSha256}', overflow: TextOverflow.ellipsis)),
+                          ],
+                          onChanged: (v) => setState(() => _keyId = v),
+                        ),
+                      ),
+                      IconButton(tooltip: 'Manage keys', onPressed: _openKeys, icon: const Icon(Icons.settings_outlined)),
+                    ]),
+                ],
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: _building || widget.controller.engine == null ? null : _build,
+                  onPressed: _building ||
+                          widget.controller.engine == null ||
+                          (_variant == BuildVariant.release && _selectedKey == null)
+                      ? null
+                      : _build,
                   icon: const Icon(Icons.play_arrow),
-                  label: Text(_building ? 'Building…' : 'Build APK'),
+                  label: Text(_building
+                      ? 'Building…'
+                      : _variant == BuildVariant.release
+                          ? 'Build release APK'
+                          : 'Build debug APK'),
                 ),
                 if (widget.controller.engine == null)
                   Padding(
@@ -689,7 +802,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
               dense: true,
               leading: Icon(b.succeeded ? Icons.check_circle_outline : Icons.highlight_off,
                   color: b.succeeded ? scheme.primary : scheme.error),
-              title: Text('v${b.versionName ?? '?'} · ${b.status} · ${b.durationMs} ms'),
+              title: Text('v${b.versionName ?? '?'} (${b.versionCode ?? '?'}) · ${b.variant} · ${b.status} · ${b.durationMs} ms'),
               subtitle: Text('${_fmtTime(b.time)}${b.bytes == null ? '' : ' · ${formatBytes(b.bytes!)}'}'
                   '${b.message == null ? '' : '\n${b.message}'}'),
             ),

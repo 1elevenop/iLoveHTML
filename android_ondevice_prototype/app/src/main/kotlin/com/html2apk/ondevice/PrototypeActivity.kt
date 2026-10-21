@@ -88,7 +88,7 @@ class PrototypeActivity : Activity() {
             val (key, cert) = timings.step("signing key") { DeviceSigningKey.getOrCreate(KEY_ALIAS, "HTML2APK On-Device Prototype") }
             val outDir = getExternalFilesDir(null) ?: filesDir
             val signed = File(outDir, "generated.apk")
-            val verify = assembler.sign(unsigned, signed, key, cert, timings)
+            val verify = assembler.sign(unsigned, signed, key, listOf(cert), timings)
 
             sampler.stop()
             log("Verified: ${verify.isVerified} (v2=${verify.isVerifiedUsingV2Scheme}, v3=${verify.isVerifiedUsingV3Scheme})")

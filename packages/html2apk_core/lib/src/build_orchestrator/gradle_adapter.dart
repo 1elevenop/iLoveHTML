@@ -29,6 +29,7 @@ class GradleProcessBuildAdapter implements AndroidBuildAdapter {
       'JAVA_HOME': toolchain.javaHome,
       'ANDROID_HOME': toolchain.androidSdk,
       'GRADLE_USER_HOME': ?gradleUserHome,
+      ...request.environment,
     };
     final args = [request.gradleTask, '--no-daemon', '--console=plain', '--stacktrace'];
     log('> gradlew ${args.join(' ')}');
