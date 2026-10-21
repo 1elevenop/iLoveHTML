@@ -1,0 +1,5 @@
+body { margin: 0; font-family: sans-serif; background: #12161f; color: #e8ecf3; }
+main { max-width: 32rem; margin: 0 auto; padding: 2rem 1.25rem; text-align: center; }
+h1 { color: #4fc3f7; }
+a { color: #81d4fa; }
+#status.ok { color: #9ccc65; font-weight: bold; }

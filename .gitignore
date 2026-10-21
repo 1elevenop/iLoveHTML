@@ -1,0 +1,26 @@
+# Build outputs and caches
+build/
+.gradle/
+.kotlin/
+.dart_tool/
+local.properties
+android_template/wrapper.properties
+.workspace/
+out/
+*.apk
+*.aab
+
+# Signing material must never be committed
+*.jks
+*.keystore
+*.p12
+key.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local Claude/plugin data
+.claude/data/
+.claude/settings.local.json

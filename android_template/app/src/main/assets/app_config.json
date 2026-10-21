@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "source": { "type": "local", "entry": "index.html" },
+  "javaScriptEnabled": true,
+  "domStorageEnabled": true,
+  "externalLinks": "browser",
+  "allowedHosts": [],
+  "userAgentSuffix": null
+}
