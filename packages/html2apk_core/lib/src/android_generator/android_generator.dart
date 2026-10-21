@@ -56,7 +56,20 @@ class AndroidGenerator {
             [ValidationIssue('source.entry', 'Entry file "${m.source.entry}" does not exist')]);
       }
     } else {
-      www.createSync();
+      // URL projects only bundle extras such as the offline page.
+      final source = Directory(project.sourceDir);
+      source.existsSync() ? _copyTree(source, www) : www.createSync();
+    }
+    final offline = m.offlineFallbackPage;
+    if (offline != null && !File(p.join(www.path, offline)).existsSync()) {
+      throw InvalidProjectException([ValidationIssue('offline.fallbackPage', 'Offline page "$offline" does not exist')]);
+    }
+
+    final splash = project.splashFile;
+    if (splash != null) {
+      final target = File(p.join(main, 'assets', splashAssetPath));
+      target.parent.createSync(recursive: true);
+      File(splash).copySync(target.path);
     }
 
     final icon = project.iconFile;
@@ -86,7 +99,20 @@ class AndroidGenerator {
         'externalLinks': m.webView.externalLinks.name,
         'allowedHosts': m.webView.allowedHosts,
         'userAgentSuffix': m.webView.userAgentSuffix,
+        'pullToRefresh': m.webView.pullToRefresh,
+        'fileUploads': m.webView.fileUploads,
+        'offlinePage': m.offlineFallbackPage,
+        'statusBarColor': m.appearance.statusBarColor,
+        'navigationBarColor': m.appearance.navigationBarColor,
+        'splash': {
+          'enabled': m.appearance.splashEnabled,
+          'backgroundColor': m.appearance.splashBackgroundColor,
+          'image': m.splashPath == null ? null : splashAssetPath,
+        },
       };
+
+  /// Where a custom splash image lives inside the APK's assets.
+  static const splashAssetPath = 'branding/splash.png';
 
   /// Permissions the generated app declares, shared by every build engine.
   static List<String> permissionsFor(ProjectManifest m) => <String>{

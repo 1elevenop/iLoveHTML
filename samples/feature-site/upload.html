@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upload test</title>
+<link rel="stylesheet" href="css/style.css"></head>
+<body><main>
+  <h1>File upload</h1>
+  <p><input id="files" type="file" multiple></p>
+  <p id="result">No file chosen yet.</p>
+  <p><a href="index.html">Home</a></p>
+</main>
+<script>
+document.getElementById('files').addEventListener('change', function (e) {
+  var names = Array.prototype.map.call(e.target.files, function (f) { return f.name + ' (' + f.size + ' bytes)'; });
+  document.getElementById('result').textContent = names.length ? 'Selected: ' + names.join(', ') : 'Nothing selected.';
+});
+</script>
+</body></html>

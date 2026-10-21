@@ -38,4 +38,5 @@ android {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.17.1")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
 }

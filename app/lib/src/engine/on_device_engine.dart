@@ -45,6 +45,7 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
         'permissions': permissions,
         'configJson': jsonEncode(AndroidGenerator.runtimeConfig(m)),
         'iconPath': project.iconFile,
+        'splashPath': project.splashFile,
       });
       final timings = (r!['timingsMs'] as Map).cast<String, int>();
       log('Website files: ${r['files']}');

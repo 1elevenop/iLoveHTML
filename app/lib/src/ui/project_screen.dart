@@ -74,6 +74,9 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   late final _ua = TextEditingController(text: _m.webView.userAgentSuffix ?? '');
   late final _siteUrl = TextEditingController(text: _m.source.type == SourceType.url ? _m.source.entry : '');
   late final _hosts = TextEditingController(text: _m.webView.allowedHosts.join(', '));
+  late final _statusColor = TextEditingController(text: _m.appearance.statusBarColor);
+  late final _navColor = TextEditingController(text: _m.appearance.navigationBarColor);
+  late final _splashColor = TextEditingController(text: _m.appearance.splashBackgroundColor);
   late final List<String> _pages = findEntryCandidates(listRelativeFiles(widget.project.sourceDir));
   bool _dirty = false;
 
@@ -82,7 +85,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   @override
   void dispose() {
-    for (final c in [_name, _id, _versionName, _versionCode, _ua, _siteUrl, _hosts]) {
+    for (final c in [_name, _id, _versionName, _versionCode, _ua, _siteUrl, _hosts, _statusColor, _navColor, _splashColor]) {
       c.dispose();
     }
     super.dispose();
@@ -108,6 +111,11 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
         userAgentSuffix: () => ua.isEmpty ? null : ua,
         allowedHosts: _parseHosts(_hosts.text),
       ),
+      appearance: _m.appearance.copyWith(
+        statusBarColor: _statusColor.text.trim().toUpperCase(),
+        navigationBarColor: _navColor.text.trim().toUpperCase(),
+        splashBackgroundColor: _splashColor.text.trim().toUpperCase(),
+      ),
     );
     try {
       final saved = widget.controller.update(widget.controller.project(m.id)!, m);
@@ -121,20 +129,56 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     }
   }
 
-  Future<void> _pickIcon() async {
-    final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['png']);
+  /// Icon, splash and offline page are saved immediately. Copy just those
+  /// fields into the form's manifest so a later Save keeps them while still
+  /// applying the user's other, unsaved edits.
+  void _takeFileFields(ProjectHandle saved) {
+    final s = saved.manifest;
+    setState(() => _m = _m.copyWith(
+          iconPath: s.iconPath,
+          splashPath: () => s.splashPath,
+          offlineFallbackPage: () => s.offlineFallbackPage,
+        ));
+  }
+
+  ProjectHandle get _current => widget.controller.project(_m.id)!;
+
+  void _report(Object e) {
+    if (!mounted) return;
+    final text = e is InvalidProjectException ? e.issues.join('\n') : '$e';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _pickFile(List<String> extensions, ProjectHandle Function(String path) apply, String done) async {
+    final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: extensions);
     if (picked.isEmpty) return;
-    final tmp = Directory.systemTemp.createTempSync('icon');
+    final tmp = Directory.systemTemp.createTempSync('pick');
     try {
-      final path = p.join(tmp.path, 'icon.png');
+      final path = p.join(tmp.path, 'picked.${extensions.first}');
       await picked.single.xFile.saveTo(path);
-      widget.controller.setIcon(widget.controller.project(_m.id)!, path);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Icon updated')));
+      _takeFileFields(apply(path));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
     } on InvalidProjectException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.issues.join('\n'))));
+      _report(e);
     } finally {
       tmp.deleteSync(recursive: true);
       await FilePicker.clearTemporaryFiles();
+    }
+  }
+
+  Future<void> _pickIcon() => _pickFile(['png'], (f) => widget.controller.setIcon(_current, f), 'Icon updated');
+
+  Future<void> _pickSplash() =>
+      _pickFile(['png'], (f) => widget.controller.setSplash(_current, f), 'Splash image updated');
+
+  Future<void> _pickOfflinePage() =>
+      _pickFile(['html', 'htm'], (f) => widget.controller.setOfflinePage(_current, f), 'Offline page added');
+
+  void _clearFile(ProjectHandle Function(ProjectHandle) clear) {
+    try {
+      _takeFileFields(clear(_current));
+    } on InvalidProjectException catch (e) {
+      _report(e);
     }
   }
 
@@ -280,6 +324,33 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               selected: {_m.orientation},
               onSelectionChanged: (s) => _change(_m.copyWith(orientation: s.single)),
             ),
+            const _Section('Appearance'),
+            _ColorField(label: 'Status bar colour', controller: _statusColor, onChanged: () => setState(() => _dirty = true)),
+            const SizedBox(height: 12),
+            _ColorField(label: 'Navigation bar colour', controller: _navColor, onChanged: () => setState(() => _dirty = true)),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Splash screen'),
+              subtitle: Text(_m.splashPath == null
+                  ? 'Shows the app icon until the first page has loaded.'
+                  : 'Shows your splash image until the first page has loaded.'),
+              value: _m.appearance.splashEnabled,
+              onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(splashEnabled: v))),
+            ),
+            if (_m.appearance.splashEnabled) ...[
+              _ColorField(label: 'Splash background', controller: _splashColor, onChanged: () => setState(() => _dirty = true)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                OutlinedButton.icon(
+                  onPressed: _pickSplash,
+                  icon: const Icon(Icons.image_outlined),
+                  label: Text(_m.splashPath == null ? 'Choose splash image' : 'Replace splash image'),
+                ),
+                if (_m.splashPath != null)
+                  TextButton(onPressed: () => _clearFile(widget.controller.clearSplash), child: const Text('Use app icon')),
+              ]),
+            ],
             const _Section('WebView'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -311,7 +382,44 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               onChanged: (v) => _change(_m.copyWith(
                   webView: _m.webView.copyWith(externalLinks: v ? ExternalLinkPolicy.browser : ExternalLinkPolicy.block))),
             ),
-            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Pull to refresh'),
+              subtitle: const Text('Swipe down at the top of a page to reload it, or to retry after an error.'),
+              value: _m.webView.pullToRefresh,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(pullToRefresh: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('File uploads'),
+              subtitle: const Text('Lets file inputs open Android\'s file picker. The user chooses each file.'),
+              value: _m.webView.fileUploads,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(fileUploads: v))),
+            ),
+            if (!local) ...[
+              const _Section('Offline'),
+              Text(
+                _m.offlineFallbackPage == null
+                    ? 'When the site cannot load, a built-in "Page unavailable" screen is shown.'
+                    : 'When the site cannot load, your page "${_m.offlineFallbackPage}" is shown. '
+                        'Link to https://appassets.androidplatform.net/html2apk/retry for a "Try again" button.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, children: [
+                OutlinedButton.icon(
+                  onPressed: _pickOfflinePage,
+                  icon: const Icon(Icons.cloud_off_outlined),
+                  label: Text(_m.offlineFallbackPage == null ? 'Choose offline page (.html)' : 'Replace offline page'),
+                ),
+                if (_m.offlineFallbackPage != null)
+                  TextButton(
+                    onPressed: () => _clearFile(widget.controller.clearOfflinePage),
+                    child: const Text('Use built-in page'),
+                  ),
+              ]),
+            ],
+            const SizedBox(height: 16),
             TextFormField(
               controller: _ua,
               decoration: const InputDecoration(labelText: 'User agent suffix (optional)', hintText: 'e.g. MyApp/1.0'),
@@ -337,6 +445,82 @@ List<String> _parseHosts(String text) => text
     .where((h) => h.isNotEmpty)
     .toSet()
     .toList();
+
+const _presetColors = [
+  '#000000', '#FFFFFF', '#12161F', '#1A73E8', '#0F9D58', '#D93025', '#F9AB00', '#6750A4', //
+];
+
+Color? _parseHex(String s) =>
+    isHexColor(s.trim()) ? Color(0xFF000000 | int.parse(s.trim().substring(1), radix: 16)) : null;
+
+/// Hex colour input with a live swatch and a row of presets.
+class _ColorField extends StatefulWidget {
+  const _ColorField({required this.label, required this.controller, required this.onChanged});
+
+  final String label;
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  @override
+  State<_ColorField> createState() => _ColorFieldState();
+}
+
+class _ColorFieldState extends State<_ColorField> {
+  void _set(String hex) {
+    widget.controller.text = hex;
+    widget.onChanged();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _parseHex(widget.controller.text);
+    final outline = Theme.of(context).colorScheme.outline;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextFormField(
+        controller: widget.controller,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                  color: current ?? Colors.transparent, shape: BoxShape.circle, border: Border.all(color: outline)),
+            ),
+          ),
+        ),
+        style: monoStyle(context, size: 14),
+        autocorrect: false,
+        validator: (v) => isHexColor((v ?? '').trim()) ? null : 'Use a colour like #1A73E8',
+        onChanged: (_) {
+          widget.onChanged();
+          setState(() {});
+        },
+      ),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, children: [
+        for (final hex in _presetColors)
+          InkWell(
+            onTap: () => _set(hex),
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: _parseHex(hex),
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: widget.controller.text.trim().toUpperCase() == hex ? Theme.of(context).colorScheme.primary : outline,
+                    width: widget.controller.text.trim().toUpperCase() == hex ? 3 : 1),
+              ),
+            ),
+          ),
+      ]),
+    ]);
+  }
+}
 
 class _Section extends StatelessWidget {
   const _Section(this.title);

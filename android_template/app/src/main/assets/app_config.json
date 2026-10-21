@@ -1,9 +1,22 @@
 {
   "schemaVersion": 1,
-  "source": { "type": "local", "entry": "index.html" },
+  "source": {
+    "type": "local",
+    "entry": "index.html"
+  },
   "javaScriptEnabled": true,
   "domStorageEnabled": true,
   "externalLinks": "browser",
   "allowedHosts": [],
-  "userAgentSuffix": null
+  "userAgentSuffix": null,
+  "pullToRefresh": false,
+  "fileUploads": true,
+  "offlinePage": null,
+  "statusBarColor": "#000000",
+  "navigationBarColor": "#000000",
+  "splash": {
+    "enabled": false,
+    "backgroundColor": "#FFFFFF",
+    "image": null
+  }
 }

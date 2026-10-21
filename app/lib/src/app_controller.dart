@@ -79,6 +79,17 @@ class AppController extends ChangeNotifier {
     return updated;
   }
 
+  ProjectHandle setSplash(ProjectHandle project, String pngPath) => _refreshAfter(store.setSplash(project, pngPath));
+  ProjectHandle clearSplash(ProjectHandle project) => _refreshAfter(store.clearSplash(project));
+  ProjectHandle setOfflinePage(ProjectHandle project, String htmlPath) =>
+      _refreshAfter(store.setOfflinePage(project, htmlPath));
+  ProjectHandle clearOfflinePage(ProjectHandle project) => _refreshAfter(store.clearOfflinePage(project));
+
+  ProjectHandle _refreshAfter(ProjectHandle project) {
+    refresh();
+    return project;
+  }
+
   void delete(ProjectHandle project) {
     store.delete(project);
     refresh();

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 /// Current version of the `project.json` schema written by this release.
-const int currentSchemaVersion = 1;
+const int currentSchemaVersion = 2;
 
 enum SourceType { local, url }
 
@@ -71,6 +71,8 @@ class WebViewSettings {
     this.externalLinks = ExternalLinkPolicy.browser,
     this.allowedHosts = const [],
     this.userAgentSuffix,
+    this.pullToRefresh = false,
+    this.fileUploads = true,
   });
 
   final bool javaScriptEnabled;
@@ -81,12 +83,20 @@ class WebViewSettings {
   final List<String> allowedHosts;
   final String? userAgentSuffix;
 
+  /// Swipe down at the top of a page to reload it (or retry after an error).
+  final bool pullToRefresh;
+
+  /// Lets `<input type="file">` open Android's file picker.
+  final bool fileUploads;
+
   Map<String, Object?> toJson() => {
         'javaScriptEnabled': javaScriptEnabled,
         'domStorageEnabled': domStorageEnabled,
         'externalLinks': externalLinks.name,
         'allowedHosts': allowedHosts,
         'userAgentSuffix': userAgentSuffix,
+        'pullToRefresh': pullToRefresh,
+        'fileUploads': fileUploads,
       };
 
   WebViewSettings copyWith({
@@ -95,6 +105,8 @@ class WebViewSettings {
     ExternalLinkPolicy? externalLinks,
     List<String>? allowedHosts,
     String? Function()? userAgentSuffix,
+    bool? pullToRefresh,
+    bool? fileUploads,
   }) =>
       WebViewSettings(
         javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
@@ -102,6 +114,8 @@ class WebViewSettings {
         externalLinks: externalLinks ?? this.externalLinks,
         allowedHosts: allowedHosts ?? this.allowedHosts,
         userAgentSuffix: userAgentSuffix != null ? userAgentSuffix() : this.userAgentSuffix,
+        pullToRefresh: pullToRefresh ?? this.pullToRefresh,
+        fileUploads: fileUploads ?? this.fileUploads,
       );
 
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
@@ -110,6 +124,53 @@ class WebViewSettings {
         externalLinks: ExternalLinkPolicy.values.byName(json['externalLinks'] as String? ?? 'browser'),
         allowedHosts: [...?(json['allowedHosts'] as List?)?.cast<String>()],
         userAgentSuffix: json['userAgentSuffix'] as String?,
+        pullToRefresh: json['pullToRefresh'] as bool? ?? false,
+        fileUploads: json['fileUploads'] as bool? ?? true,
+      );
+}
+
+/// System bar colours and the in-app splash screen. Colours are `#RRGGBB`.
+class AppearanceSettings {
+  const AppearanceSettings({
+    this.statusBarColor = '#000000',
+    this.navigationBarColor = '#000000',
+    this.splashEnabled = false,
+    this.splashBackgroundColor = '#FFFFFF',
+  });
+
+  final String statusBarColor;
+  final String navigationBarColor;
+
+  /// Shows a full-screen splash (the splash image, or the app icon) until
+  /// the first page has loaded.
+  final bool splashEnabled;
+  final String splashBackgroundColor;
+
+  Map<String, Object?> toJson() => {
+        'statusBarColor': statusBarColor,
+        'navigationBarColor': navigationBarColor,
+        'splashEnabled': splashEnabled,
+        'splashBackgroundColor': splashBackgroundColor,
+      };
+
+  factory AppearanceSettings.fromJson(Map<String, Object?> json) => AppearanceSettings(
+        statusBarColor: json['statusBarColor'] as String? ?? '#000000',
+        navigationBarColor: json['navigationBarColor'] as String? ?? '#000000',
+        splashEnabled: json['splashEnabled'] as bool? ?? false,
+        splashBackgroundColor: json['splashBackgroundColor'] as String? ?? '#FFFFFF',
+      );
+
+  AppearanceSettings copyWith({
+    String? statusBarColor,
+    String? navigationBarColor,
+    bool? splashEnabled,
+    String? splashBackgroundColor,
+  }) =>
+      AppearanceSettings(
+        statusBarColor: statusBarColor ?? this.statusBarColor,
+        navigationBarColor: navigationBarColor ?? this.navigationBarColor,
+        splashEnabled: splashEnabled ?? this.splashEnabled,
+        splashBackgroundColor: splashBackgroundColor ?? this.splashBackgroundColor,
       );
 }
 
@@ -124,6 +185,7 @@ class ProjectManifest {
     this.splashPath,
     this.orientation = Orientation.unspecified,
     this.webView = const WebViewSettings(),
+    this.appearance = const AppearanceSettings(),
     this.permissions = const [],
     this.internetAccess = false,
     this.offlineFallbackPage,
@@ -141,12 +203,15 @@ class ProjectManifest {
   final String? splashPath;
   final Orientation orientation;
   final WebViewSettings webView;
+  final AppearanceSettings appearance;
 
   /// Additional Android permissions explicitly requested by the user.
   final List<String> permissions;
 
   /// Network access for local projects. URL projects always require it.
   final bool internetAccess;
+
+  /// Page inside `source/` shown when a URL project cannot load, e.g. `offline.html`.
   final String? offlineFallbackPage;
   final List<String> buildProfiles;
   final List<String> exportFormats;
@@ -162,6 +227,7 @@ class ProjectManifest {
         'branding': {'icon': iconPath, 'splash': splashPath},
         'orientation': orientation.name,
         'webView': webView.toJson(),
+        'appearance': appearance.toJson(),
         'permissions': permissions,
         'network': {'internet': internetAccess},
         'offline': {'fallbackPage': offlineFallbackPage},
@@ -190,6 +256,7 @@ class ProjectManifest {
       splashPath: branding['splash'] as String?,
       orientation: Orientation.values.byName(json['orientation'] as String? ?? 'unspecified'),
       webView: WebViewSettings.fromJson((json['webView'] as Map?)?.cast() ?? const {}),
+      appearance: AppearanceSettings.fromJson((json['appearance'] as Map?)?.cast() ?? const {}),
       permissions: [...?(json['permissions'] as List?)?.cast<String>()],
       internetAccess: network['internet'] as bool? ?? false,
       offlineFallbackPage: offline['fallbackPage'] as String?,
@@ -198,15 +265,19 @@ class ProjectManifest {
     );
   }
 
+  /// Nullable fields take a function so they can be cleared: `splashPath: () => null`.
   ProjectManifest copyWith({
     String? name,
     ProjectSource? source,
     AndroidSettings? android,
     String? iconPath,
+    String? Function()? splashPath,
     Orientation? orientation,
     WebViewSettings? webView,
+    AppearanceSettings? appearance,
     List<String>? permissions,
     bool? internetAccess,
+    String? Function()? offlineFallbackPage,
   }) =>
       ProjectManifest(
         id: id,
@@ -214,12 +285,13 @@ class ProjectManifest {
         source: source ?? this.source,
         android: android ?? this.android,
         iconPath: iconPath ?? this.iconPath,
-        splashPath: splashPath,
+        splashPath: splashPath != null ? splashPath() : this.splashPath,
         orientation: orientation ?? this.orientation,
         webView: webView ?? this.webView,
+        appearance: appearance ?? this.appearance,
         permissions: permissions ?? this.permissions,
         internetAccess: internetAccess ?? this.internetAccess,
-        offlineFallbackPage: offlineFallbackPage,
+        offlineFallbackPage: offlineFallbackPage != null ? offlineFallbackPage() : this.offlineFallbackPage,
         buildProfiles: buildProfiles,
         exportFormats: exportFormats,
       );

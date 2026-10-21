@@ -23,6 +23,8 @@ data class AppSpec(
     val permissions: List<String>,
     val configJson: String,
     val iconPng: ByteArray?,
+    /** Written to assets/branding/splash.png when present. */
+    val splashPng: ByteArray? = null,
 )
 
 /** Metadata recorded when the base APK was built with Gradle. */
@@ -62,6 +64,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
                     val name = entry.name
                     when {
                         name.startsWith("assets/www/") -> continue
+                        name.startsWith("assets/branding/") -> continue
                         name == "assets/app_config.json" -> continue
                         name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") ||
                             name.endsWith(".EC") || name.endsWith(".DSA") || name == "META-INF/MANIFEST.MF") -> continue
@@ -78,6 +81,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
                     }
                 }
                 putBytes(zos, "assets/app_config.json", spec.configJson.toByteArray(), ZipEntry.DEFLATED)
+                spec.splashPng?.let { putBytes(zos, "assets/$SPLASH_ASSET", it, ZipEntry.STORED) }
                 timings.step("add website") {
                     for (f in site) putStream(zos, "assets/www/${f.path}", f.open)
                 }
@@ -148,6 +152,9 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
 
     companion object {
         const val MIN_SDK = 24
+
+        /** Must match AndroidGenerator.splashAssetPath on the Dart side. */
+        const val SPLASH_ASSET = "branding/splash.png"
         private const val MAX_FILES = 10_000
         private const val MAX_TOTAL_BYTES = 500L * 1024 * 1024
 

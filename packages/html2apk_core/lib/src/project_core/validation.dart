@@ -40,6 +40,8 @@ String? validateApplicationId(String id) {
   return null;
 }
 
+bool isHexColor(String s) => RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(s);
+
 /// Highest versionCode accepted by Google Play.
 const maxVersionCode = 2100000000;
 
@@ -75,6 +77,20 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
     if (!RegExp(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$').hasMatch(host)) {
       issues.add(ValidationIssue('webView.allowedHosts', 'Invalid host "$host"'));
     }
+  }
+  final a = m.appearance;
+  for (final (field, value) in [
+    ('appearance.statusBarColor', a.statusBarColor),
+    ('appearance.navigationBarColor', a.navigationBarColor),
+    ('appearance.splashBackgroundColor', a.splashBackgroundColor),
+  ]) {
+    if (!isHexColor(value)) issues.add(ValidationIssue(field, 'Use a colour like #1A73E8'));
+  }
+  final offline = m.offlineFallbackPage;
+  if (offline != null &&
+      (offline.isEmpty || offline.startsWith('/') || offline.contains('\\') || offline.split('/').contains('..') ||
+          !RegExp(r'\.html?$', caseSensitive: false).hasMatch(offline))) {
+    issues.add(const ValidationIssue('offline.fallbackPage', 'Must be an .html file inside source/'));
   }
   final ua = m.webView.userAgentSuffix;
   if (ua != null && (ua.length > 200 || ua.contains(RegExp(r'[\x00-\x1f]')))) {

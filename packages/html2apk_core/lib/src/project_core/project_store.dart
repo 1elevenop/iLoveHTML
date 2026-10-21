@@ -27,6 +27,7 @@ class ProjectHandle {
   String get brandingDir => p.join(directory, 'branding');
   String get exportsDir => p.join(directory, 'exports');
   String? get iconFile => manifest.iconPath == null ? null : p.join(directory, manifest.iconPath!);
+  String? get splashFile => manifest.splashPath == null ? null : p.join(directory, manifest.splashPath!);
 
   /// Default location for a debug APK of the current version.
   String get debugApkPath =>
@@ -133,6 +134,10 @@ class ProjectStore {
       throw InvalidProjectException(
           [ValidationIssue('source.entry', 'Entry file "${manifest.source.entry}" does not exist')]);
     }
+    final offline = manifest.offlineFallbackPage;
+    if (offline != null && !File(p.join(project.sourceDir, offline)).existsSync()) {
+      throw InvalidProjectException([ValidationIssue('offline.fallbackPage', 'Offline page "$offline" does not exist')]);
+    }
     final updated = project.withManifest(manifest);
     save(updated);
     return updated;
@@ -182,6 +187,59 @@ class ProjectStore {
     return update(project, project.manifest.copyWith(iconPath: 'branding/icon.png'));
   }
 
+  static const maxSplashPixels = 4096;
+  static const maxSplashBytes = 2 * 1024 * 1024;
+
+  /// Copies a PNG into `branding/splash.png` and saves the manifest.
+  ProjectHandle setSplash(ProjectHandle project, String pngPath) {
+    final bytes = File(pngPath).readAsBytesSync();
+    final info = readPngInfo(bytes);
+    if (info == null) {
+      throw InvalidProjectException([const ValidationIssue('branding.splash', 'Splash image must be a PNG file')]);
+    }
+    if (bytes.length > maxSplashBytes || info.width > maxSplashPixels || info.height > maxSplashPixels) {
+      throw InvalidProjectException([const ValidationIssue('branding.splash',
+          'Splash image must be at most $maxSplashPixels px per side and 2 MB')]);
+    }
+    Directory(project.brandingDir).createSync(recursive: true);
+    File(p.join(project.brandingDir, 'splash.png')).writeAsBytesSync(bytes);
+    return update(project, project.manifest.copyWith(splashPath: () => 'branding/splash.png'));
+  }
+
+  ProjectHandle clearSplash(ProjectHandle project) {
+    final f = File(p.join(project.brandingDir, 'splash.png'));
+    if (f.existsSync()) f.deleteSync();
+    return update(project, project.manifest.copyWith(splashPath: () => null));
+  }
+
+  static const offlinePageName = 'offline.html';
+  static const maxOfflinePageBytes = 2 * 1024 * 1024;
+
+  /// Copies a single, self-contained HTML file into `source/offline.html`
+  /// and uses it as the page shown when a URL app cannot load.
+  ProjectHandle setOfflinePage(ProjectHandle project, String htmlPath) {
+    final file = File(htmlPath);
+    if (file.lengthSync() > maxOfflinePageBytes) {
+      throw InvalidProjectException([const ValidationIssue('offline.fallbackPage', 'Offline page must be at most 2 MB')]);
+    }
+    final text = file.readAsStringSync();
+    if (!RegExp(r'<(html|body|!doctype)', caseSensitive: false).hasMatch(text)) {
+      throw InvalidProjectException([const ValidationIssue('offline.fallbackPage', 'That file does not look like HTML')]);
+    }
+    Directory(project.sourceDir).createSync(recursive: true);
+    File(p.join(project.sourceDir, offlinePageName)).writeAsStringSync(text);
+    return update(project, project.manifest.copyWith(offlineFallbackPage: () => offlinePageName));
+  }
+
+  ProjectHandle clearOfflinePage(ProjectHandle project) {
+    final page = project.manifest.offlineFallbackPage;
+    if (page != null && project.manifest.source.type == SourceType.url) {
+      final f = File(p.join(project.sourceDir, page));
+      if (f.existsSync()) f.deleteSync();
+    }
+    return update(project, project.manifest.copyWith(offlineFallbackPage: () => null));
+  }
+
   static const _historyLimit = 50;
 
   List<BuildRecord> buildHistory(ProjectHandle project) {
@@ -211,7 +269,7 @@ class ProjectStore {
       name: name,
       source: ProjectSource.url(url),
       android: AndroidSettings(applicationId: applicationId),
-      webView: WebViewSettings(allowedHosts: allowedHosts),
+      webView: WebViewSettings(allowedHosts: allowedHosts, pullToRefresh: true),
     );
     final errors = validateManifest(manifest).where((i) => i.severity == IssueSeverity.error).toList();
     if (errors.isNotEmpty) throw InvalidProjectException(errors);

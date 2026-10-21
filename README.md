@@ -14,14 +14,19 @@ an Android WebView app, built entirely on the local machine.
   Share. Builds run on the phone without Gradle
   ([ADR 0002](docs/adr/0002-android-on-device-build.md)).
 - **Generated apps:** loading bar, offline error page with a "Try again"
-  that works without JavaScript, `example.com`/`www.example.com` treated as
-  one site, other sites opened in the browser.
+  that works without JavaScript (or your own offline page for URL apps),
+  `example.com`/`www.example.com` treated as one site, other sites opened
+  in the browser, status/navigation bar colours with readable icons,
+  optional splash screen (your image or the app icon), pull-to-refresh
+  (also retries after an error), and file uploads through Android's
+  file picker.
+- **Project format:** `project.json` schema 2; schema-1 projects are
+  upgraded automatically when loaded.
 - **Windows:** the same pipeline through the CLI (ZIP → generated Gradle
   project → local `assembleDebug`). The Flutter desktop UI is not built
   yet (see Requirements).
-- Not built yet: bar colours, splash screen, offline fallback page,
-  pull-to-refresh, file upload, release signing, AAB, SQLite index,
-  templates.
+- Not built yet: release signing, AAB, camera/location and other native
+  features, SQLite index, templates.
 
 ## Layout
 

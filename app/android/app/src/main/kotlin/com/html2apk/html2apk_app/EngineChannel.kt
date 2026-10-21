@@ -74,6 +74,7 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         val sourceDir = insideWorkspace(call.argument<String>("sourceDir")!!)
         val output = insideWorkspace(call.argument<String>("outputPath")!!)
         val iconPath = call.argument<String>("iconPath")
+        val splashPath = call.argument<String>("splashPath")
         val spec = AppSpec(
             applicationId = call.argument<String>("applicationId")!!,
             label = call.argument<String>("label")!!,
@@ -83,6 +84,7 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
             permissions = call.argument<List<String>>("permissions")!!,
             configJson = call.argument<String>("configJson")!!,
             iconPng = iconPath?.let { insideWorkspace(it).readBytes() },
+            splashPng = splashPath?.let { insideWorkspace(it).readBytes() },
         )
         val timings = ApkAssembler.Timings()
         val work = File(activity.cacheDir, "assembler").apply { deleteRecursively(); mkdirs() }
