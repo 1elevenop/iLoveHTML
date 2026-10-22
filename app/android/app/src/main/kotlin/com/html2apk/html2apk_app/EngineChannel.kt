@@ -14,6 +14,7 @@ import com.html2apk.engine.AppSpec
 import com.html2apk.engine.BaseInfo
 import com.html2apk.engine.DeviceSigningKey
 import com.html2apk.engine.SigningKeyStore
+import com.html2apk.engine.bundle.BundleAssembler
 import com.html2apk.engine.signing.DistinguishedName
 import com.html2apk.engine.signing.KeystoreException
 import com.html2apk.engine.signing.ReleaseKeystore
@@ -35,8 +36,8 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
     private val workspace: File get() = File(activity.filesDir, "workspace").canonicalFile
     private val keys by lazy { SigningKeyStore(File(activity.filesDir, "signing")) }
 
-    /** Export waiting for the user to pick a destination in the system "save" screen. */
-    private var pendingExport: Pair<ByteArray, MethodChannel.Result>? = null
+    /** Save waiting for the user to pick a destination in the system "save" screen. */
+    private var pendingSave: Pair<() -> java.io.InputStream, MethodChannel.Result>? = null
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
@@ -59,6 +60,10 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                     }
                 }
                 "keysExport" -> exportKey(call.argument<String>("id")!!, result)
+                "saveFile" -> {
+                    val file = insideWorkspace(call.argument<String>("path")!!)
+                    saveAs(file.name, call.argument<String>("mimeType")!!, { file.inputStream() }, result)
+                }
                 "installApk" -> result.success(install(insideWorkspace(call.argument<String>("path")!!)))
                 "shareApk" -> { share(insideWorkspace(call.argument<String>("path")!!)); result.success(null) }
                 else -> result.notImplemented()
@@ -113,10 +118,13 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                 activity.assets.open("base/base.apk").use { i -> base.outputStream().use { i.copyTo(it) } }
             }
             val site = timings.step("list website") { ApkAssembler.websiteFromDirectory(sourceDir) }
+            val releaseKeyId = call.argument<String>("signingKeyId")
+            if (call.argument<String>("format") == "aab") {
+                return assembleBundle(work, site, spec, releaseKeyId, output, info, timings)
+            }
             val unsigned = File(work, "unsigned.apk")
             val assembler = ApkAssembler(base, info)
             timings.step("assemble") { assembler.assembleUnsigned(site, spec, unsigned, timings) }
-            val releaseKeyId = call.argument<String>("signingKeyId")
             val (key, chain) = timings.step("signing key") {
                 if (releaseKeyId != null) keys.unlock(releaseKeyId).let { it.key to it.chain }
                 else DeviceSigningKey.getOrCreate(DEBUG_KEY_ALIAS, "HTML2APK Debug (on-device)").let { it.first to listOf(it.second) }
@@ -143,6 +151,44 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         } finally {
             work.deleteRecursively()
         }
+    }
+
+    /** Release App Bundle for Google Play: same inputs as an APK, JAR-signed with the release key. */
+    private fun assembleBundle(
+        work: File,
+        site: List<com.html2apk.engine.WebsiteFile>,
+        spec: AppSpec,
+        releaseKeyId: String?,
+        output: File,
+        info: BaseInfo,
+        timings: ApkAssembler.Timings,
+    ): Map<String, Any?> {
+        requireNotNull(releaseKeyId) { "App Bundles are for publishing and need a release key" }
+        val base = File(work, "base.aab")
+        timings.step("extract base") {
+            activity.assets.open("base/base.aab").use { i -> base.outputStream().use { i.copyTo(it) } }
+        }
+        val assembler = BundleAssembler(base, info.basePackage)
+        val unsigned = File(work, "unsigned.aab")
+        timings.step("assemble") { assembler.assembleUnsigned(site, spec, unsigned, timings) }
+        val key = timings.step("signing key") { keys.unlock(releaseKeyId) }
+        output.parentFile?.mkdirs()
+        val tmp = File(output.path + ".tmp")
+        assembler.sign(unsigned, tmp, key.key, key.chain, timings)
+        val signer = timings.step("verify") { assembler.verify(tmp) }
+        check(ReleaseKeystore.fingerprint(signer) == ReleaseKeystore.fingerprint(key.certificate)) { "Bundle signed by an unexpected key" }
+        if (!tmp.renameTo(output)) { output.delete(); check(tmp.renameTo(output)) { "Could not write output" } }
+        return mapOf(
+            "outputPath" to output.path,
+            "bytes" to output.length(),
+            "files" to site.size,
+            "timingsMs" to timings.steps.mapValues { it.value.toInt() },
+            "signer" to signer.subjectX500Principal.name,
+            "signerSha256" to ReleaseKeystore.fingerprint(signer),
+            "v2" to false,
+            "v3" to false,
+            "v1" to true,
+        )
     }
 
     private fun keyOperation(call: MethodCall): Any? {
@@ -182,12 +228,18 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
     /** Opens the system "save as" screen; the keystore is written where the user chooses. */
     private fun exportKey(id: String, result: MethodChannel.Result) {
         val info = keys.info(id)
-        pendingExport?.second?.error("CANCELLED", "Another export started", null)
-        pendingExport = keys.exportBytes(id) to result
+        val bytes = keys.exportBytes(id)
+        saveAs("${info.alias}.jks", "application/octet-stream", { bytes.inputStream() }, result)
+    }
+
+    /** Lets the user choose where to save a file (e.g. Downloads or Drive). Result: the URI, or null if cancelled. */
+    private fun saveAs(name: String, mimeType: String, source: () -> java.io.InputStream, result: MethodChannel.Result) {
+        pendingSave?.second?.error("CANCELLED", "Another save started", null)
+        pendingSave = source to result
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType("application/octet-stream")
-            .putExtra(Intent.EXTRA_TITLE, "${info.alias}.jks")
+            .setType(mimeType)
+            .putExtra(Intent.EXTRA_TITLE, name)
         @Suppress("DEPRECATION")
         activity.startActivityForResult(intent, REQUEST_EXPORT)
     }
@@ -195,8 +247,8 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
     /** Called from MainActivity. Returns true when the result belonged to this channel. */
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode != REQUEST_EXPORT) return false
-        val (bytes, result) = pendingExport ?: return true
-        pendingExport = null
+        val (source, result) = pendingSave ?: return true
+        pendingSave = null
         val uri = data?.data
         if (resultCode != Activity.RESULT_OK || uri == null) {
             result.success(null)
@@ -204,7 +256,7 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         }
         executor.execute {
             val reply = runCatching {
-                activity.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) }
+                activity.contentResolver.openOutputStream(uri, "wt")!!.use { out -> source().use { it.copyTo(out) } }
                 uri.toString()
             }
             main.post { reply.fold(result::success) { result.error("EXPORT_FAILED", it.message ?: it.toString(), null) } }

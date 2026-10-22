@@ -30,8 +30,12 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
     CancellationToken? cancel,
     BuildVariant variant = BuildVariant.debug,
     ReleaseSigning? signing,
+    ArtifactFormat format = ArtifactFormat.apk,
   }) async {
     final sw = Stopwatch()..start();
+    if (format == ArtifactFormat.aab && variant != BuildVariant.release) {
+      return BuildResult(BuildStatus.failed, message: 'App Bundles are release-only', duration: sw.elapsed);
+    }
     final env = <String, String>{};
     if (variant == BuildVariant.release) {
       if (signing is! KeystoreFileSigning) {
@@ -56,14 +60,24 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
     }
     log('Generated Android project: $projectDir');
     final result = await GradleProcessBuildAdapter(toolchain)
-        .build(BuildRequest(projectDir: projectDir, variant: variant, environment: env), log: log, cancel: cancel);
+        .build(BuildRequest(projectDir: projectDir, variant: variant, format: format, environment: env),
+            log: log, cancel: cancel);
     if (result.status != BuildStatus.succeeded) return result;
     File(outputPath).parent.createSync(recursive: true);
     File(result.artifactPath!).copySync(outputPath);
 
     String? signer;
     final apksigner = toolchain.apksigner;
-    if (apksigner != null) {
+    if (format == ArtifactFormat.aab) {
+      // Bundles carry a JAR signature; keytool prints its certificate.
+      final keytool = p.join(toolchain.javaHome, 'bin', Platform.isWindows ? 'keytool.exe' : 'keytool');
+      final r = await Process.run(keytool, ['-printcert', '-jarfile', outputPath]);
+      signer = RegExp(r'SHA256: ([0-9A-F:]{95})').firstMatch('${r.stdout}')?.group(1);
+      if (r.exitCode != 0 || signer == null) {
+        return BuildResult(BuildStatus.failed, message: 'App Bundle is not signed: ${r.stdout}'.trim(), duration: sw.elapsed);
+      }
+      log('Signed by certificate SHA-256 $signer');
+    } else if (apksigner != null) {
       final verify = await Process.run(apksigner, ['verify', '--print-certs', outputPath],
           environment: {'JAVA_HOME': toolchain.javaHome}, runInShell: Platform.isWindows);
       if (verify.exitCode != 0) {

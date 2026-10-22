@@ -92,8 +92,9 @@ abstract interface class ProjectBuildEngine {
   /// Short identifier stored in build history, e.g. `gradle` or `on-device`.
   String get id;
 
-  /// Writes an APK for [project] to [outputPath]: debug-signed, or for
-  /// [BuildVariant.release] signed with [signing], which is then required.
+  /// Writes an APK or AAB for [project] to [outputPath]: debug-signed, or
+  /// for [BuildVariant.release] signed with [signing], which is then
+  /// required. App Bundles ([ArtifactFormat.aab]) are release-only.
   Future<BuildResult> buildProject(
     ProjectHandle project, {
     required String outputPath,
@@ -101,6 +102,7 @@ abstract interface class ProjectBuildEngine {
     CancellationToken? cancel,
     BuildVariant variant = BuildVariant.debug,
     ReleaseSigning? signing,
+    ArtifactFormat format = ArtifactFormat.apk,
   });
 }
 

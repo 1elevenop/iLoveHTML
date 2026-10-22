@@ -59,8 +59,12 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
     CancellationToken? cancel,
     BuildVariant variant = BuildVariant.debug,
     ReleaseSigning? signing,
+    ArtifactFormat format = ArtifactFormat.apk,
   }) async {
     final sw = Stopwatch()..start();
+    if (format == ArtifactFormat.aab && variant != BuildVariant.release) {
+      return BuildResult(BuildStatus.failed, message: 'App Bundles are release-only', duration: sw.elapsed);
+    }
     final m = project.manifest;
     final errors = validateManifest(m).where((i) => i.severity == IssueSeverity.error).toList();
     if (errors.isNotEmpty) {
@@ -71,7 +75,7 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
     }
     final releaseKey = signing is DeviceKeySigning ? signing.key : null;
     final permissions = AndroidGenerator.permissionsFor(m);
-    log('Engine: on-device assembly (${variant.name})');
+    log('Engine: on-device assembly (${variant.name} ${format.name.toUpperCase()})');
     log('Package ${m.android.applicationId} ${m.android.versionName} (${m.android.versionCode})');
     if (permissions.isNotEmpty) log('Permissions: ${permissions.join(', ')}');
     if (releaseKey != null) log('Release key: ${releaseKey.alias} (${releaseKey.shortSha256})');
@@ -89,11 +93,14 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
         'iconPath': project.iconFile,
         'splashPath': project.splashFile,
         'signingKeyId': releaseKey?.id,
+        'format': format.name,
       });
       final timings = (r!['timingsMs'] as Map).cast<String, int>();
       log('Website files: ${r['files']}');
       timings.forEach((step, ms) => log('  $step: $ms ms'));
-      log('Signed by ${r['signer']} (v2: ${r['v2']}, v3: ${r['v3']}), verified');
+      log(format == ArtifactFormat.aab
+          ? 'Signed by ${r['signer']} (JAR v1, as Google Play requires for bundles), verified'
+          : 'Signed by ${r['signer']} (v2: ${r['v2']}, v3: ${r['v3']}), verified');
       log('Certificate SHA-256: ${r['signerSha256']}');
       log('Output: ${r['outputPath']} (${r['bytes']} bytes)');
       return BuildResult(BuildStatus.succeeded,
@@ -110,6 +117,12 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
       await _channel.invokeMethod<String>('installApk', {'path': apkPath}) == 'started';
 
   Future<void> share(String apkPath) => _channel.invokeMethod('shareApk', {'path': apkPath});
+
+  /// Lets the user save a built file (e.g. to Downloads or Drive). Returns null if cancelled.
+  Future<String?> saveFile(String path) => _channel.invokeMethod<String>('saveFile', {
+        'path': path,
+        'mimeType': path.endsWith('.aab') ? 'application/octet-stream' : 'application/vnd.android.package-archive',
+      });
 
   // ---- Release keys. Errors arrive as PlatformException with a readable message.
 

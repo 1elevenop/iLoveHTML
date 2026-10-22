@@ -11,11 +11,13 @@ kotlin {
 sourceSets {
     main {
         kotlin.setSrcDirs(listOf("src/main/kotlin"))
-        kotlin.include("com/html2apk/engine/signing/**")
+        // Everything except the parts that need the Android framework.
+        kotlin.exclude("com/html2apk/engine/SigningKeyStore.kt", "com/html2apk/engine/DeviceSigningKey.kt")
     }
 }
 
 dependencies {
+    implementation("com.android.tools.build:apksig:9.4.1")
     testImplementation(kotlin("test"))
 }
 

@@ -105,7 +105,9 @@ class AppController extends ChangeNotifier {
   /// first successful release, the signing certificate is remembered in the
   /// project so later releases can be checked against it.
   Future<BuildResult> build(ProjectHandle project, BuildLogSink log,
-      {BuildVariant variant = BuildVariant.debug, ReleaseSigning? signing}) async {
+      {BuildVariant variant = BuildVariant.debug,
+      ReleaseSigning? signing,
+      ArtifactFormat format = ArtifactFormat.apk}) async {
     final engine = this.engine;
     if (engine == null) {
       return const BuildResult(BuildStatus.failed,
@@ -120,10 +122,13 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await engine.buildProject(project,
-          outputPath: release ? project.releaseApkPath : project.debugApkPath,
+          outputPath: format == ArtifactFormat.aab
+              ? project.releaseAabPath
+              : (release ? project.releaseApkPath : project.debugApkPath),
           log: log,
           variant: variant,
-          signing: signing);
+          signing: signing,
+          format: format);
       final artifact = result.artifactPath;
       store.recordBuild(
         project,
@@ -139,6 +144,7 @@ class AppController extends ChangeNotifier {
           message: result.message,
           variant: variant.name,
           signerSha256: result.signerSha256,
+          format: format.name,
         ),
       );
       if (release && result.status == BuildStatus.succeeded && project.manifest.releaseCertSha256 == null) {

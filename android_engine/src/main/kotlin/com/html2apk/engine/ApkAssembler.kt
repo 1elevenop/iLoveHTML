@@ -50,13 +50,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
 
     /** Writes an unsigned APK with [site] and [spec] applied. */
     fun assembleUnsigned(site: List<WebsiteFile>, spec: AppSpec, out: File, timings: Timings) {
-        val paths = HashSet<String>()
-        for (f in site) {
-            val normalized = normalize(f.path) ?: throw IllegalArgumentException("Unsafe path: ${f.path}")
-            require(normalized == f.path) { "Path not normalized: ${f.path}" }
-            require(paths.add(f.path.lowercase())) { "Duplicate: ${f.path}" }
-        }
-        require(site.size <= MAX_FILES && site.sumOf { it.size } <= MAX_TOTAL_BYTES) { "Website too large" }
+        validateWebsite(site)
 
         ZipFile(base).use { zip ->
             ZipOutputStream(out.outputStream().buffered()).use { zos ->
@@ -157,6 +151,17 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         const val SPLASH_ASSET = "branding/splash.png"
         private const val MAX_FILES = 10_000
         private const val MAX_TOTAL_BYTES = 500L * 1024 * 1024
+
+        /** Rejects unsafe, duplicate (case-insensitive) or oversized website file sets. */
+        fun validateWebsite(site: List<WebsiteFile>) {
+            val paths = HashSet<String>()
+            for (f in site) {
+                val normalized = normalize(f.path) ?: throw IllegalArgumentException("Unsafe path: ${f.path}")
+                require(normalized == f.path) { "Path not normalized: ${f.path}" }
+                require(paths.add(f.path.lowercase())) { "Duplicate: ${f.path}" }
+            }
+            require(site.size <= MAX_FILES && site.sumOf { it.size } <= MAX_TOTAL_BYTES) { "Website too large" }
+        }
 
         /** Lists a website directory as normalized relative paths. */
         fun websiteFromDirectory(root: File): List<WebsiteFile> =

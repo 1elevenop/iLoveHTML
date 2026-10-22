@@ -6,13 +6,14 @@ import 'package:path/path.dart' as p;
 const _usage = '''
 Usage: dart run html2apk_core:html2apk --zip <site.zip> --name <App name> --id <com.example.app>
          [--icon <icon.png>] [--workspace <dir>] [--template <dir>] [--out <dir>]
-         [--release --keystore <file.jks> --alias <alias>]
+         [--release --keystore <file.jks> --alias <alias> [--aab]]
 
 Imports a website ZIP, generates the Android wrapper project and builds a
 debug APK locally with Gradle. With --release the APK is signed with the
 given keystore; passwords are read from the environment variables
 HTML2APK_KEYSTORE_PASSWORD and HTML2APK_KEY_PASSWORD (defaults to the
-keystore password), never from the command line.''';
+keystore password), never from the command line. --aab builds an App
+Bundle for Google Play instead of an APK.''';
 
 Future<void> main(List<String> args) async {
   final opts = <String, String>{};
@@ -22,6 +23,12 @@ Future<void> main(List<String> args) async {
     opts[args[i].substring(2)] = hasValue ? args[++i] : 'true';
   }
   final release = opts['release'] == 'true';
+  final aab = opts['aab'] == 'true';
+  if (aab && !release) {
+    stderr.writeln('--aab needs --release (App Bundles are for publishing).');
+    exitCode = 64;
+    return;
+  }
   ReleaseSigning? signing;
   if (release) {
     final keystore = opts['keystore'], alias = opts['alias'];
@@ -78,7 +85,7 @@ Future<void> main(List<String> args) async {
   final buildsDir = p.join(workspace, 'builds');
   final engine = GradleProjectBuildEngine(toolchain: toolchain, templateDir: template, buildsDir: buildsDir);
   final outDir = opts['out'];
-  final apkPath = release ? project.releaseApkPath : project.debugApkPath;
+  final apkPath = aab ? project.releaseAabPath : (release ? project.releaseApkPath : project.debugApkPath);
   final dest = outDir == null ? apkPath : p.join(outDir, p.basename(apkPath));
 
   Directory(p.join(buildsDir, project.manifest.id)).createSync(recursive: true);
@@ -91,6 +98,7 @@ Future<void> main(List<String> args) async {
     cancel: cancel,
     variant: release ? BuildVariant.release : BuildVariant.debug,
     signing: signing,
+    format: aab ? ArtifactFormat.aab : ArtifactFormat.apk,
     log: (line) {
       logFile.writeln(line);
       if (line.startsWith('> Task') || line.contains('BUILD') || line.contains('error') ||
@@ -113,6 +121,7 @@ Future<void> main(List<String> args) async {
     message: result.message,
     variant: release ? 'release' : 'debug',
     signerSha256: result.signerSha256,
+    format: aab ? 'aab' : 'apk',
   ));
 
   stdout.writeln('Status: ${result.status.name} in ${result.duration.inSeconds}s');
@@ -121,5 +130,5 @@ Future<void> main(List<String> args) async {
     exitCode = 1;
     return;
   }
-  stdout.writeln('APK: $dest (${File(dest).lengthSync()} bytes)');
+  stdout.writeln('${aab ? 'AAB' : 'APK'}: $dest (${File(dest).lengthSync()} bytes)');
 }

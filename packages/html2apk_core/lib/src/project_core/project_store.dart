@@ -38,6 +38,10 @@ class ProjectHandle {
   String get releaseApkPath =>
       p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-release.apk');
 
+  /// Default location for a release App Bundle (Google Play upload) of the current version.
+  String get releaseAabPath =>
+      p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-release.aab');
+
   ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
 }
 
@@ -62,6 +66,7 @@ class BuildRecord {
     this.message,
     this.variant = 'debug',
     this.signerSha256,
+    this.format = 'apk',
   });
 
   final DateTime time;
@@ -80,6 +85,9 @@ class BuildRecord {
   final String variant;
   final String? signerSha256;
 
+  /// `apk` or `aab`.
+  final String format;
+
   bool get succeeded => status == 'succeeded';
   bool get isRelease => variant == 'release';
 
@@ -95,6 +103,7 @@ class BuildRecord {
         'message': message,
         'variant': variant,
         'signerSha256': signerSha256,
+        'format': format,
       };
 
   factory BuildRecord.fromJson(Map<String, Object?> j) => BuildRecord(
@@ -109,6 +118,7 @@ class BuildRecord {
         message: j['message'] as String?,
         variant: j['variant'] as String? ?? 'debug',
         signerSha256: j['signerSha256'] as String?,
+        format: j['format'] as String? ?? 'apk',
       );
 }
 

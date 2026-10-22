@@ -51,7 +51,7 @@ flutter {
 android {
     androidResources {
         // The prebuilt base APK is already compressed.
-        noCompress += "apk"
+        noCompress += listOf("apk", "aab")
     }
     // Shared on-device engine sources (ADR 0002), also used by the prototype.
     sourceSets.getByName("main").java.srcDir("../../../android_engine/src/main/kotlin")

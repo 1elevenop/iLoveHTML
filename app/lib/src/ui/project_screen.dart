@@ -562,6 +562,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
   bool get _building => widget.controller.building.contains(widget.project.manifest.id);
 
   BuildVariant _variant = BuildVariant.debug;
+  ArtifactFormat _format = ArtifactFormat.apk;
   List<SigningKey>? _keys;
   String? _keyId;
 
@@ -625,8 +626,20 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
       },
       variant: _variant,
       signing: release ? DeviceKeySigning(key!) : null,
+      format: release ? _format : ArtifactFormat.apk,
     );
     if (mounted) setState(() => _result = result);
+  }
+
+  Future<void> _save(String path) async {
+    try {
+      final where = await widget.controller.engine!.saveFile(path);
+      if (mounted && where != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved ${p.basename(path)}')));
+      }
+    } on PlatformException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: ${e.message}')));
+    }
   }
 
   Future<void> _openKeys() async {
@@ -690,6 +703,22 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                       'and a higher version code.',
                       style: t.bodySmall),
                   const SizedBox(height: 12),
+                  SegmentedButton<ArtifactFormat>(
+                    segments: const [
+                      ButtonSegment(value: ArtifactFormat.apk, label: Text('APK')),
+                      ButtonSegment(value: ArtifactFormat.aab, label: Text('App Bundle (Play)')),
+                    ],
+                    selected: {_format},
+                    onSelectionChanged: (s) => setState(() => _format = s.single),
+                  ),
+                  if (_format == ArtifactFormat.aab)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('Upload the .aab to Google Play Console. It cannot be installed directly; '
+                          'use an APK to test on a phone.',
+                          style: t.bodySmall),
+                    ),
+                  const SizedBox(height: 12),
                   if (_keys == null)
                     const LinearProgressIndicator()
                   else if (_keys!.isEmpty)
@@ -725,9 +754,11 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                   icon: const Icon(Icons.play_arrow),
                   label: Text(_building
                       ? 'Building…'
-                      : _variant == BuildVariant.release
-                          ? 'Build release APK'
-                          : 'Build debug APK'),
+                      : _variant == BuildVariant.debug
+                          ? 'Build debug APK'
+                          : _format == ArtifactFormat.aab
+                              ? 'Build App Bundle'
+                              : 'Build release APK'),
                 ),
                 if (widget.controller.engine == null)
                   Padding(
@@ -767,10 +798,16 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                   Text(formatBytes(File(apkPath).lengthSync()), style: t.bodySmall),
                   const SizedBox(height: 12),
                   Wrap(spacing: 8, runSpacing: 8, children: [
-                    FilledButton.tonalIcon(
-                      onPressed: () => _install(apkPath),
-                      icon: const Icon(Icons.install_mobile),
-                      label: const Text('Install'),
+                    if (!apkPath.endsWith('.aab'))
+                      FilledButton.tonalIcon(
+                        onPressed: () => _install(apkPath),
+                        icon: const Icon(Icons.install_mobile),
+                        label: const Text('Install'),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () => _save(apkPath),
+                      icon: const Icon(Icons.save_alt),
+                      label: const Text('Save to device'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => widget.controller.engine!.share(apkPath),
@@ -802,7 +839,8 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
               dense: true,
               leading: Icon(b.succeeded ? Icons.check_circle_outline : Icons.highlight_off,
                   color: b.succeeded ? scheme.primary : scheme.error),
-              title: Text('v${b.versionName ?? '?'} (${b.versionCode ?? '?'}) · ${b.variant} · ${b.status} · ${b.durationMs} ms'),
+              title: Text('v${b.versionName ?? '?'} (${b.versionCode ?? '?'}) · ${b.variant} ${b.format.toUpperCase()} · '
+                  '${b.status} · ${b.durationMs} ms'),
               subtitle: Text('${_fmtTime(b.time)}${b.bytes == null ? '' : ' · ${formatBytes(b.bytes!)}'}'
                   '${b.message == null ? '' : '\n${b.message}'}'),
             ),

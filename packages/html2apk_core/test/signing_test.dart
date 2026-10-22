@@ -81,6 +81,23 @@ void main() {
     expect(missing.message, contains('Keystore not found'));
   });
 
+  test('App Bundles are release-only and recorded as aab', () async {
+    final pr = await project();
+    final engine = GradleProjectBuildEngine(
+      toolchain: const Toolchain(javaHome: 'x', androidSdk: 'x'),
+      templateDir: 'x',
+      buildsDir: p.join(tmp.path, 'b'),
+    );
+    final debugAab = await engine.buildProject(pr, outputPath: 'o.aab', log: (_) {}, format: ArtifactFormat.aab);
+    expect(debugAab.message, contains('release-only'));
+    expect(pr.releaseAabPath, endsWith('com.example.a-1.0.0-release.aab'));
+    expect(const BuildRequest(projectDir: '.', variant: BuildVariant.release, format: ArtifactFormat.aab).gradleTask,
+        'bundleRelease');
+    store.recordBuild(pr, BuildRecord(
+        time: DateTime.now(), engine: 'x', status: 'succeeded', durationMs: 1, variant: 'release', format: 'aab'));
+    expect(store.buildHistory(pr).single.format, 'aab');
+  });
+
   test('signing passwords are redacted from logs', () {
     expect(redactSecrets('HTML2APK_KEYSTORE_PASSWORD=hunter22'), isNot(contains('hunter22')));
     expect(redactSecrets('storePassword: s3cret'), isNot(contains('s3cret')));

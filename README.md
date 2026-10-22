@@ -32,8 +32,13 @@ an Android WebView app, built entirely on the local machine.
   build release APKs. The same backup signs on Windows:
   `--release --keystore upload.jks --alias upload` with the password in
   `HTML2APK_KEYSTORE_PASSWORD`.
-- Not built yet: AAB, camera/location and other native features, SQLite
-  index, templates.
+- **App Bundles for Google Play** ([ADR 0005](docs/adr/0005-app-bundles.md)):
+  release `.aab` built on the phone (Build → Release → App Bundle, then
+  Save to device) or on Windows (`--release --aab --keystore … --alias …`).
+  Validate with `java -jar .tools/bundletool.jar validate --bundle app.aab`
+  (bundletool is downloaded to `.tools/`, not committed).
+- Not built yet: camera/location and other native features, SQLite index,
+  templates.
 
 ## Layout
 
