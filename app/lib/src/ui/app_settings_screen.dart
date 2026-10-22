@@ -15,7 +15,7 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   late final Future<Map<String, Object?>> _engineInfo =
-      widget.controller.engine?.info() ?? Future.value(const {});
+      widget.controller.deviceEngine?.info() ?? Future.value(widget.controller.desktopEngine?.info() ?? const {});
   late final int _storage = widget.controller.storageBytes();
 
   @override
@@ -41,7 +41,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               onSelectionChanged: (s) => c.setThemeMode(s.single),
             ),
             const SizedBox(height: 24),
-            if (c.engine != null) ...[
+            if (c.keys != null) ...[
               Text('Signing', style: t.titleSmall),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -50,7 +50,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 subtitle: const Text('Create, import and back up the keys that sign your releases'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => SigningKeysScreen(engine: c.engine!))),
+                    context, MaterialPageRoute(builder: (_) => SigningKeysScreen(keys: c.keys!))),
               ),
               const SizedBox(height: 16),
             ],
@@ -70,6 +70,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 }
                 final i = snap.data;
                 if (i == null) return const LinearProgressIndicator();
+                if (c.desktopEngine case final desktop?) {
+                  final problems = desktop.problems;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(problems.isEmpty ? 'Gradle on this PC (ready)' : 'Gradle on this PC: not ready'),
+                    subtitle: Text(problems.isEmpty
+                        ? 'JDK: ${i['javaHome']}\nAndroid SDK: ${i['androidSdk']}\n'
+                            'Builds run entirely on this PC. No files are uploaded.'
+                        : problems.join('\n')),
+                  );
+                }
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(i['baseAvailable'] == true ? 'On-device assembly (ready)' : 'On-device assembly: base APK missing'),

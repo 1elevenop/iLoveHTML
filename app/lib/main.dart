@@ -5,6 +5,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'src/app_controller.dart';
+import 'package:html2apk_core/html2apk_core.dart';
+
+import 'src/engine/desktop_engine.dart';
 import 'src/engine/on_device_engine.dart';
 import 'src/ui/projects_screen.dart';
 import 'src/ui/theme.dart';
@@ -13,9 +16,19 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // On Android this is <app>/files, which the FileProvider and the engine expect.
   final support = await getApplicationSupportDirectory();
+  final workspace = p.join(support.path, 'workspace');
   final controller = AppController(
-    workspaceDir: p.join(support.path, 'workspace'),
-    engine: Platform.isAndroid ? OnDeviceBuildEngine() : null,
+    workspaceDir: workspace,
+    engine: Platform.isAndroid
+        ? OnDeviceBuildEngine()
+        : Platform.isWindows
+            ? DesktopBuildEngine(
+                workspaceDir: workspace,
+                toolchainReport: discoverToolchain(),
+                // Installed next to the executable by windows/CMakeLists.txt.
+                templateDir: p.join(p.dirname(Platform.resolvedExecutable), 'android_template'),
+              )
+            : null,
   );
   runApp(Html2ApkApp(controller: controller));
 }

@@ -106,3 +106,13 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# The Android wrapper template the Gradle engine builds from (Phase 1).
+# Local Gradle and build outputs are left out.
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../android_template/"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/android_template"
+  COMPONENT Runtime
+  PATTERN ".gradle" EXCLUDE
+  PATTERN ".kotlin" EXCLUDE
+  PATTERN "build" EXCLUDE
+  PATTERN "local.properties" EXCLUDE)

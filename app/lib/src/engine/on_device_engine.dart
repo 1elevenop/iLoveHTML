@@ -3,44 +3,13 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:html2apk_core/html2apk_core.dart';
 
-/// A release key stored on this phone (the keystore and its encrypted
-/// password live in the Kotlin side; Dart only sees certificate details).
-class SigningKey {
-  SigningKey.fromMap(Map<Object?, Object?> m)
-      : id = m['id']! as String,
-        alias = m['alias']! as String,
-        subject = m['subject']! as String,
-        sha256 = m['sha256']! as String,
-        sha1 = m['sha1']! as String,
-        notAfter = DateTime.fromMillisecondsSinceEpoch(m['notAfter']! as int),
-        createdAt = DateTime.fromMillisecondsSinceEpoch(m['createdAt']! as int),
-        origin = m['origin']! as String;
+import 'signing_keys.dart';
 
-  final String id;
-  final String alias;
-  final String subject;
-  final String sha256;
-  final String sha1;
-  final DateTime notAfter;
-  final DateTime createdAt;
-
-  /// `created` or `imported`.
-  final String origin;
-
-  /// Short form for lists, e.g. `AB:CD:EF…12:34`.
-  String get shortSha256 => '${sha256.substring(0, 8)}…${sha256.substring(sha256.length - 5)}';
-}
-
-/// Signs a release with a key from [OnDeviceBuildEngine.listKeys].
-class DeviceKeySigning implements ReleaseSigning {
-  const DeviceKeySigning(this.key);
-
-  final SigningKey key;
-}
+export 'signing_keys.dart';
 
 /// Android build engine: assembles the prebuilt wrapper APK in Kotlin on this
 /// device (ADR 0002) through the `html2apk/engine` platform channel.
-class OnDeviceBuildEngine implements ProjectBuildEngine {
+class OnDeviceBuildEngine implements ProjectBuildEngine, KeyManager {
   OnDeviceBuildEngine([MethodChannel? channel]) : _channel = channel ?? const MethodChannel('html2apk/engine');
 
   final MethodChannel _channel;
@@ -126,9 +95,11 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
 
   // ---- Release keys. Errors arrive as PlatformException with a readable message.
 
+  @override
   Future<List<SigningKey>> listKeys() async =>
       [for (final m in await _channel.invokeListMethod<Map<Object?, Object?>>('keysList') ?? []) SigningKey.fromMap(m)];
 
+  @override
   Future<SigningKey> createKey({
     required String alias,
     required String commonName,
@@ -144,10 +115,11 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
         'password': password,
       }))!);
 
-  /// Key aliases inside a picked keystore file (checks the store password).
+  @override
   Future<List<String>> inspectKeystore(String path, String storePassword) async =>
       await _channel.invokeListMethod<String>('keysInspect', {'path': path, 'storePassword': storePassword}) ?? [];
 
+  @override
   Future<SigningKey> importKey({
     required String path,
     required String storePassword,
@@ -162,7 +134,9 @@ class OnDeviceBuildEngine implements ProjectBuildEngine {
       }))!);
 
   /// Saves the keystore where the user chooses. Returns null if they cancelled.
+  @override
   Future<String?> exportKey(String id) => _channel.invokeMethod<String>('keysExport', {'id': id});
 
+  @override
   Future<void> deleteKey(String id) => _channel.invokeMethod('keysDelete', {'id': id});
 }

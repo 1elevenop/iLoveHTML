@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'engine/desktop_engine.dart';
 import 'engine/on_device_engine.dart';
 
 /// App-wide state: the workspace, the project list, the build engine and
@@ -19,7 +20,16 @@ class AppController extends ChangeNotifier {
   final ProjectStore store;
 
   /// Null on platforms without a local build engine wired up yet.
-  final OnDeviceBuildEngine? engine;
+  final ProjectBuildEngine? engine;
+
+  /// The phone engine (Install, Share, Save via Android), when on Android.
+  OnDeviceBuildEngine? get deviceEngine => switch (engine) { final OnDeviceBuildEngine e => e, _ => null };
+
+  /// The Windows engine (Gradle, Save as, Show in folder), when on Windows.
+  DesktopBuildEngine? get desktopEngine => switch (engine) { final DesktopBuildEngine e => e, _ => null };
+
+  /// Release keys kept by the app, if this platform has a key store.
+  KeyManager? get keys => switch (engine) { final KeyManager k => k, _ => null };
 
   List<ProjectHandle> projects = const [];
   List<BrokenProject> brokenProjects = const [];

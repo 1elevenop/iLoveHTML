@@ -6,14 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../engine/on_device_engine.dart';
+import '../engine/signing_keys.dart';
 import 'theme.dart';
 
 /// Lists release keys and lets the user create, import, back up and delete them.
 class SigningKeysScreen extends StatefulWidget {
-  const SigningKeysScreen({super.key, required this.engine});
+  const SigningKeysScreen({super.key, required this.keys});
 
-  final OnDeviceBuildEngine engine;
+  final KeyManager keys;
 
   @override
   State<SigningKeysScreen> createState() => _SigningKeysScreenState();
@@ -31,9 +31,11 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
 
   Future<void> _load() async {
     try {
-      final keys = await widget.engine.listKeys();
+      final keys = await widget.keys.listKeys();
       if (mounted) setState(() => _keys = keys);
     } on PlatformException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on KeyManagerException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
   }
@@ -41,7 +43,7 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _create() async {
-    final key = await showDialog<SigningKey>(context: context, builder: (_) => _CreateKeyDialog(engine: widget.engine));
+    final key = await showDialog<SigningKey>(context: context, builder: (_) => _CreateKeyDialog(engine: widget.keys));
     if (key == null || !mounted) return;
     await _load();
     if (!mounted) return;
@@ -50,9 +52,9 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
       builder: (c) => AlertDialog(
         title: const Text('Back up this key now'),
         content: const Text(
-            'Every update of an app must be signed with the same key. If this phone is lost or HTML2APK is '
+            'Every update of an app must be signed with the same key. If this device is lost or HTML2APK is '
             'uninstalled, the key is gone unless you have a backup.\n\n'
-            'Save the .jks file somewhere safe (not only on this phone) and keep the password separately.'),
+            'Save the .jks file somewhere safe (not only on this device) and keep the password separately.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Later')),
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Save backup')),
@@ -76,7 +78,7 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
       if (!mounted) return;
       final key = await showDialog<SigningKey>(
         context: context,
-        builder: (_) => _ImportKeyDialog(engine: widget.engine, path: path, fileName: picked.single.name),
+        builder: (_) => _ImportKeyDialog(engine: widget.keys, path: path, fileName: picked.single.name),
       );
       if (key != null) {
         await _load();
@@ -90,9 +92,11 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
 
   Future<void> _export(SigningKey key) async {
     try {
-      final where = await widget.engine.exportKey(key.id);
+      final where = await widget.keys.exportKey(key.id);
       if (mounted && where != null) _snack('Backup saved as ${key.alias}.jks. Keep the password with it, separately.');
     } on PlatformException catch (e) {
+      if (mounted) _snack('Backup failed: ${e.message}');
+    } on KeyManagerException catch (e) {
       if (mounted) _snack('Backup failed: ${e.message}');
     }
   }
@@ -101,11 +105,13 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
     final ok = await showDialog<bool>(context: context, builder: (_) => _DeleteKeyDialog(keyInfo: key));
     if (ok != true) return;
     try {
-      await widget.engine.deleteKey(key.id);
+      await widget.keys.deleteKey(key.id);
       await _load();
-      if (mounted) _snack('Deleted "${key.alias}" from this phone');
+      if (mounted) _snack('Deleted "${key.alias}" from this device');
     } on PlatformException catch (e) {
       if (mounted) _snack('${e.message}');
+    } on KeyManagerException catch (e) {
+      if (mounted) _snack(e.message);
     }
   }
 
@@ -171,9 +177,10 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
                   children: [
                     Text(
                       'Release builds are signed with one of these keys. Google Play and Android only accept '
-                      'updates signed with the same key as the first release. Keys stay on this phone, '
-                      'encrypted with Android Keystore; a backup is a password-protected .jks file that '
-                      'also works with Gradle and keytool on a computer.',
+                      'updates signed with the same key as the first release. '
+                      '${Platform.isWindows ? 'Keys stay on this PC, with passwords encrypted for your Windows account' : 'Keys stay on this phone, encrypted with Android Keystore'}'
+                      '; a backup is a password-protected .jks file that works with HTML2APK on a phone or a '
+                      'computer, Gradle and keytool.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 12),
@@ -225,7 +232,7 @@ String? _validatePassword(String? v) => (v ?? '').length < 8 ? 'At least 8 chara
 class _CreateKeyDialog extends StatefulWidget {
   const _CreateKeyDialog({required this.engine});
 
-  final OnDeviceBuildEngine engine;
+  final KeyManager engine;
 
   @override
   State<_CreateKeyDialog> createState() => _CreateKeyDialogState();
@@ -266,6 +273,8 @@ class _CreateKeyDialogState extends State<_CreateKeyDialog> {
       );
       if (mounted) Navigator.pop(context, key);
     } on PlatformException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on KeyManagerException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -347,7 +356,7 @@ class _CreateKeyDialogState extends State<_CreateKeyDialog> {
 class _ImportKeyDialog extends StatefulWidget {
   const _ImportKeyDialog({required this.engine, required this.path, required this.fileName});
 
-  final OnDeviceBuildEngine engine;
+  final KeyManager engine;
   final String path;
   final String fileName;
 
@@ -379,6 +388,8 @@ class _ImportKeyDialogState extends State<_ImportKeyDialog> {
       await action();
     } on PlatformException catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } on KeyManagerException catch (e) {
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -386,7 +397,7 @@ class _ImportKeyDialogState extends State<_ImportKeyDialog> {
 
   Future<void> _unlock() => _run(() async {
         final aliases = await widget.engine.inspectKeystore(widget.path, _storePw.text);
-        if (aliases.isEmpty) throw PlatformException(code: 'KEYSTORE', message: 'No private keys in this file');
+        if (aliases.isEmpty) throw const KeyManagerException('No private keys in this file');
         setState(() {
           _aliases = aliases;
           _alias = aliases.first;

@@ -44,7 +44,7 @@ an Android WebView app, built entirely on the local machine.
 
 | Path | What |
 |---|---|
-| `app/` | Flutter app (Android today, Windows later) on top of `html2apk_core` |
+| `app/` | Flutter app for Android and Windows on top of `html2apk_core` |
 | `android_template/` | Native Kotlin WebView wrapper (Gradle project) used for every generated app |
 | `android_engine/` | Kotlin on-device build engine (binary manifest editor, APK assembler, Keystore signing), shared by `app/` and the prototype |
 | `packages/html2apk_core/` | Shared Dart core: project model, importer, security, generator, build orchestration |
@@ -59,9 +59,23 @@ an Android WebView app, built entirely on the local machine.
 - JDK 17+ (Android Studio's bundled `jbr` is detected automatically)
 - Flutter 3.47+ / Dart 3.13+ (for the Dart core; tested with Flutter 3.47.7 at `C:\src\flutter`)
 - Internet on the first build only (Gradle, AGP, AndroidX go into `~/.gradle`)
-- For the Windows desktop UI (not built yet): Visual Studio 2022 with
-  "Desktop development with C++", and the repo on an NTFS drive. Flutter's
-  Windows plugin setup needs symlinks, which exFAT drives cannot hold.
+- For the Windows app: Visual Studio 2022 (Build Tools is enough) with
+  "Desktop development with C++", Windows **Developer Mode** on, and the
+  repo on an NTFS drive (this repo lives at D:\Build HTML Android App).
+  Flutter links plugins with symlinks, which need Developer Mode and
+  which exFAT drives cannot hold.
+
+## Run the Windows app
+
+`ash
+cd app
+flutter run -d windows
+`
+
+Or lutter build windows and start
+pp\build\windows\x64\runner\Release\html2apk_app.exe; the
+ndroid_template folder next to the exe must stay with it. Projects and
+keys live in %APPDATA%\com.html2apk\html2apk_app\workspace.
 
 ## Run the Android app
 

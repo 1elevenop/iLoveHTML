@@ -34,8 +34,10 @@ class ProjectScreen extends StatelessWidget {
                 IconButton(
                   tooltip: 'Preview',
                   icon: const Icon(Icons.play_circle_outline),
-                  onPressed: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => PreviewScreen(project: controller.project(projectId)!))),
+                  onPressed: () => Platform.isWindows
+                      ? _browserPreview(context, controller.project(projectId)!)
+                      : Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => PreviewScreen(project: controller.project(projectId)!))),
                 ),
               ],
               bottom: const TabBar(tabs: [
@@ -52,6 +54,57 @@ class ProjectScreen extends StatelessWidget {
       },
     );
   }
+}
+
+/// Windows has no embedded WebView plugin here, so the preview opens in the
+/// default browser. Local sites are served by the same loopback-only,
+/// token-protected [PreviewServer] the phone uses; it stops when the dialog closes.
+Future<void> _browserPreview(BuildContext context, ProjectHandle project) async {
+  final m = project.manifest;
+  PreviewServer? server;
+  final Uri url;
+  if (m.source.type == SourceType.local) {
+    server = await PreviewServer.start(project.sourceDir);
+    url = server.urlFor(m.source.entry);
+  } else {
+    url = Uri.parse(m.source.entry);
+  }
+  final missing = <String>[];
+  final sub = server?.onMissing.listen(missing.add);
+  // rundll32 hands the URL to the default browser without a shell.
+  await Process.start('rundll32.exe', ['url.dll,FileProtocolHandler', url.toString()]);
+  if (!context.mounted) {
+    await sub?.cancel();
+    await server?.stop();
+    return;
+  }
+  await showDialog<void>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setState) {
+        sub?.onData((path) => setState(() => missing.add(path)));
+        return AlertDialog(
+          title: const Text('Preview in your browser'),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SelectableText(url.toString(), style: monoStyle(c, size: 12)),
+            const SizedBox(height: 12),
+            Text(server == null
+                ? 'The live site opened in your default browser.'
+                : 'Served from this PC only, while this window is open. The phone app adds a console and '
+                    'link checks; here use the browser\'s developer tools (F12).'),
+            if (missing.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Missing files:', style: Theme.of(c).textTheme.titleSmall),
+              for (final f in missing.take(8)) Text(f, style: monoStyle(c, size: 12)),
+            ],
+          ]),
+          actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(server == null ? 'Close' : 'Stop preview'))],
+        );
+      },
+    ),
+  );
+  await sub?.cancel();
+  await server?.stop();
 }
 
 // ---------------------------------------------------------------- Settings
@@ -573,10 +626,10 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
   }
 
   Future<void> _loadKeys() async {
-    final engine = widget.controller.engine;
-    if (engine == null) return;
+    final keyManager = widget.controller.keys;
+    if (keyManager == null) return;
     try {
-      final keys = await engine.listKeys();
+      final keys = await keyManager.listKeys();
       if (!mounted) return;
       final pinned = widget.project.manifest.releaseCertSha256;
       setState(() {
@@ -586,6 +639,8 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             (keys.any((k) => k.id == _keyId) ? _keyId : keys.firstOrNull?.id);
       });
     } on PlatformException catch (e) {
+      if (mounted) setState(() => _log.add('Could not load release keys: ${e.message}'));
+    } on KeyManagerException catch (e) {
       if (mounted) setState(() => _log.add('Could not load release keys: ${e.message}'));
     }
   }
@@ -633,23 +688,26 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
 
   Future<void> _save(String path) async {
     try {
-      final where = await widget.controller.engine!.saveFile(path);
+      final c = widget.controller;
+      final where = await (c.desktopEngine?.saveFile(path) ?? c.deviceEngine!.saveFile(path));
       if (mounted && where != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved ${p.basename(path)}')));
       }
     } on PlatformException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: ${e.message}')));
+    } on FileSystemException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: ${e.message}')));
     }
   }
 
   Future<void> _openKeys() async {
     await Navigator.push(
-        context, MaterialPageRoute(builder: (_) => SigningKeysScreen(engine: widget.controller.engine!)));
+        context, MaterialPageRoute(builder: (_) => SigningKeysScreen(keys: widget.controller.keys!)));
     await _loadKeys();
   }
 
   Future<void> _install(String path) async {
-    final engine = widget.controller.engine!;
+    final engine = widget.controller.deviceEngine!;
     try {
       if (!await engine.install(path) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -695,7 +753,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                     style: monoStyle(context, size: 12)),
                 const SizedBox(height: 4),
                 if (_variant == BuildVariant.debug)
-                  Text('For testing. Signed with a debug key that stays on this phone; '
+                  Text('For testing. Signed with a debug key that stays on this device; '
                       'not for publishing.',
                       style: t.bodySmall)
                 else ...[
@@ -765,6 +823,12 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                     padding: const EdgeInsets.only(top: 8),
                     child: Text('Building is not available on this platform yet.', style: t.bodySmall),
                   ),
+                if (widget.controller.desktopEngine?.problems case final problems? when problems.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('Cannot build yet:\n${problems.join('\n')}',
+                        style: t.bodySmall?.copyWith(color: scheme.error)),
+                  ),
                 if (_building) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
               ],
             ),
@@ -798,6 +862,18 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                   Text(formatBytes(File(apkPath).lengthSync()), style: t.bodySmall),
                   const SizedBox(height: 12),
                   Wrap(spacing: 8, runSpacing: 8, children: [
+                    if (widget.controller.desktopEngine case final desktop?) ...[
+                      FilledButton.tonalIcon(
+                        onPressed: () => _save(apkPath),
+                        icon: const Icon(Icons.save_alt),
+                        label: const Text('Save as…'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => desktop.showInFolder(apkPath),
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: const Text('Show in folder'),
+                      ),
+                    ] else ...[
                     if (!apkPath.endsWith('.aab'))
                       FilledButton.tonalIcon(
                         onPressed: () => _install(apkPath),
@@ -810,10 +886,11 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                       label: const Text('Save to device'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () => widget.controller.engine!.share(apkPath),
+                      onPressed: () => widget.controller.deviceEngine!.share(apkPath),
                       icon: const Icon(Icons.share_outlined),
                       label: const Text('Share'),
                     ),
+                    ],
                   ]),
                 ],
               ),
