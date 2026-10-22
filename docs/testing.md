@@ -11,6 +11,10 @@
 | On-device end-to-end | `cd app && flutter test integration_test -d <device>` | Inside HTML2APK with the real Kotlin engine: import HTML files, configure, debug APK, release key in Keystore, release APK, version-code rule, release AAB, debug-AAB refusal, ZIP bomb rejection |
 | Preview security (on device) | `cd app && flutter test integration_test/preview_security_test.dart -d <device>` | A previewed page tries `file://` and `content://` by XHR, iframe and navigation; nothing may be readable and the navigation must be blocked |
 
+`flutter test integration_test` uninstalls HTML2APK when it finishes,
+which deletes the app's projects and saved signing keys on that device.
+On a phone with real keys, back them up first (Signing keys → Back up).
+
 Run every on-device test with a time limit. A stuck emulator adb
 connection makes the install step hang without an error; if
 `adb install` of the 155 MB debug app takes more than a minute, restart
