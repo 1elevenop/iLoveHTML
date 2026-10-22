@@ -35,30 +35,47 @@ class MissingAsset {
 final _attrRef = RegExp(r'''\b(?:src|href|poster)\s*=\s*(?:"([^"]*)"|'([^']*)')''', caseSensitive: false);
 final _cssUrl = RegExp(r'''url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"]*))\s*\)''', caseSensitive: false);
 
-/// Finds relative references in HTML and CSS files that do not resolve to a
-/// file under [root]. This is a lexical scan: references built at runtime
-/// by JavaScript are not detected.
-List<MissingAsset> findMissingAssets(String root, List<String> files) {
-  final existing = files.map((f) => f.toLowerCase()).toSet();
-  final missing = <MissingAsset>[];
+/// A local reference found in an HTML or CSS file.
+class LocalReference {
+  const LocalReference(this.from, this.reference, this.target);
+
+  final String from;
+  final String reference;
+
+  /// Site-relative POSIX path the reference points to (may start with `..`).
+  final String target;
+}
+
+/// Every relative `src`/`href`/`poster` (HTML) and `url()` (HTML and CSS)
+/// reference to a local file. This is a lexical scan: references built at
+/// runtime by JavaScript are not detected.
+List<LocalReference> collectLocalReferences(String root, List<String> files) {
+  final refs = <LocalReference>[];
   for (final file in files) {
     final lower = file.toLowerCase();
     final isHtml = lower.endsWith('.html') || lower.endsWith('.htm');
     final isCss = lower.endsWith('.css');
     if (!isHtml && !isCss) continue;
     final text = File(p.join(root, file)).readAsStringSync();
-    final refs = <String>[
+    final raw = <String>[
       if (isHtml) ..._attrRef.allMatches(text).map((m) => m.group(1) ?? m.group(2)!),
       ..._cssUrl.allMatches(text).map((m) => (m.group(1) ?? m.group(2) ?? m.group(3)!).trim()),
     ];
-    for (final ref in refs) {
+    for (final ref in raw) {
       final target = _resolveLocalRef(file, ref);
-      if (target != null && !existing.contains(target.toLowerCase())) {
-        missing.add(MissingAsset(file, ref));
-      }
+      if (target != null) refs.add(LocalReference(file, ref, target));
     }
   }
-  return missing;
+  return refs;
+}
+
+/// Relative references in HTML and CSS files that do not resolve to a file under [root].
+List<MissingAsset> findMissingAssets(String root, List<String> files) {
+  final existing = files.map((f) => f.toLowerCase()).toSet();
+  return [
+    for (final r in collectLocalReferences(root, files))
+      if (!existing.contains(r.target.toLowerCase())) MissingAsset(r.from, r.reference),
+  ];
 }
 
 String? _resolveLocalRef(String fromFile, String ref) {

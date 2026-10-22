@@ -66,9 +66,16 @@ extension on ProjectsScreen {
       builder: (c) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
+            leading: const Icon(Icons.html),
+            title: const Text('HTML files'),
+            subtitle: const Text('Pick an .html page, plus its CSS, JavaScript and images if they are separate files. '
+                'Works offline.'),
+            onTap: () => Navigator.pop(c, 'files'),
+          ),
+          ListTile(
             leading: const Icon(Icons.folder_zip_outlined),
-            title: const Text('Website files (ZIP)'),
-            subtitle: const Text('HTML, CSS, JavaScript and images bundled into the app. Works offline.'),
+            title: const Text('Website ZIP'),
+            subtitle: const Text('A whole website folder, zipped. Works offline.'),
             onTap: () => Navigator.pop(c, 'zip'),
           ),
           ListTile(
@@ -81,7 +88,9 @@ extension on ProjectsScreen {
       ),
     );
     if (!context.mounted) return;
-    if (choice == 'zip') {
+    if (choice == 'files') {
+      await importHtmlFiles(context, controller);
+    } else if (choice == 'zip') {
       await importZip(context, controller);
     } else if (choice == 'url') {
       final id = await showDialog<String>(context: context, builder: (_) => UrlImportDialog(controller: controller));
@@ -109,7 +118,7 @@ class _EmptyState extends StatelessWidget {
             Text('No projects yet', style: t.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Turn a ZIP of your website (HTML, CSS, JavaScript, images) or a live https website '
+              'Turn HTML files, a website ZIP, or a live https website '
               'into an Android app. Builds happen on this device.',
               textAlign: TextAlign.center,
               style: t.bodyMedium,
@@ -192,15 +201,46 @@ String _ago(DateTime t) {
 
 /// Picks a ZIP, asks for name and package ID, imports it, and opens the project.
 Future<void> importZip(BuildContext context, AppController controller) async {
-  final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['zip']);
-  if (picked.isEmpty || !context.mounted) return;
-  final file = picked.single;
+  final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['zip']);
+  if (file == null || !context.mounted) return;
+  await _importFlow(context, controller, [file], (dir, paths, name, id) => controller.importZip(paths.single, name, id));
+}
+
+/// Picks one or more website files (an .html page plus, optionally, CSS,
+/// JavaScript, images, fonts), asks for name and package ID, and imports them.
+Future<void> importHtmlFiles(BuildContext context, AppController controller) async {
+  // FileType.any: Android's MIME filters miss common web types such as .js and .woff2.
+  final files = await FilePicker.pickFiles();
+  if (files.isEmpty || !context.mounted) return;
+  if (!files.any((f) => RegExp(r'\.html?$', caseSensitive: false).hasMatch(f.name))) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one .html file, plus any CSS, JavaScript or images it uses.')));
+    await FilePicker.clearTemporaryFiles();
+    return;
+  }
+  await _importFlow(context, controller, files, (dir, paths, name, id) => controller.importFiles(paths, name, id));
+}
+
+Future<void> _importFlow(
+  BuildContext context,
+  AppController controller,
+  List<PlatformFile> files,
+  Future<ImportReport> Function(String dir, List<String> paths, String name, String id) run,
+) async {
   final tmp = Directory.systemTemp.createTempSync('import');
   try {
-    final zipPath = p.join(tmp.path, 'site.zip');
-    await file.xFile.saveTo(zipPath);
+    final paths = <String>[];
+    for (final f in files) {
+      // Keep the original names: they decide where linked files end up.
+      final target = p.join(tmp.path, p.basename(f.name));
+      await f.xFile.saveTo(target);
+      paths.add(target);
+    }
     if (!context.mounted) return;
-    final baseName = p.basenameWithoutExtension(file.name).replaceAll(RegExp(r'[_-]+'), ' ').trim();
+    final main = files.firstWhere((f) => RegExp(r'\.(zip|html?)$', caseSensitive: false).hasMatch(f.name),
+        orElse: () => files.first);
+    var baseName = p.basenameWithoutExtension(main.name).replaceAll(RegExp(r'[_-]+'), ' ').trim();
+    if (baseName.toLowerCase() == 'index') baseName = '';
     final details = await showDialog<(String, String)>(
       context: context,
       builder: (_) => _ImportDialog(initialName: baseName.isEmpty ? 'My App' : baseName),
@@ -208,7 +248,7 @@ Future<void> importZip(BuildContext context, AppController controller) async {
     if (details == null || !context.mounted) return;
     final ImportReport report;
     try {
-      report = await controller.importZip(zipPath, details.$1, details.$2);
+      report = await run(tmp.path, paths, details.$1, details.$2);
     } on Exception catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
@@ -311,7 +351,7 @@ class _ImportSummary extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Imported ${report.fileCount} files', style: t.titleLarge),
+            Text('Imported ${report.fileCount} ${report.fileCount == 1 ? 'file' : 'files'}', style: t.titleLarge),
             const SizedBox(height: 12),
             Text('Start page: ${report.project.manifest.source.entry}'),
             if (report.entryCandidates.length > 1)

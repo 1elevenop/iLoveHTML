@@ -5,8 +5,9 @@ an Android WebView app, built entirely on the local machine.
 
 **Status: Phase 2 started.**
 
-- **Android app (`app/`, Flutter):** project list; new apps from a website
-  ZIP or a live https URL (checked first: redirects followed hop by hop,
+- **Android app (`app/`, Flutter):** project list; new apps from one or
+  more HTML files (CSS/JS/images picked alongside are moved into the
+  folders the pages link to), a website ZIP, or a live https URL (checked first: redirects followed hop by hop,
   private/local addresses blocked, title used as the app name); project
   settings and icon; a preview with back/forward/reload, viewport presets,
   JavaScript console, missing-file and blocked-link reports; and an
@@ -100,6 +101,19 @@ adb shell am start -n com.html2apk.ondevice/.PrototypeActivity --ez autorun true
 
 The generated APK and `result.json` (timings, memory) are written to
 `/sdcard/Android/data/com.html2apk.ondevice/files/`.
+
+## Testing without a phone (emulator)
+
+An Android 16 x86_64 emulator (`html2apk_test`, Pixel 7 profile) runs on
+this PC with WHPX acceleration:
+
+```bash
+"%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -avd html2apk_test -no-window -no-audio -no-boot-anim
+```
+
+Drop `-no-window` to see it. The debug build of `app/` includes x86_64,
+so `adb -s emulator-5554 install app\build\app\outputs\flutter-apk\app-debug.apk`
+works. Physical-device checks are still done at the end of each milestone.
 
 ## Signing tests (desktop JVM)
 

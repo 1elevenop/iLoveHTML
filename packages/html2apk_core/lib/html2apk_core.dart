@@ -13,6 +13,7 @@ export 'src/project_core/manifest.dart';
 export 'src/project_core/migration.dart';
 export 'src/project_core/project_store.dart';
 export 'src/project_core/validation.dart';
+export 'src/project_importer/files_importer.dart';
 export 'src/project_importer/site_analysis.dart';
 export 'src/project_importer/url_probe.dart';
 export 'src/project_importer/zip_importer.dart';

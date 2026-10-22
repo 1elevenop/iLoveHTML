@@ -61,6 +61,12 @@ class AppController extends ChangeNotifier {
     return report;
   }
 
+  Future<ImportReport> importFiles(List<String> paths, String name, String applicationId) async {
+    final report = await store.importFiles(paths: paths, name: name, applicationId: applicationId);
+    refresh();
+    return report;
+  }
+
   ProjectHandle createFromUrl(String url, String name, String applicationId) {
     final project = store.createFromUrl(url: url, name: name, applicationId: applicationId);
     refresh();

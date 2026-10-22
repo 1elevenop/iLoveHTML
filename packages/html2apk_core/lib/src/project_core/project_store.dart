@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../android_generator/android_generator.dart';
 import '../android_generator/resource_writers.dart';
+import '../project_importer/files_importer.dart';
 import '../project_importer/site_analysis.dart';
 import '../project_importer/zip_importer.dart';
 import 'manifest.dart';
@@ -314,13 +315,35 @@ class ProjectStore {
     required String name,
     required String applicationId,
     String? iconPng,
-  }) async {
+  }) =>
+      _importInto(name, applicationId, iconPng, (source) async => (await extractWebsiteZip(zipPath, source)).files);
+
+  /// Imports individually picked files (an .html page and optionally its CSS,
+  /// JavaScript, images, fonts) as a new local project. Files are moved into
+  /// the folders the pages link to; see [importLooseFiles].
+  Future<ImportReport> importFiles({
+    required List<String> paths,
+    required String name,
+    required String applicationId,
+    String? iconPng,
+  }) =>
+      _importInto(name, applicationId, iconPng, (source) async {
+        final placed = importLooseFiles(paths, source);
+        return placed.files;
+      });
+
+  Future<ImportReport> _importInto(
+    String name,
+    String applicationId,
+    String? iconPng,
+    Future<List<String>> Function(String sourceDir) fill,
+  ) async {
     final id = newProjectId();
     final dir = p.join(projectsDir, id);
     Directory(dir).createSync(recursive: true);
     try {
-      final extraction = await extractWebsiteZip(zipPath, p.join(dir, 'source'));
-      final candidates = findEntryCandidates(extraction.files);
+      final files = await fill(p.join(dir, 'source'));
+      final candidates = findEntryCandidates(files);
       if (candidates.isEmpty) throw ArchiveRejectedException('no .html file found');
       String? iconRel;
       if (iconPng != null) {
@@ -339,8 +362,7 @@ class ProjectStore {
       if (errors.isNotEmpty) throw InvalidProjectException(errors.toList());
       final handle = ProjectHandle(dir, manifest);
       save(handle);
-      return ImportReport(handle, candidates,
-          findMissingAssets(handle.sourceDir, extraction.files), extraction.files.length);
+      return ImportReport(handle, candidates, findMissingAssets(handle.sourceDir, files), files.length);
     } catch (_) {
       Directory(dir).deleteSync(recursive: true);
       rethrow;
