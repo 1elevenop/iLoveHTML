@@ -10,6 +10,7 @@
 | Windows end-to-end | `powershell -File tools/e2e_windows.ps1 -Device emulator-5554` | Demo ZIP → debug APK, release APK, release AAB with a throwaway key → apksigner, jarsigner, `bundletool validate` → install on a device and confirm the page ran its JavaScript |
 | On-device end-to-end | `cd app && flutter test integration_test -d <device>` | Inside HTML2APK with the real Kotlin engine: import HTML files, configure, debug APK, release key in Keystore, release APK, version-code rule, release AAB, debug-AAB refusal, ZIP bomb rejection |
 | Windows engine (host) | `cd app && flutter test` (includes `test/desktop_engine_test.dart`) | DPAPI, keytool key store (create, import PKCS12/JKS, wrong passwords), Gradle debug + release builds |
+| Windows .exe apps (host) | `powershell -File tools/build_windows_wrapper.ps1`, then `cd app && flutter test test/exe_builder_test.dart` | Builds and runs real exes: page/JS from the exe, 404s, `file://` refused, icon found by Windows, offline page for URL apps |
 | Windows app UI | `cd app && flutter test integration_test/windows_ui_test.dart -d windows` | The real Windows app: project → browser preview → debug APK → release APK → version rule → App Bundle |
 | Preview security (on device) | `cd app && flutter test integration_test/preview_security_test.dart -d <device>` | A previewed page tries `file://` and `content://` by XHR, iframe and navigation; nothing may be readable and the navigation must be blocked |
 

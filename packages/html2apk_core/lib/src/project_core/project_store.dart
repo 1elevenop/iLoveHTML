@@ -42,6 +42,10 @@ class ProjectHandle {
   String get releaseAabPath =>
       p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-release.aab');
 
+  /// Default location for a Windows .exe of the current version (ADR 0007).
+  String windowsExePath({bool debug = false}) => p.join(
+      exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-windows${debug ? '-debug' : ''}.exe');
+
   ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
 }
 

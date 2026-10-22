@@ -116,3 +116,11 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../android_template/"
   PATTERN ".kotlin" EXCLUDE
   PATTERN "build" EXCLUDE
   PATTERN "local.properties" EXCLUDE)
+
+# The Windows app wrapper (ADR 0007), built by tools/build_windows_wrapper.ps1.
+set(HTML2APK_WRAPPER "${CMAKE_CURRENT_SOURCE_DIR}/../../windows_template/dist/html2apk_wrapper.exe")
+if(EXISTS "${HTML2APK_WRAPPER}")
+  install(FILES "${HTML2APK_WRAPPER}" DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+else()
+  message(WARNING "Windows wrapper not built; run tools/build_windows_wrapper.ps1 to enable .exe builds")
+endif()

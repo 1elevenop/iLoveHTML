@@ -686,6 +686,53 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
     if (mounted) setState(() => _result = result);
   }
 
+  bool _exeDebug = false;
+
+  Future<void> _buildExe() async {
+    setState(() {
+      _log.clear();
+      _result = null;
+    });
+    final result = await widget.controller.buildExe(widget.project, (line) {
+      if (mounted) setState(() => _log.add(line));
+    }, debug: _exeDebug);
+    if (mounted) setState(() => _result = result);
+  }
+
+  Widget _exeCard(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            const Icon(Icons.desktop_windows_outlined),
+            const SizedBox(width: 8),
+            Text('Windows app (.exe)', style: t.titleSmall),
+          ]),
+          const SizedBox(height: 8),
+          Text('One .exe file that opens this site in its own window with Microsoft Edge WebView2 '
+              '(built into Windows 11 and updated Windows 10). It is not code-signed, so Windows may show '
+              '"Windows protected your PC" until people choose More info → Run anyway.',
+              style: t.bodySmall),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: const Text('Developer tools (for testing)'),
+            subtitle: const Text('F12 and Inspect work in the app; leave off for the version you share'),
+            value: _exeDebug,
+            onChanged: (v) => setState(() => _exeDebug = v),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _building ? null : _buildExe,
+            icon: const Icon(Icons.play_arrow),
+            label: Text(_building ? 'Building…' : 'Build .exe'),
+          ),
+        ]),
+      ),
+    );
+  }
+
   Future<void> _save(String path) async {
     try {
       final c = widget.controller;
@@ -834,6 +881,10 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             ),
           ),
         ),
+        if (widget.controller.desktopEngine != null) ...[
+          const SizedBox(height: 12),
+          _exeCard(context),
+        ],
         if (_result != null && _result!.status != BuildStatus.succeeded) ...[
           const SizedBox(height: 12),
           Card(

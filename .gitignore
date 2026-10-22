@@ -31,3 +31,6 @@ app/android/app/src/main/assets/base/
 
 # Downloaded developer tools (bundletool)
 .tools/
+
+# Windows wrapper build output (tools/build_windows_wrapper.ps1)
+windows_template/dist/

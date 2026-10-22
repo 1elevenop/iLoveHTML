@@ -111,6 +111,42 @@ class AppController extends ChangeNotifier {
     refresh();
   }
 
+  /// Builds a Windows .exe (Windows only) and records it in the project's history.
+  Future<BuildResult> buildExe(ProjectHandle project, BuildLogSink log, {bool debug = false}) async {
+    final desktop = desktopEngine;
+    if (desktop == null) {
+      return const BuildResult(BuildStatus.failed,
+          message: 'Windows apps can be built on Windows only.', duration: Duration.zero);
+    }
+    building.add(project.manifest.id);
+    notifyListeners();
+    try {
+      final result =
+          await desktop.buildExe(project, outputPath: project.windowsExePath(debug: debug), log: log, debug: debug);
+      final artifact = result.artifactPath;
+      store.recordBuild(
+        project,
+        BuildRecord(
+          time: DateTime.now(),
+          engine: 'windows-exe',
+          status: result.status.name,
+          durationMs: result.duration.inMilliseconds,
+          artifactPath: artifact,
+          bytes: artifact == null ? null : File(artifact).lengthSync(),
+          versionName: project.manifest.android.versionName,
+          versionCode: project.manifest.android.versionCode,
+          message: result.message,
+          variant: debug ? BuildVariant.debug.name : BuildVariant.release.name,
+          format: 'exe',
+        ),
+      );
+      return result;
+    } finally {
+      building.remove(project.manifest.id);
+      notifyListeners();
+    }
+  }
+
   /// Builds an APK and records the result in the project's history. For the
   /// first successful release, the signing certificate is remembered in the
   /// project so later releases can be checked against it.

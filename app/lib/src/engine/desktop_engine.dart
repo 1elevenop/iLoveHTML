@@ -7,6 +7,7 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'dpapi.dart';
+import 'exe_builder.dart';
 import 'signing_keys.dart';
 
 /// Windows build engine: the generated Gradle project built with the local
@@ -93,6 +94,14 @@ class DesktopBuildEngine implements ProjectBuildEngine, KeyManager {
         allowedExtensions: [ext]);
     return uri?.toFilePath();
   }
+  /// The Windows app wrapper, installed next to the executable (ADR 0007).
+  String get wrapperPath => p.join(p.dirname(templateDir), 'html2apk_wrapper.exe');
+
+  /// Builds a Windows .exe of [project] (no JDK or Android SDK needed).
+  Future<BuildResult> buildExe(ProjectHandle project,
+          {required String outputPath, required BuildLogSink log, bool debug = false}) =>
+      ExeBuilder(wrapperPath).build(project, outputPath: outputPath, log: log, debug: debug);
+
   /// Opens the folder containing [path] in Explorer.
   Future<void> showInFolder(String path) => Process.start('explorer.exe', [p.dirname(path)]);
 

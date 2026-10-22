@@ -3,7 +3,7 @@
 Converts a website (ZIP of HTML/CSS/JS/assets, later folders and URLs) into
 an Android WebView app, built entirely on the local machine.
 
-**Status: Phase 2 started.**
+**Status: Android app and Windows app working; websites build into APK, AAB and Windows .exe.**
 
 - **Android app (`app/`, Flutter):** project list; new apps from one or
   more HTML files (CSS/JS/images picked alongside are moved into the
@@ -23,9 +23,17 @@ an Android WebView app, built entirely on the local machine.
   file picker.
 - **Project format:** `project.json` schema 2; schema-1 projects are
   upgraded automatically when loaded.
-- **Windows:** the same pipeline through the CLI (ZIP → generated Gradle
-  project → local `assembleDebug`). The Flutter desktop UI is not built
-  yet (see Requirements).
+- **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the
+  same Flutter UI (projects, import, settings, release keys) building with
+  the local JDK, Android SDK and Gradle. Debug/release APKs and App
+  Bundles, "Save as…" and "Show in folder"; release keys with passwords
+  encrypted for your Windows account (DPAPI); preview in your browser from
+  a local-only server. The CLI still works too (see below).
+- **Windows .exe apps** ([ADR 0007](docs/adr/0007-windows-exe-apps.md)):
+  on Windows, Build → "Build .exe" turns the project into one .exe that
+  opens the site in its own window with Microsoft Edge WebView2. Needs the
+  wrapper built once: `powershell -File tools/build_windows_wrapper.ps1`.
+  Not code-signed yet, so downloaded copies show a SmartScreen warning.
 - **Release signing** ([ADR 0004](docs/adr/0004-release-signing.md)):
   create or import release keys on the phone (.jks / .keystore / .p12,
   including legacy JKS), back them up as password-protected `.jks`,
@@ -45,6 +53,7 @@ an Android WebView app, built entirely on the local machine.
 | Path | What |
 |---|---|
 | `app/` | Flutter app for Android and Windows on top of `html2apk_core` |
+| `windows_template/` | C++ WebView2 wrapper for Windows .exe apps (ADR 0007) |
 | `android_template/` | Native Kotlin WebView wrapper (Gradle project) used for every generated app |
 | `android_engine/` | Kotlin on-device build engine (binary manifest editor, APK assembler, Keystore signing), shared by `app/` and the prototype |
 | `packages/html2apk_core/` | Shared Dart core: project model, importer, security, generator, build orchestration |

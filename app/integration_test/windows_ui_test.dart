@@ -128,6 +128,27 @@ void main() {
     expect(File(aab).existsSync(), isTrue, reason: aab);
     debugPrint('E2E windows: release ${File(released.releaseApkPath).lengthSync()} bytes, '
         'aab ${p.basename(aab)} ${File(aab).lengthSync()} bytes');
+
+    // Windows .exe from the same project, then run it.
+    await tester.scrollUntilVisible(find.text('Build .exe'), 200, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text('Build .exe'));
+    await waitForBuild();
+    expect(find.text('Build failed'), findsNothing);
+    final exe = controller.projects.single.windowsExePath();
+    expect(File(exe).existsSync(), isTrue, reason: exe);
+    expect(find.text(p.basename(exe)), findsOneWidget);
+    final runLog = File(p.join(tmp.path, 'exe.log'));
+    final proc = await Process.start(exe, [], environment: {'HTML2APK_CONSOLE_LOG': runLog.path});
+    final sw = Stopwatch()..start();
+    var lines = <String>[];
+    while (sw.elapsed < const Duration(seconds: 30) && !lines.any((l) => l.contains('html2apk demo loaded'))) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      lines = runLog.existsSync() ? runLog.readAsLinesSync() : [];
+    }
+    proc.kill();
+    await proc.exitCode;
+    expect(lines.any((l) => l.contains('html2apk demo loaded')), isTrue, reason: lines.join('\n'));
+    debugPrint('E2E windows: exe ${File(exe).lengthSync()} bytes, page JS ran');
     debugPrint('E2E windows OK');
   }, timeout: const Timeout(Duration(minutes: 20)));
 }
