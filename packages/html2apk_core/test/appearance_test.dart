@@ -94,6 +94,20 @@ void main() {
     expect(issues.map((i) => i.field), containsAll(['appearance.statusBarColor', 'offline.fallbackPage']));
   });
 
+  test('only supported permissions can be requested', () async {
+    final m = (await localProject()).manifest;
+    expect(validateManifest(m.copyWith(permissions: ['android.permission.VIBRATE'])), isEmpty);
+    for (final bad in ['android.permission.READ_SMS', 'android.permission.READ_CONTACTS', 'x"/><evil', '']) {
+      expect(validateManifest(m.copyWith(permissions: [bad])).map((i) => i.field), contains('permissions'), reason: bad);
+    }
+    // A tampered project.json is refused at build time too.
+    final template = p.normalize(p.join(Directory.current.path, '..', '..', 'android_template'));
+    final project = await localProject();
+    final tampered = ProjectHandle(project.directory, project.manifest.copyWith(permissions: ['android.permission.SEND_SMS']));
+    expect(() => AndroidGenerator(templateDir: template).generate(tampered, p.join(tmp.path, 'g'), androidSdkDir: 'x'),
+        throwsA(isA<InvalidProjectException>()));
+  });
+
   test('splash image is validated, stored and cleared', () async {
     var project = await localProject();
     final big = File(p.join(tmp.path, 'big.png'))..writeAsBytesSync(png(5000, 100));

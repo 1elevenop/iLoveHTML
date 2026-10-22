@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Orientation;
 import 'package:html2apk_core/html2apk_core.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'theme.dart';
 
@@ -92,6 +93,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
             if (e.isForMainFrame ?? true) _add('error', 'Page failed to load: ${e.description} (${e.url ?? ''})');
           },
         ));
+      // The previewed site is untrusted and runs inside HTML2APK, whose private
+      // files include release keystores. WebView allows file:// access by
+      // default on Android 10 and older, so turn it (and content://) off.
+      final platform = web.platform;
+      if (platform is AndroidWebViewController) {
+        await platform.setAllowFileAccess(false);
+        await platform.setAllowContentAccess(false);
+      }
       await web.loadRequest(start);
       if (mounted) setState(() => _web = web);
     } on Object catch (e) {

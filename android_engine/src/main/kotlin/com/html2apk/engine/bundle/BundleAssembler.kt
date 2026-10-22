@@ -1,6 +1,5 @@
 package com.html2apk.engine.bundle
 
-import com.android.apksig.ApkSigner
 import com.html2apk.engine.ApkAssembler
 import com.html2apk.engine.AppSpec
 import com.html2apk.engine.WebsiteFile
@@ -16,7 +15,8 @@ import java.util.zip.ZipOutputStream
  * Builds an Android App Bundle (.aab) for Google Play from a prebuilt base
  * bundle of the wrapper (made once by Gradle's bundleRelease), the same way
  * [ApkAssembler] builds APKs: swap website, config, icon and splash; edit
- * the protobuf manifest; then JAR-sign, which is what Play expects for AABs.
+ * the protobuf manifest; then JAR-sign ([JarSigner]), which is what Play
+ * expects for AABs.
  */
 class BundleAssembler(private val baseBundle: File, private val basePackage: String) {
 
@@ -64,26 +64,7 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
 
     /** JAR (v1) signature with SHA-256, as produced by jarsigner and required for Play uploads. */
     fun sign(unsigned: File, out: File, key: PrivateKey, chain: List<X509Certificate>, timings: ApkAssembler.Timings) {
-        val signedTail = File(out.path + ".tail")
-        try {
-            timings.step("sign") {
-                @Suppress("DEPRECATION") // Replacement takes a KeyConfig; migrate with the rest of the signing code.
-                val signer = ApkSigner.SignerConfig.Builder("UPLOAD", key, chain).build()
-                ApkSigner.Builder(listOf(signer))
-                    .setInputApk(unsigned)
-                    .setOutputApk(signedTail)
-                    // Bundles have no root AndroidManifest.xml to read this from.
-                    .setMinSdkVersion(ApkAssembler.MIN_SDK)
-                    .setV1SigningEnabled(true)
-                    .setV2SigningEnabled(false)
-                    .setV3SigningEnabled(false)
-                    .build()
-                    .sign()
-            }
-            timings.step("order entries") { signatureFirst(signedTail, out) }
-        } finally {
-            signedTail.delete()
-        }
+        timings.step("sign") { JarSigner.sign(unsigned, out, key, chain) }
     }
 
     /**
@@ -104,22 +85,6 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
             }
         }
         return signer ?: throw SecurityException("Bundle has no signed entries")
-    }
-
-    /**
-     * apksig appends META-INF/ at the end; jarsigner writes it first, and
-     * streaming readers (JarInputStream) only see signatures there. Entry
-     * order is not covered by the signature, so reorder.
-     */
-    private fun signatureFirst(input: File, out: File) {
-        ZipFile(input).use { zip ->
-            val entries = zip.entries().toList()
-            val (meta, rest) = entries.partition { it.name.startsWith("META-INF/") }
-            val ordered = meta.sortedBy { if (it.name == "META-INF/MANIFEST.MF") 0 else 1 } + rest
-            ZipOutputStream(out.outputStream().buffered()).use { zos ->
-                for (e in ordered) putStream(zos, e.name) { zip.getInputStream(e) }
-            }
-        }
     }
 
     private fun put(zos: ZipOutputStream, name: String, bytes: ByteArray) {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
@@ -96,14 +97,22 @@ Future<ExtractionResult> extractWebsiteZip(
       final rel = prefix == null ? name : name.substring(prefix.length + 1);
       // Case-insensitive duplicates would collide on Windows.
       if (!seen.add(rel.toLowerCase())) throw ArchiveRejectedException('duplicate entry "$rel"');
-      final bytes = f.readBytes() ?? const <int>[];
-      // Declared sizes come from the archive and are not trusted.
-      if (bytes.length > limits.maxFileBytes) throw ArchiveRejectedException('"$rel" is too large');
-      actualTotal += bytes.length;
-      if (actualTotal > limits.maxTotalBytes) throw ArchiveRejectedException('archive too large');
       final out = File(resolveWithin(dest.path, rel));
       out.parent.createSync(recursive: true);
-      out.writeAsBytesSync(bytes, flush: false);
+      // Declared sizes come from the archive and are not trusted: decompress
+      // straight to disk and stop as soon as the real size passes a limit,
+      // so a ZIP bomb with forged headers cannot exhaust memory or storage.
+      final remaining = limits.maxTotalBytes - actualTotal;
+      final sink = LimitedFileOutput(out.path,
+          limit: remaining < limits.maxFileBytes ? remaining : limits.maxFileBytes,
+          onLimit: () => ArchiveRejectedException(
+              remaining < limits.maxFileBytes ? 'archive too large' : '"$rel" is too large'));
+      try {
+        f.writeContent(sink);
+      } finally {
+        sink.closeSync();
+      }
+      actualTotal += sink.length;
       written.add(rel);
     }
     return ExtractionResult(written, actualTotal, prefix);
@@ -111,6 +120,87 @@ Future<ExtractionResult> extractWebsiteZip(
     throw ArchiveRejectedException('not a valid ZIP file (${e.message})');
   } finally {
     await input.close();
+  }
+}
+
+/// Archive output that writes to a file and throws once more than [limit]
+/// bytes arrive. Public for tests; the library export hides it.
+class LimitedFileOutput extends OutputStream {
+  LimitedFileOutput(String path, {required this.limit, required this.onLimit})
+      : _file = File(path).openSync(mode: FileMode.write),
+        super(byteOrder: ByteOrder.littleEndian);
+
+  final int limit;
+  final Exception Function() onLimit;
+  final RandomAccessFile _file;
+  final _buffer = BytesBuilder(copy: false);
+  int _length = 0;
+  bool _closed = false;
+
+  @override
+  int get length => _length;
+
+  void _count(int n) {
+    _length += n;
+    if (_length > limit) throw onLimit();
+  }
+
+  @override
+  void writeByte(int value) {
+    _count(1);
+    _buffer.addByte(value);
+    if (_buffer.length >= 64 * 1024) flush();
+  }
+
+  @override
+  void writeBytes(List<int> bytes, {int? length}) {
+    final n = length ?? bytes.length;
+    _count(n);
+    _buffer.add(n == bytes.length ? bytes : bytes.sublist(0, n));
+    if (_buffer.length >= 64 * 1024) flush();
+  }
+
+  @override
+  void writeStream(InputStream stream) {
+    while (!stream.isEOS) {
+      final chunk = stream.readBytes(stream.length < 65536 ? stream.length : 65536).toUint8List();
+      writeBytes(chunk);
+    }
+  }
+
+  @override
+  void flush() {
+    if (_buffer.isNotEmpty) _file.writeFromSync(_buffer.takeBytes());
+  }
+
+  /// Reads back already-written bytes (FileMode.write opens for read and write).
+  @override
+  Uint8List subset(int start, [int? end]) {
+    flush();
+    final from = start < 0 ? _length + start : start;
+    final to = end == null ? _length : (end < 0 ? _length + end : end);
+    if (from < 0 || to > _length || from > to) throw RangeError('subset($start, $end) outside 0..$_length');
+    _file.setPositionSync(from);
+    final bytes = _file.readSync(to - from);
+    _file.setPositionSync(_length);
+    return bytes;
+  }
+
+  @override
+  void clear() {
+    _buffer.clear();
+    _length = 0;
+  }
+
+  @override
+  void closeSync() {
+    if (_closed) return;
+    _closed = true;
+    try {
+      flush();
+    } finally {
+      _file.closeSync();
+    }
   }
 }
 

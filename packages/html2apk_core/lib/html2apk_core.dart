@@ -16,7 +16,7 @@ export 'src/project_core/validation.dart';
 export 'src/project_importer/files_importer.dart';
 export 'src/project_importer/site_analysis.dart';
 export 'src/project_importer/url_probe.dart';
-export 'src/project_importer/zip_importer.dart';
+export 'src/project_importer/zip_importer.dart' hide LimitedFileOutput;
 export 'src/security/path_safety.dart';
 export 'src/security/url_policy.dart';
 export 'src/web_preview/preview_server.dart';

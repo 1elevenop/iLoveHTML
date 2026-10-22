@@ -132,13 +132,15 @@ class MainActivity : Activity() {
             // Before Android 11 the window is not drawn behind the bars; colour them directly.
             @Suppress("DEPRECATION")
             window.statusBarColor = config.statusBarColor
+            // Dark navigation-bar buttons only exist from Android 8; on 7.x a
+            // light bar would leave the white buttons invisible, so use black.
+            val lightNavSupported = Build.VERSION.SDK_INT >= 26
+            val navColor = if (!lightNavSupported && isLight(config.navigationBarColor)) Color.BLACK else config.navigationBarColor
             @Suppress("DEPRECATION")
-            window.navigationBarColor = config.navigationBarColor
+            window.navigationBarColor = navColor
             var flags = 0
             if (isLight(config.statusBarColor)) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-            if (Build.VERSION.SDK_INT >= 26 && isLight(config.navigationBarColor)) {
-                flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-            }
+            if (lightNavSupported && isLight(navColor)) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = flags
         }

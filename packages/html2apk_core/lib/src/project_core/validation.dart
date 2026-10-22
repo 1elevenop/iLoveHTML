@@ -40,6 +40,16 @@ String? validateApplicationId(String id) {
   return null;
 }
 
+/// Permissions a project may request explicitly. Anything else in a
+/// (possibly imported) project.json is rejected, so a project file cannot
+/// silently give a generated app access to SMS, contacts and the like.
+/// INTERNET is also added automatically for URL apps.
+const supportedPermissions = {
+  'android.permission.INTERNET',
+  'android.permission.ACCESS_NETWORK_STATE',
+  'android.permission.VIBRATE',
+};
+
 bool isHexColor(String s) => RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(s);
 
 /// Highest versionCode accepted by Google Play.
@@ -76,6 +86,11 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
   for (final host in m.webView.allowedHosts) {
     if (!RegExp(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$').hasMatch(host)) {
       issues.add(ValidationIssue('webView.allowedHosts', 'Invalid host "$host"'));
+    }
+  }
+  for (final perm in m.permissions) {
+    if (!supportedPermissions.contains(perm)) {
+      issues.add(ValidationIssue('permissions', '"$perm" is not a permission HTML2APK apps can request'));
     }
   }
   final a = m.appearance;

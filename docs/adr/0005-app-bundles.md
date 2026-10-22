@@ -20,10 +20,13 @@ Release builds can produce `.aab` files on both engines.
     versionName, label (reference → literal), screenOrientation, and
     inserts `<uses-permission>` elements.
   - Website, `app_config.json`, splash and icon are swapped as in APKs.
-  - Signing is **JAR (v1) with SHA-256** via apksig with v2/v3 off, which
-    is what jarsigner/Gradle produce and Play requires for uploads.
-    `META-INF/` is moved to the front of the zip (apksig appends it) so
-    streaming readers (`JarInputStream`) see the signature, like jarsigner.
+  - Signing is **JAR (v1) with SHA-256**, which is what jarsigner/Gradle
+    produce and Play requires for uploads. It is done by our own
+    `JarSigner` (MANIFEST.MF, UPLOAD.SF, PKCS#7 UPLOAD.RSA/.EC, written
+    first so streaming readers see them). *Changed in milestone 6:* apksig's
+    v1 signer uses `java.util.Base64`, which does not exist before
+    Android 8.0, so AAB builds failed on Android 7.x. APKs still use
+    apksig (v2 + v3), which does not need it.
   - The result is verified on the device (every entry signed by the
     release certificate) before it is kept.
 - **Release-only.** Debug bundles are refused: Play does not accept them
@@ -46,6 +49,13 @@ Android 16 x86_64 emulator and Windows, same imported `upload.jks` key:
   (string resource vs literal "Loose Files").
 - 12 JVM engine tests (protobuf round trip, manifest edits, signed bundle
   verified with `JarFile` and `JarInputStream`), 68 core tests.
+
+Milestone 6 (after the `JarSigner` change): release AAB built inside the
+app passes on Android 7.0, 10 and 16 emulators (on-device end-to-end
+test). A `JarSigner` bundle pulled from the emulator passes
+`jarsigner -verify` ("jar verified"; `-strict` only notes the
+self-signed certificate), `bundletool validate` and `build-apks`.
+14 JVM engine tests.
 
 ## Not done
 

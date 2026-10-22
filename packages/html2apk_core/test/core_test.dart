@@ -125,6 +125,58 @@ void main() {
           extractWebsiteZip(zip, p.join(tmp.path, 'out'), limits: const ExtractionLimits(maxFileBytes: 1000)),
           throwsA(isA<ArchiveRejectedException>()));
     });
+    test('stops ZIP bombs with forged sizes while decompressing', () async {
+      // 40 MB of zeros compresses to ~40 KB; then claim it is only 1000 bytes
+      // in both the local and central headers.
+      final archive = Archive()
+        ..add(ArchiveFile.bytes('index.html', utf8.encode('<p>x</p>')))
+        ..add(ArchiveFile.bytes('bomb.bin', Uint8List(40 * 1024 * 1024)));
+      final bytes = Uint8List.fromList(ZipEncoder().encodeBytes(archive));
+      expect(bytes.length, lessThan(1024 * 1024));
+      final d = ByteData.sublistView(bytes);
+      var patched = 0;
+      for (var i = 0; i + 30 < bytes.length; i++) {
+        final sig = d.getUint32(i, Endian.little);
+        if (sig == 0x04034b50 && utf8.decode(bytes.sublist(i + 30, i + 38), allowMalformed: true) == 'bomb.bin') {
+          d.setUint32(i + 22, 1000, Endian.little); // local header: uncompressed size
+          patched++;
+        } else if (sig == 0x02014b50 && utf8.decode(bytes.sublist(i + 46, i + 54), allowMalformed: true) == 'bomb.bin') {
+          d.setUint32(i + 24, 1000, Endian.little); // central directory: uncompressed size
+          patched++;
+        }
+      }
+      expect(patched, 2);
+      final zip = File(p.join(tmp.path, 'bomb.zip'))..writeAsBytesSync(bytes);
+      final out = p.join(tmp.path, 'out');
+      // Rejected either by the decompressor (data larger than declared) or by
+      // our streaming size limit; both stop before the real 40 MB is written.
+      await expectLater(
+        extractWebsiteZip(zip.path, out, limits: const ExtractionLimits(maxFileBytes: 5 * 1024 * 1024)),
+        throwsA(isA<ArchiveRejectedException>()),
+      );
+      final partial = File(p.join(out, 'bomb.bin'));
+      expect(!partial.existsSync() || partial.lengthSync() <= 5 * 1024 * 1024 + 64 * 1024, isTrue,
+          reason: 'never writes far past the limit');
+    });
+
+    test('honest but oversized entries are cut off by the streaming limit', () async {
+      // Headers tell the truth here, so the per-entry limit must stop it.
+      final zip = writeZip({'index.html': 'x', 'big.bin': 'z' * (3 * 1024 * 1024)});
+      await expectLater(
+        extractWebsiteZip(zip, p.join(tmp.path, 'out'),
+            limits: const ExtractionLimits(maxFileBytes: 1024 * 1024, maxCompressionRatio: 1 << 30)),
+        throwsA(isA<ArchiveRejectedException>().having((e) => e.message, 'message', contains('too large'))),
+      );
+    });
+
+    test('total size limit counts real bytes', () async {
+      final zip = writeZip({'index.html': 'x' * 600, 'b.html': 'y' * 600});
+      await expectLater(
+        extractWebsiteZip(zip, p.join(tmp.path, 'out'), limits: const ExtractionLimits(maxTotalBytes: 1000)),
+        throwsA(isA<ArchiveRejectedException>().having((e) => e.message, 'message', contains('too large'))),
+      );
+    });
+
     test('rejects case-insensitive duplicates', () async {
       final zip = writeZip({'index.html': 'x', 'INDEX.html': 'y'});
       await expectLater(extractWebsiteZip(zip, p.join(tmp.path, 'out')), throwsA(isA<ArchiveRejectedException>()));

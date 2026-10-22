@@ -119,6 +119,41 @@ this PC with WHPX acceleration:
 Drop `-no-window` to see it. The debug build of `app/` includes x86_64,
 so `adb -s emulator-5554 install app\build\app\outputs\flutter-apk\app-debug.apk`
 works. Physical-device checks are still done at the end of each milestone.
+Android 10 (`html2apk_api29`) and 7.0 (`html2apk_api24`) emulators are
+set up too; see [docs/testing.md](docs/testing.md) for all test layers.
+
+## Milestone 6: hardening and testing (2026-10-22)
+
+| Check | Android 7.0 (API 24) | Android 10 (API 29) | Android 16 (API 36) |
+|---|---|---|---|
+| Windows end-to-end (`tools/e2e_windows.ps1`: debug, release, AAB, install, page JS ran) | pass | pass | pass |
+| On-device end-to-end (`integration_test/build_flow_test.dart`) | pass | pass | pass |
+| Preview cannot read `file://`/`content://` (`integration_test/preview_security_test.dart`) | pass | pass | pass |
+| Generated app: bar colours, page, pull-to-refresh | pass | pass | pass |
+
+Bugs found and fixed:
+
+- **AAB build failed on Android 7.x** (`java.util.Base64` missing, used by
+  apksig's v1 signer). Bundles are now signed by our own `JarSigner`
+  ([ADR 0005](docs/adr/0005-app-bundles.md)).
+- **Invisible navigation-bar buttons on Android 7.x** with a light
+  navigation-bar colour (dark buttons need API 26). The generated app now
+  uses black there; Android 8.0+ keeps your colour.
+- Security fixes from the [security review](docs/security-review.md): ZIP
+  size limits now count bytes actually written to disk (not the sizes the
+  ZIP claims), the preview WebView has `file://`/`content://` access off,
+  and only allow-listed permissions can be requested.
+
+Large site (42.5 MB ZIP, 2,142 files including 40 × 1 MB incompressible
+images):
+
+| | Import | Build | APK | Peak memory |
+|---|---|---|---|---|
+| Windows (Gradle) | — | 51 s | 44 MB | — |
+| Android 16 emulator (in-app engine) | ~6 s | ~3.2 s engine time | 44 MB, runs | 603 MB peak RSS vs 487 MB before (debug build of the app) |
+
+On the Android 7.0 emulator use `-gpu host`: with the software renderer
+its WebView 53 draws some images as black boxes (an emulator artefact).
 
 ## Signing tests (desktop JVM)
 
@@ -133,6 +168,9 @@ gradlew.bat test
 cd packages/html2apk_core
 dart test
 ```
+
+Widget tests: `cd app && flutter test`. On-device and Windows end-to-end
+tests: [docs/testing.md](docs/testing.md).
 
 ## Verify an APK
 
