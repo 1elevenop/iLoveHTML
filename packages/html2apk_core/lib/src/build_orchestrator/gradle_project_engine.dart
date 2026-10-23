@@ -67,7 +67,7 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
     File(result.artifactPath!).copySync(outputPath);
 
     String? signer;
-    final apksigner = toolchain.apksigner;
+    final apksigner = toolchain.apksignerJar;
     if (format == ArtifactFormat.aab) {
       // Bundles carry a JAR signature; keytool prints its certificate.
       final keytool = p.join(toolchain.javaHome, 'bin', Platform.isWindows ? 'keytool.exe' : 'keytool');
@@ -78,8 +78,9 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
       }
       log('Signed by certificate SHA-256 $signer');
     } else if (apksigner != null) {
-      final verify = await Process.run(apksigner, ['verify', '--print-certs', outputPath],
-          environment: {'JAVA_HOME': toolchain.javaHome}, runInShell: Platform.isWindows);
+      // Same JVM options as apksigner's own launcher script; no shell.
+      final verify = await Process.run(
+          toolchain.java, ['-Xmx1024M', '-Xss1m', '-jar', apksigner, 'verify', '--print-certs', outputPath]);
       if (verify.exitCode != 0) {
         return BuildResult(BuildStatus.failed,
             message: 'APK signature verification failed: ${verify.stderr}'.trim(), duration: sw.elapsed);

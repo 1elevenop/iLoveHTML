@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -37,7 +38,14 @@ class ExeBuilder {
     }
     log('Engine: Windows .exe (WebView2 wrapper, ${debug ? 'developer tools on' : 'developer tools off'})');
 
-    final files = m.source.type == SourceType.local ? siteFiles(project.sourceDir) : <String, String>{};
+    // URL apps bundle their extras (the offline page), as on Android.
+    final files = m.source.type == SourceType.local || Directory(project.sourceDir).existsSync()
+        ? siteFiles(project.sourceDir)
+        : <String, String>{};
+    final offline = m.offlineFallbackPage;
+    if (offline != null && !files.containsKey(offline)) {
+      return BuildResult(BuildStatus.failed, message: 'Offline page "$offline" is missing', duration: sw.elapsed);
+    }
     final total = files.values.fold<int>(0, (n, f) => n + File(f).lengthSync());
     if (total > maxSiteBytes) {
       return BuildResult(BuildStatus.failed, message: 'Website is larger than 1 GB', duration: sw.elapsed);
@@ -51,7 +59,7 @@ class ExeBuilder {
     final tmp = '$outputPath.tmp';
     File(wrapperPath).copySync(tmp);
     try {
-      _writeResources(tmp, config: exeConfig(m, debug: debug), files: files, icon: icon);
+      writeResources(tmp, config: exeConfig(m, debug: debug), files: files, icon: icon);
       if (File(outputPath).existsSync()) File(outputPath).deleteSync();
       File(tmp).renameSync(outputPath);
     } on Object catch (e) {
@@ -96,7 +104,10 @@ class ExeBuilder {
     return values.entries.map((e) => '${e.key}\t${clean(e.value)}\n').join();
   }
 
-  void _writeResources(String exe,
+  /// Writes the app into [exe], a copy of the wrapper. Public so tests can
+  /// build exes the builder itself refuses to make.
+  @visibleForTesting
+  void writeResources(String exe,
       {required String config, required Map<String, String> files, required ExeIcon? icon}) {
     using((arena) {
       final handle = _begin(exe.toNativeUtf16(allocator: arena), 0);
@@ -123,7 +134,7 @@ class ExeBuilder {
           index.write('$id\t${contentTypeFor(path)}\t$path\n');
           id++;
         }
-        // Windows refuses empty resources; URL apps have no files.
+        // Windows refuses empty resources; URL apps may have no files.
         if (files.isNotEmpty) put(_rtRcdata, 'INDEX'.toNativeUtf16(allocator: arena), utf8.encode(index.toString()));
         if (icon != null) {
           for (var i = 0; i < icon.images.length; i++) {

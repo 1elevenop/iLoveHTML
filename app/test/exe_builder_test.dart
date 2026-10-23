@@ -129,6 +129,47 @@ setTimeout(function () { report('after-navigation', 'still on page'); }, 2500);
     });
   }, skip: skip != false);
 
+  testWidgets('URL app shows its own offline page, once', (tester) async {
+    await tester.runAsync(() async {
+      var project = store.createFromUrl(
+          url: 'https://unreachable.html2apk.invalid/', name: 'Offline Test', applicationId: 'com.html2apk.offlinetest');
+      final page = File(p.join(tmp.path, 'mine.html'))
+        ..writeAsStringSync('<!doctype html><h1>Mine</h1><script>console.log("own offline page")</script>');
+      project = store.setOfflinePage(project, page.path);
+      final out = project.windowsExePath(debug: true);
+      final result = await ExeBuilder(wrapper).build(project, outputPath: out, log: (_) {}, debug: true);
+      expect(result.status, BuildStatus.succeeded, reason: result.message);
+      const url = 'https://app.html2apk.invalid/offline.html';
+      final lines = await run(out, (l) => l.contains('LOADED $url'));
+      expect(lines.where((l) => l == 'LOADED $url'), hasLength(1), reason: '$lines');
+      expect(lines.any((l) => l.contains('own offline page')), isTrue, reason: '$lines');
+      expect(lines.where((l) => l == 'FAILED $url'), isEmpty, reason: '$lines');
+    });
+  }, skip: skip != false);
+
+  testWidgets('a bundled error page that fails falls back to the built-in one, once', (tester) async {
+    await tester.runAsync(() async {
+      // The builder refuses this; write the resources directly to test the wrapper's own guard.
+      final project = store.createFromUrl(
+          url: 'https://unreachable.html2apk.invalid/', name: 'Offline Test', applicationId: 'com.html2apk.offlinetest');
+      final m = project.manifest.copyWith(offlineFallbackPage: () => 'missing.html');
+      final out = p.join(tmp.path, 'guard.exe');
+      File(wrapper).copySync(out);
+      ExeBuilder(wrapper).writeResources(out, config: ExeBuilder.exeConfig(m, debug: true), files: const {}, icon: null);
+      final lines = await run(out, (l) => l.any((x) => x.contains('__html2apk/error.html')));
+      expect(lines.where((l) => l == 'FAILED https://app.html2apk.invalid/missing.html'), hasLength(1), reason: '$lines');
+      expect(lines.any((l) => l == 'LOADED https://app.html2apk.invalid/__html2apk/error.html'), isTrue, reason: '$lines');
+    });
+  }, skip: skip != false);
+
+  test('builder refuses an offline page that is not in the project', () async {
+    final project = store.createFromUrl(url: 'https://example.com/', name: 'X', applicationId: 'com.example.gone');
+    final gone = project.withManifest(project.manifest.copyWith(offlineFallbackPage: () => 'gone.html'));
+    final result = await ExeBuilder(wrapper).build(gone, outputPath: p.join(tmp.path, 'gone.exe'), log: (_) {});
+    expect(result.status, BuildStatus.failed);
+    expect(result.message, contains('Offline page "gone.html" is missing'));
+  }, skip: skip != false);
+
   test('config lines cannot be broken by tabs or newlines in values', () {
     final project = store.createFromUrl(url: 'https://example.com/', name: 'X', applicationId: 'com.example.evil');
     final m = project.manifest.copyWith(name: 'Evil\tName\nentry\thttps://x');

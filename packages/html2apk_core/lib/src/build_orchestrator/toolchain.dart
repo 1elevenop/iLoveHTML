@@ -12,11 +12,18 @@ class Toolchain {
   /// Newest installed build-tools directory, used for apksigner verification.
   final String? buildToolsDir;
 
-  String? get apksigner {
+  /// apksigner's jar, run with this JDK's `java`. Not `apksigner.bat`: that
+  /// needs `cmd /c`, which breaks when the script path and an argument both
+  /// contain spaces (e.g. a Windows user name with a space).
+  String? get apksignerJar {
     if (buildToolsDir == null) return null;
-    final f = p.join(buildToolsDir!, Platform.isWindows ? 'apksigner.bat' : 'apksigner');
-    return File(f).existsSync() ? f : null;
+    for (final f in [p.join(buildToolsDir!, 'lib', 'apksigner.jar'), p.join(buildToolsDir!, 'apksigner.jar')]) {
+      if (File(f).existsSync()) return f;
+    }
+    return null;
   }
+
+  String get java => p.join(javaHome, 'bin', Platform.isWindows ? 'java.exe' : 'java');
 }
 
 class ToolchainProblem {

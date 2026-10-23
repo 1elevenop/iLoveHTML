@@ -405,7 +405,14 @@ void SetUpWebView() {
             Log(std::wstring(ok ? L"LOADED " : L"FAILED ") + source);
             if (!ok && status != COREWEBVIEW2_WEB_ERROR_STATUS_OPERATION_CANCELED &&
                 status != COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED && !g_app.IsLocal()) {
-              sender->Navigate(g_app.ErrorUrl().c_str());
+              // A bundled page that fails (e.g. a missing offline page) falls
+              // back to the built-in one once, instead of retrying forever.
+              std::wstring builtIn = std::wstring(kAppOrigin) + kErrorPath;
+              if (source.rfind(kAppOrigin, 0) != 0) {
+                sender->Navigate(g_app.ErrorUrl().c_str());
+              } else if (source != builtIn) {
+                sender->Navigate(builtIn.c_str());
+              }
             }
             return S_OK;
           })
