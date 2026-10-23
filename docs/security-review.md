@@ -32,16 +32,16 @@ covers the item; "Device" means verified on an emulator or phone.
 | Imported scripts never run in the converter | Done: website JS runs only in WebViews (preview, generated app), never in Dart/Kotlin | — |
 | Temp cleanup | Done: picker copies and engine work dirs deleted in `finally` blocks | `projects_screen.dart`, `EngineChannel.kt` |
 | Sensitive confirmations | Done: key delete needs the alias typed; different-key releases need confirmation; installs go through the system installer; project delete confirms | UI |
-| Preview server | Done: loopback only, random port, 128-bit path token, read-only GET/HEAD, path-safe, `nosniff`, `no-store`; HTML2APK allows cleartext only to 127.0.0.1 | `preview_server_test` |
+| Preview server | Done: loopback only, random port, 128-bit path token, read-only GET/HEAD, path-safe, `nosniff`, `no-store`; iLoveHTML allows cleartext only to 127.0.0.1 | `preview_server_test` |
 | FileProvider | Done: not exported; grants are per-URI and per-intent; paths limited to `workspace/projects/` | `file_paths.xml` |
 | Parsers of untrusted bytes | JKS, DER, protobuf readers are bounds-checked and covered by malformed-input tests | engine JVM tests |
 
 ## Known limitations (accepted for now)
 
 - DNS rebinding after the URL check (see above).
-- Files a user deliberately puts in a website are shipped as-is; HTML2APK
+- Files a user deliberately puts in a website are shipped as-is; iLoveHTML
   does not scan site JavaScript for malware.
 - Play Protect may still warn on sideloaded debug/release builds; that is
-  Google's check, outside HTML2APK.
+  Google's check, outside iLoveHTML.
 - Release keys can be used without re-entering a PIN/biometric once
   imported; optional unlock is listed as future work in ADR 0004.

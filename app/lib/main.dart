@@ -43,11 +43,9 @@ class Html2ApkApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) => MaterialApp(
-        title: 'HTML2APK',
+        title: 'iLoveHTML',
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: controller.themeMode,
+        theme: buildTheme(),
         home: ProjectsScreen(controller: controller),
       ),
     );

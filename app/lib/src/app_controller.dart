@@ -1,18 +1,15 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:html2apk_core/html2apk_core.dart';
-import 'package:path/path.dart' as p;
 
 import 'engine/desktop_engine.dart';
 import 'engine/on_device_engine.dart';
 
-/// App-wide state: the workspace, the project list, the build engine and
-/// the theme. Screens listen to it and call its methods.
+/// App-wide state: the workspace, the project list and the build engine.
+/// Screens listen to it and call its methods.
 class AppController extends ChangeNotifier {
   AppController({required this.workspaceDir, this.engine}) : store = ProjectStore(workspaceDir) {
-    _loadSettings();
     refresh();
   }
 
@@ -33,12 +30,9 @@ class AppController extends ChangeNotifier {
 
   List<ProjectHandle> projects = const [];
   List<BrokenProject> brokenProjects = const [];
-  ThemeMode themeMode = ThemeMode.dark;
 
   /// Project ids with a build in progress.
   final Set<String> building = {};
-
-  String get _settingsFile => p.join(workspaceDir, 'settings.json');
 
   void refresh() {
     final (ok, broken) = store.listProjects();
@@ -48,22 +42,6 @@ class AppController extends ChangeNotifier {
   }
 
   ProjectHandle? project(String id) => projects.where((x) => x.manifest.id == id).firstOrNull;
-
-  void setThemeMode(ThemeMode mode) {
-    themeMode = mode;
-    Directory(workspaceDir).createSync(recursive: true);
-    File(_settingsFile).writeAsStringSync(jsonEncode({'themeMode': mode.name}));
-    notifyListeners();
-  }
-
-  void _loadSettings() {
-    try {
-      final j = jsonDecode(File(_settingsFile).readAsStringSync()) as Map;
-      themeMode = ThemeMode.values.byName(j['themeMode'] as String);
-    } on Object {
-      // Missing or unreadable settings: keep defaults.
-    }
-  }
 
   Future<ImportReport> importZip(String zipPath, String name, String applicationId) async {
     final report = await store.importZip(zipPath: zipPath, name: name, applicationId: applicationId);

@@ -4,7 +4,7 @@
     <!-- Checking and previewing live websites. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="HTML2APK"
+        android:label="iLoveHTML"
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:name="${applicationName}"

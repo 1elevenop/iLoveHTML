@@ -90,7 +90,7 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
   }
   for (final perm in m.permissions) {
     if (!supportedPermissions.contains(perm)) {
-      issues.add(ValidationIssue('permissions', '"$perm" is not a permission HTML2APK apps can request'));
+      issues.add(ValidationIssue('permissions', '"$perm" is not a permission iLoveHTML apps can request'));
     }
   }
   final a = m.appearance;

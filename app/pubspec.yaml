@@ -1,5 +1,5 @@
 name: html2apk_app
-description: "A new Flutter project."
+description: "iLoveHTML: turn a website into an Android or Windows app."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -28,3 +28,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf

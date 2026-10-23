@@ -759,7 +759,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
       if (!await engine.install(path) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           duration: Duration(seconds: 8),
-          content: Text('Allow "Install unknown apps" for HTML2APK in the screen that opened, then tap Install again.'),
+          content: Text('Allow "Install unknown apps" for iLoveHTML in the screen that opened, then tap Install again.'),
         ));
       }
     } on PlatformException catch (e) {

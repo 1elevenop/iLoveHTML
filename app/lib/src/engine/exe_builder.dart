@@ -14,7 +14,7 @@ import 'package:path/path.dart' as p;
 class ExeBuilder {
   ExeBuilder(this.wrapperPath);
 
-  /// `html2apk_wrapper.exe`, installed next to HTML2APK.
+  /// `html2apk_wrapper.exe`, installed next to iLoveHTML.
   final String wrapperPath;
 
   static const _rtIcon = 3;

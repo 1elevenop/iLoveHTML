@@ -1,5 +1,5 @@
 # Builds the Windows app wrapper (ADR 0007) into windows_template/dist/.
-# The Windows HTML2APK app copies it next to its exe at build time
+# The Windows iLoveHTML app copies it next to its exe at build time
 # (app/windows/CMakeLists.txt). Rebuild whenever windows_template/ changes.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot

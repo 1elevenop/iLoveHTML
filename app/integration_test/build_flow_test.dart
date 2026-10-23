@@ -1,4 +1,4 @@
-// On-device end-to-end test: runs inside HTML2APK on an emulator or phone and
+// On-device end-to-end test: runs inside iLoveHTML on an emulator or phone and
 // drives the real Kotlin build engine through the platform channel.
 //
 //   flutter test integration_test -d emulator-5554
@@ -87,7 +87,7 @@ void main() {
 
     // 4. Release key (throwaway), release APK, release AAB.
     key = await engine.createKey(alias: 'e2e${DateTime.now().millisecondsSinceEpoch % 100000}',
-        commonName: 'HTML2APK E2E', password: 'e2e-password-${DateTime.now().microsecond}');
+        commonName: 'iLoveHTML E2E', password: 'e2e-password-${DateTime.now().microsecond}');
     final signing = DeviceKeySigning(key!);
 
     final release = await controller.build(project, logs.add, variant: BuildVariant.release, signing: signing);

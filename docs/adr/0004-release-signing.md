@@ -9,7 +9,7 @@ password, so the same key can sign on the phone and on Windows and can be
 backed up. (The alternative, a non-exportable Android Keystore key, would
 make every app un-updatable once the phone is lost.)
 
-- **Format.** HTML2APK writes **PKCS12** files and saves backups with a
+- **Format.** iLoveHTML writes **PKCS12** files and saves backups with a
   `.jks` name. Android has no JKS provider; PKCS12 is what `keytool` and
   Android Studio produce by default since JDK 9, and Gradle, `keytool` and
   Google Play accept it. Legacy **JKS** files (magic `FEEDFEED`) are
@@ -54,7 +54,7 @@ make every app un-updatable once the phone is lost.)
 ## Not done
 
 - **AAB signing** (milestone 5).
-- **Google Play App Signing** guidance: HTML2APK's key works as the *upload*
+- **Google Play App Signing** guidance: iLoveHTML's key works as the *upload*
   key; Play holds the app-signing key. The UI explains the same-key rule but
   not the upload-key reset process.
 - Optional biometric/PIN unlock before using a release key.

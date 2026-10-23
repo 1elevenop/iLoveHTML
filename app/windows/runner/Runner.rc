@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.html2apk" "\0"
-            VALUE "FileDescription", "html2apk_app" "\0"
+            VALUE "FileDescription", "iLoveHTML" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "html2apk_app" "\0"
+            VALUE "InternalName", "iLoveHTML" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.html2apk. All rights reserved." "\0"
-            VALUE "OriginalFilename", "html2apk_app.exe" "\0"
-            VALUE "ProductName", "html2apk_app" "\0"
+            VALUE "OriginalFilename", "iLoveHTML.exe" "\0"
+            VALUE "ProductName", "iLoveHTML" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

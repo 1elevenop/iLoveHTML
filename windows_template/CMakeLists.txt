@@ -1,5 +1,5 @@
-# HTML2APK Windows wrapper (ADR 0007). Built once by
-# tools/build_windows_wrapper.ps1; HTML2APK copies the exe for every app.
+# iLoveHTML Windows wrapper (ADR 0007). Built once by
+# tools/build_windows_wrapper.ps1; iLoveHTML copies the exe for every app.
 cmake_minimum_required(VERSION 3.20)
 project(html2apk_wrapper LANGUAGES CXX)
 

@@ -29,18 +29,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('Theme', style: t.titleSmall),
-            const SizedBox(height: 8),
-            SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined)),
-                ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode_outlined)),
-                ButtonSegment(value: ThemeMode.system, label: Text('System')),
-              ],
-              selected: {c.themeMode},
-              onSelectionChanged: (s) => c.setThemeMode(s.single),
-            ),
-            const SizedBox(height: 24),
             if (c.keys != null) ...[
               Text('Signing', style: t.titleSmall),
               ListTile(

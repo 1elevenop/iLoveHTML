@@ -5,7 +5,7 @@ Status: accepted (2026-10-22)
 ## Context
 
 Users want the same project to become a Windows program, not only an
-Android app. HTML2APK on Windows must build it locally, quickly, and
+Android app. iLoveHTML on Windows must build it locally, quickly, and
 without asking users to install a compiler.
 
 ## Decision
@@ -15,7 +15,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
 
 - **Wrapper** (`windows_template/`, C++17, Win32 + Microsoft Edge
   WebView2): built once by `tools/build_windows_wrapper.ps1` (Release,
-  static C runtime, CFG/ASLR/DEP), installed next to the HTML2APK exe.
+  static C runtime, CFG/ASLR/DEP), installed next to the iLoveHTML exe.
   It depends only on DLLs that ship with Windows; WebView2 is loaded
   through `WebView2LoaderStatic.lib`.
 - **Build** (`app/lib/src/engine/exe_builder.dart`): copy the wrapper
@@ -45,7 +45,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
     "Developer tools" build.
   - URL apps show the project's offline page, or a built-in one with
     "Try again", when the site cannot be reached.
-  - Per-app browser data in `%LOCALAPPDATA%\HTML2APK Apps\<applicationId>`.
+  - Per-app browser data in `%LOCALAPPDATA%\iLoveHTML Apps\<applicationId>`.
   - If WebView2 is missing, the app explains and offers Microsoft's
     download page.
   - `HTML2APK_CONSOLE_LOG=<file>` makes the app log navigations and
@@ -58,7 +58,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
 ## Trade-offs
 
 - Prebuilt wrapper + resources: builds take about a second and need no
-  Visual Studio; the cost is a fixed feature set per HTML2APK version.
+  Visual Studio; the cost is a fixed feature set per iLoveHTML version.
 - Resources are memory-mapped by Windows; very large sites make large
   exes (limit: 1 GB of website files).
 - **Not code-signed.** Downloaded copies trigger SmartScreen ("Windows
@@ -75,7 +75,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
   app whose host cannot be reached shows the offline page; config values
   cannot inject extra keys.
 - `integration_test/windows_ui_test.dart`: Build tab → "Build .exe" in
-  the real HTML2APK Windows app, then the exe runs the page's JavaScript.
+  the real iLoveHTML Windows app, then the exe runs the page's JavaScript.
 - Wrapper imports only system DLLs (`dumpbin /dependents`).
 
 ## Not done

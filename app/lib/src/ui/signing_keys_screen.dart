@@ -52,7 +52,7 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
       builder: (c) => AlertDialog(
         title: const Text('Back up this key now'),
         content: const Text(
-            'Every update of an app must be signed with the same key. If this device is lost or HTML2APK is '
+            'Every update of an app must be signed with the same key. If this device is lost or iLoveHTML is '
             'uninstalled, the key is gone unless you have a backup.\n\n'
             'Save the .jks file somewhere safe (not only on this device) and keep the password separately.'),
         actions: [
@@ -179,7 +179,7 @@ class _SigningKeysScreenState extends State<SigningKeysScreen> {
                       'Release builds are signed with one of these keys. Google Play and Android only accept '
                       'updates signed with the same key as the first release. '
                       '${Platform.isWindows ? 'Keys stay on this PC, with passwords encrypted for your Windows account' : 'Keys stay on this phone, encrypted with Android Keystore'}'
-                      '; a backup is a password-protected .jks file that works with HTML2APK on a phone or a '
+                      '; a backup is a password-protected .jks file that works with iLoveHTML on a phone or a '
                       'computer, Gradle and keytool.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -452,7 +452,7 @@ class _ImportKeyDialogState extends State<_ImportKeyDialog> {
             enableSuggestions: false,
           ),
           const SizedBox(height: 8),
-          Text('HTML2APK keeps a copy protected by the keystore password. Your original file is not changed.',
+          Text('iLoveHTML keeps a copy protected by the keystore password. Your original file is not changed.',
               style: Theme.of(context).textTheme.bodySmall),
         ],
         if (_error != null)

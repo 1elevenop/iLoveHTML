@@ -1,4 +1,4 @@
-# HTML2APK — local HTML-to-Android app builder
+# iLoveHTML — local HTML-to-Android app builder
 
 Converts a website (ZIP of HTML/CSS/JS/assets, later folders and URLs) into
 an Android WebView app, built entirely on the local machine.
@@ -108,7 +108,7 @@ Pinned build versions are in [ADR 0003](docs/adr/0003-toolchain-versions.md).
 ```bash
 cd packages/html2apk_core
 dart pub get
-dart run bin/html2apk.dart --zip ../../samples/demo-site.zip --name "HTML2APK Demo" --id com.html2apk.demo --icon ../../samples/demo-icon.png --out ../../out
+dart run bin/html2apk.dart --zip ../../samples/demo-site.zip --name "iLoveHTML Demo" --id com.html2apk.demo --icon ../../samples/demo-icon.png --out ../../out
 ```
 
 Projects go to `.workspace/projects/<id>/`, generated Gradle projects and

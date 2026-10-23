@@ -93,7 +93,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             if (e.isForMainFrame ?? true) _add('error', 'Page failed to load: ${e.description} (${e.url ?? ''})');
           },
         ));
-      // The previewed site is untrusted and runs inside HTML2APK, whose private
+      // The previewed site is untrusted and runs inside iLoveHTML, whose private
       // files include release keystores. WebView allows file:// access by
       // default on Android 10 and older, so turn it (and content://) off.
       final platform = web.platform;
