@@ -23,13 +23,19 @@ List<String> findEntryCandidates(List<String> files) {
 }
 
 class MissingAsset {
-  const MissingAsset(this.referencedFrom, this.reference);
+  const MissingAsset(this.referencedFrom, this.reference, {this.differentCase});
 
   final String referencedFrom;
   final String reference;
 
+  /// The file that does exist under another letter case, e.g. `img/logo.png`
+  /// for a reference to `img/Logo.png`.
+  final String? differentCase;
+
   @override
-  String toString() => '$referencedFrom -> $reference';
+  String toString() => differentCase == null
+      ? '$referencedFrom -> $reference'
+      : '$referencedFrom -> $reference (the file is $differentCase; letter case must match)';
 }
 
 final _attrRef = RegExp(r'''\b(?:src|href|poster)\s*=\s*(?:"([^"]*)"|'([^']*)')''', caseSensitive: false);
@@ -70,11 +76,16 @@ List<LocalReference> collectLocalReferences(String root, List<String> files) {
 }
 
 /// Relative references in HTML and CSS files that do not resolve to a file under [root].
+///
+/// Names are compared exactly: the APK and the Windows app look files up
+/// with their letter case, even where the disk here ignores it.
 List<MissingAsset> findMissingAssets(String root, List<String> files) {
-  final existing = files.map((f) => f.toLowerCase()).toSet();
+  final existing = files.toSet();
+  final byFoldedCase = {for (final f in files) f.toLowerCase(): f};
   return [
     for (final r in collectLocalReferences(root, files))
-      if (!existing.contains(r.target.toLowerCase())) MissingAsset(r.from, r.reference),
+      if (!existing.contains(r.target))
+        MissingAsset(r.from, r.reference, differentCase: byFoldedCase[r.target.toLowerCase()]),
   ];
 }
 

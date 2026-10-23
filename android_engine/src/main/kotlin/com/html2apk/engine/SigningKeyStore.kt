@@ -65,8 +65,7 @@ class SigningKeyStore(private val dir: File) {
      * PKCS12 using [storePassword] for both the file and the key.
      */
     fun import(file: File, storePassword: CharArray, alias: String, keyPassword: CharArray): KeyInfo {
-        ReleaseKeystore.validatePassword(storePassword)
-        val unlocked = ReleaseKeystore.unlock(readLimited(file), storePassword, alias, keyPassword)
+        val unlocked = ReleaseKeystore.unlockForImport(readLimited(file), storePassword, alias, keyPassword)
         val sha256 = ReleaseKeystore.fingerprint(unlocked.certificate)
         if (list().any { it.sha256 == sha256 }) throw KeystoreException("This key has already been imported")
         if (list().any { it.alias.equals(unlocked.alias, ignoreCase = true) }) {

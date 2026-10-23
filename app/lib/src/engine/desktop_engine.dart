@@ -331,7 +331,8 @@ $eku = @($c.Extensions | Where-Object { $_ -is [Security.Cryptography.X509Certif
     String? country,
     required String password,
   }) async {
-    if (password.length < 6) throw const KeyManagerException('Use a password of at least 6 characters');
+    // Same rule as the app's form and the phone; imported keys have none.
+    if (password.length < 8) throw const KeyManagerException('Use a password of at least 8 characters');
     String esc(String v) => v.replaceAll(r'\', r'\\').replaceAll(',', r'\,');
     final dname = [
       'CN=${esc(commonName)}',

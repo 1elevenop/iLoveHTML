@@ -111,6 +111,30 @@ class ReleaseKeystoreTest {
     }
 
     @Test
+    fun importAcceptsPasswordsShorterThanTheCreateMinimum() {
+        val source = ReleaseKeystore.unlock(ReleaseKeystore.generate("upload", subject, password), password, "upload", password)
+        // keytool's minimum is 6 characters; Android's debug keystore uses "android".
+        val p12Password = "abc123".toCharArray()
+        val p12 = ReleaseKeystore.toPkcs12(source, p12Password, p12Password)
+        val debugPassword = "android".toCharArray()
+        val jks = KeyStore.getInstance("JKS").apply { load(null, null) }
+        jks.setKeyEntry("androiddebugkey", source.key, debugPassword, source.chain.toTypedArray())
+        val jksBytes = ByteArrayOutputStream().also { jks.store(it, debugPassword) }.toByteArray()
+
+        for ((bytes, pw, alias) in listOf(Triple(p12, p12Password, "upload"), Triple(jksBytes, debugPassword, "androiddebugkey"))) {
+            val unlocked = ReleaseKeystore.unlockForImport(bytes, pw, alias, pw)
+            // The stored copy is PKCS12 under the same password.
+            val stored = ReleaseKeystore.toPkcs12(unlocked, pw, pw)
+            assertEquals(
+                ReleaseKeystore.fingerprint(source.certificate),
+                ReleaseKeystore.fingerprint(ReleaseKeystore.unlock(stored, pw, alias, pw).certificate),
+            )
+        }
+        assertFailsWith<KeystoreException> { ReleaseKeystore.unlockForImport(p12, CharArray(0), "upload", CharArray(0)) }
+        assertFailsWith<KeystoreException> { ReleaseKeystore.generate("upload", subject, debugPassword) }
+    }
+
+    @Test
     fun truncatedJksIsRejectedCleanly() {
         val source = ReleaseKeystore.unlock(ReleaseKeystore.generate("k", subject, password), password, "k", password)
         val jks = KeyStore.getInstance("JKS").apply { load(null, null) }

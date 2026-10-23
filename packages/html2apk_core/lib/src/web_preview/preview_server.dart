@@ -68,7 +68,7 @@ class PreviewServer {
         return;
       }
       final file = File(resolveWithin(root, normalized));
-      if (!file.existsSync()) {
+      if (!_existsExactly(file, normalized)) {
         res.statusCode = HttpStatus.notFound;
         if (!missing.contains(normalized)) {
           missing.add(normalized);
@@ -81,6 +81,20 @@ class PreviewServer {
       if (req.method == 'GET') await res.addStream(file.openRead());
     } finally {
       await res.close();
+    }
+  }
+
+  late final String _realRoot = Directory(root).resolveSymbolicLinksSync();
+
+  /// The built app looks files up with their exact letter case, so the
+  /// preview does too, even on a disk that ignores case (Windows). The
+  /// resolved path carries the name as stored on disk.
+  bool _existsExactly(File file, String relative) {
+    if (!file.existsSync()) return false;
+    try {
+      return p.relative(file.resolveSymbolicLinksSync(), from: _realRoot).replaceAll('\\', '/') == relative;
+    } on FileSystemException {
+      return false;
     }
   }
 }

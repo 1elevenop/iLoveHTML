@@ -65,6 +65,13 @@ void main() {
     expect((await get(server.urlFor('index.html'), method: 'POST')).$1, 405);
   });
 
+  test('letter case must match, as in the built app', () async {
+    expect((await get(server.urlFor('Index.html'))).$1, 404);
+    expect((await get(server.urlFor('My Pages/a b.html'))).$1, 404);
+    expect((await get(server.urlFor('my pages/a b.html'))).$1, 200);
+    expect(server.missing, ['Index.html', 'My Pages/a b.html']);
+  });
+
   test('binds to loopback only', () {
     expect(server.baseUri.host, '127.0.0.1');
   });

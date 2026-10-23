@@ -84,6 +84,23 @@ void main() {
     expect(key.subject, 'CN=Legacy');
   }, skip: report.ok ? false : 'No JDK');
 
+  test('keys made here need 8 characters; imported keys keep their own password', () async {
+    await expectLater(engine.createKey(alias: 'upload', commonName: 'Short', password: 'seven77'),
+        throwsA(isA<KeyManagerException>().having((e) => e.message, 'message', contains('8 characters'))));
+    expect(await engine.listKeys(), isEmpty);
+
+    // keytool's own minimum is 6 characters, the same rule as on the phone.
+    final p12 = p.join(tmp.path, 'short.p12');
+    final keytool = p.join(report.toolchain!.javaHome, 'bin', 'keytool.exe');
+    final r = await Process.run(keytool, [
+      '-genkeypair', '-keystore', p12, '-storetype', 'PKCS12', '-alias', 'short', '-keyalg', 'RSA', '-keysize', '2048',
+      '-validity', '400', '-dname', 'CN=Short', '-storepass:env', 'SP', '-keypass:env', 'SP',
+    ], environment: {'SP': 'abc123'});
+    expect(r.exitCode, 0, reason: '${r.stdout}${r.stderr}');
+    final key = await engine.importKey(path: p12, storePassword: 'abc123', alias: 'short', keyPassword: 'abc123');
+    expect(key.subject, 'CN=Short');
+  }, skip: report.ok ? false : 'No JDK');
+
   test('builds debug and release APKs with Gradle', () async {
     final store = ProjectStore(p.join(tmp.path, 'projects'));
     final site = Directory(p.join(tmp.path, 'site'))..createSync();

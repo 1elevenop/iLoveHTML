@@ -62,13 +62,18 @@ PlacementResult importLooseFiles(
   }
 
   final moved = <String, String>{};
+  // Paths are matched exactly, as in the built app. Where the disk ignores
+  // letter case, a second spelling of a placed path lands on the same file;
+  // remembering it stops the copy repeating every pass, and the import
+  // report then lists it as a case mismatch.
+  final placed = <String>{};
   for (var pass = 0; pass < 4; pass++) {
     final files = listRelativeFiles(dest.path);
-    final existing = files.map((f) => f.toLowerCase()).toSet();
+    final existing = {...files, ...placed};
     var changed = false;
     for (final ref in collectLocalReferences(dest.path, files)) {
       final target = ref.target;
-      if (existing.contains(target.toLowerCase()) || target.startsWith('..') || !target.contains('/')) continue;
+      if (existing.contains(target) || target.startsWith('..') || !target.contains('/')) continue;
       final name = p.posix.basename(target);
       final rootCopy = files.firstWhere((f) => f.toLowerCase() == name.toLowerCase(), orElse: () => '');
       if (rootCopy.isEmpty) continue;
@@ -81,14 +86,16 @@ PlacementResult importLooseFiles(
       final out = File(resolveWithin(dest.path, safe));
       out.parent.createSync(recursive: true);
       File(p.join(dest.path, rootCopy)).copySync(out.path);
-      existing.add(safe.toLowerCase());
+      existing.add(safe);
+      placed.add(safe);
       moved[rootCopy] = safe;
       changed = true;
     }
     if (!changed) break;
   }
 
-  // Remove root copies that were moved and are not also referenced at the root.
+  // Remove root copies that were moved and are not also referenced at the
+  // root, in any letter case (a case mismatch is reported, not deleted).
   final files = listRelativeFiles(dest.path);
   final referenced = collectLocalReferences(dest.path, files).map((r) => r.target.toLowerCase()).toSet();
   for (final name in moved.keys) {

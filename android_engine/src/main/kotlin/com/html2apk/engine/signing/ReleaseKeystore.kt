@@ -146,6 +146,16 @@ object ReleaseKeystore {
             }
         }
 
+    /**
+     * [unlock] for a keystore the user brings in. Unlike [generate] there is no
+     * minimum length: the file keeps the password it was made with (keytool
+     * allows 6 characters; Android's debug keystore uses "android").
+     */
+    fun unlockForImport(bytes: ByteArray, storePassword: CharArray, alias: String, keyPassword: CharArray): Unlocked {
+        if (storePassword.isEmpty()) throw KeystoreException("Enter the keystore password")
+        return unlock(bytes, storePassword, alias, keyPassword)
+    }
+
     fun toPkcs12(unlocked: Unlocked, storePassword: CharArray, keyPassword: CharArray): ByteArray {
         val ks = KeyStore.getInstance("PKCS12").apply { load(null, null) }
         ks.setKeyEntry(unlocked.alias, unlocked.key, keyPassword, unlocked.chain.toTypedArray())
@@ -161,6 +171,7 @@ object ReleaseKeystore {
         }
     }
 
+    /** For keys made in the app; imports use [unlockForImport]. */
     fun validatePassword(password: CharArray) {
         if (password.size < 8) throw KeystoreException("Password must be at least 8 characters")
     }

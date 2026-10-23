@@ -59,6 +59,29 @@ void main() {
     expect(r.files..sort(), ['img/logo.png', 'index.html', 'logo.png']);
   });
 
+  test('a link that differs from the file only in letter case is reported', () async {
+    final store = ProjectStore(p.join(tmp.path, 'ws'));
+    final report = await store.importFiles(
+      paths: [pick('index.html', '<img src="Logo.png">'), pick('logo.png', 'png')],
+      name: 'A',
+      applicationId: 'com.example.a',
+    );
+    expect(report.missingAssets.map((m) => (m.reference, m.differentCase)), [('Logo.png', 'logo.png')]);
+  });
+
+  test('two spellings of a folder path are both placed, or the second is reported', () {
+    final r = importLooseFiles([pick('index.html', '<img src="img/a.png"><img src="img/A.png">'), pick('a.png', 'png')],
+        out());
+    final placed = r.files.where((f) => f.toLowerCase() == 'img/a.png').toList();
+    final missing = findMissingAssets(out(), r.files);
+    if (placed.length == 2) {
+      expect(missing, isEmpty, reason: 'a disk that keeps both names');
+    } else {
+      // Windows: one file can't have both names, so the app would miss one.
+      expect(missing.map((m) => m.differentCase), placed);
+    }
+  });
+
   test('missing files are still reported', () async {
     final store = ProjectStore(p.join(tmp.path, 'ws'));
     final report = await store.importFiles(

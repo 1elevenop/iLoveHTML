@@ -203,6 +203,19 @@ void main() {
       final missing = findMissingAssets(root.path, ['index.html', 'css/a.css']);
       expect(missing.map((m) => m.reference), unorderedEquals(['js/missing.js', '../img/bg.png']));
     });
+    test('letter case must match exactly, as in the APK and the Windows app', () {
+      final root = Directory(p.join(tmp.path, 's'))..createSync();
+      File(p.join(root.path, 'index.html'))
+          .writeAsStringSync('<img src="img/Logo.png"><link href="CSS/a.css"><img src="img/logo.png">');
+      Directory(p.join(root.path, 'img')).createSync();
+      File(p.join(root.path, 'img', 'logo.png')).writeAsStringSync('png');
+      Directory(p.join(root.path, 'css')).createSync();
+      File(p.join(root.path, 'css', 'a.css')).writeAsStringSync('');
+      final missing = findMissingAssets(root.path, ['css/a.css', 'img/logo.png', 'index.html']);
+      expect({for (final m in missing) m.reference: m.differentCase},
+          {'img/Logo.png': 'img/logo.png', 'CSS/a.css': 'css/a.css'});
+      expect(missing.first.toString(), contains('letter case must match'));
+    });
   });
 
   group('resource writers', () {
