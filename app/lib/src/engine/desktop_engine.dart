@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import 'dpapi.dart';
 import 'exe_builder.dart';
+import 'msix_builder.dart';
 import 'signing_keys.dart';
 
 /// Windows build engine: the generated Gradle project built with the local
@@ -102,8 +103,150 @@ class DesktopBuildEngine implements ProjectBuildEngine, KeyManager {
           {required String outputPath, required BuildLogSink log, bool debug = false}) =>
       ExeBuilder(wrapperPath).build(project, outputPath: outputPath, log: log, debug: debug);
 
+  /// The Windows SDK tools for installers, or null if the SDK is missing.
+  WindowsSdkTools? get sdkTools => WindowsSdkTools.find();
+
+  /// Builds a signed .msix installer of [project] with the saved certificate.
+  Future<BuildResult> buildMsix(ProjectHandle project, {required String outputPath, required BuildLogSink log}) async {
+    final tools = sdkTools;
+    final entry = _msixEntry();
+    if (tools == null) {
+      return const BuildResult(BuildStatus.failed,
+          message: 'The Windows SDK is missing. Install it with: winget install Microsoft.WindowsSDK.10.0.26100',
+          duration: Duration.zero);
+    }
+    if (entry == null) {
+      return const BuildResult(BuildStatus.failed,
+          message: 'Create or import an installer certificate first', duration: Duration.zero);
+    }
+    final cert = MsixCertificate.fromMap(entry);
+    final result = await MsixBuilder(ExeBuilder(wrapperPath), tools).build(project,
+        outputPath: outputPath,
+        log: log,
+        signing: MsixSigning(
+            pfxPath: _msixPfx, password: unprotectString(entry['password']! as String), subject: cert.subject));
+    if (result.status == BuildStatus.succeeded && cert.isTest) {
+      // People who install it must trust this test certificate first.
+      final cer = p.setExtension(outputPath, '.cer');
+      File(_msixCer).copySync(cer);
+      log('Certificate for the people you share it with: $cer');
+    }
+    return result;
+  }
+
   /// Opens the folder containing [path] in Explorer.
   Future<void> showInFolder(String path) => Process.start('explorer.exe', [p.dirname(path)]);
+
+  // ---- Installer certificate (ADR 0008)
+
+  String get _msixDir => p.join(workspaceDir, 'windows-signing');
+  String get _msixPfx => p.join(_msixDir, 'certificate.pfx');
+  String get _msixCer => p.join(_msixDir, 'certificate.cer');
+  String get _msixJson => p.join(_msixDir, 'certificate.json');
+
+  Map<String, Object?>? _msixEntry() {
+    final f = File(_msixJson);
+    if (!f.existsSync() || !File(_msixPfx).existsSync()) return null;
+    return (jsonDecode(f.readAsStringSync()) as Map).cast<String, Object?>();
+  }
+
+  /// The certificate installers are signed with, or null if there is none.
+  MsixCertificate? msixCertificate() => switch (_msixEntry()) { final e? => MsixCertificate.fromMap(e), _ => null };
+
+  /// Makes a self-signed test certificate for [publisherName] (needs the JDK).
+  Future<MsixCertificate> createMsixCertificate(String publisherName) async {
+    final name = publisherName.trim();
+    if (name.isEmpty || name.length > 64 || RegExp(r'[,+"\\<>;=#]').hasMatch(name)) {
+      throw const KeyManagerException('Use a publisher name of up to 64 characters, without , + " \\ < > ; = #');
+    }
+    final password = _newId() + _newId();
+    final tmp = _newMsixFile();
+    final r = await _run([
+      '-genkeypair', '-keystore', tmp, '-storetype', 'PKCS12', '-alias', 'installer', '-keyalg', 'RSA', //
+      '-keysize', '3072', '-sigalg', 'SHA256withRSA', '-validity', '1825', '-dname', 'CN=$name',
+      '-ext', 'EKU=codeSigning', '-ext', 'KU=digitalSignature', '-storepass:env', 'H2A_SP', '-keypass:env', 'H2A_SP',
+    ], {'H2A_SP': password});
+    if (r.exitCode != 0) {
+      if (File(tmp).existsSync()) File(tmp).deleteSync();
+      throw KeyManagerException(_error(r));
+    }
+    return _installMsixCertificate(tmp, password, 'created');
+  }
+
+  /// Uses the user's own code-signing certificate (.pfx and its password).
+  Future<MsixCertificate> importMsixCertificate(String path, String password) async {
+    final tmp = _newMsixFile();
+    File(path).copySync(tmp);
+    return _installMsixCertificate(tmp, password, 'imported');
+  }
+
+  String _newMsixFile() {
+    Directory(_msixDir).createSync(recursive: true);
+    final tmp = p.join(_msixDir, 'new.pfx');
+    if (File(tmp).existsSync()) File(tmp).deleteSync();
+    return tmp;
+  }
+
+  /// Checks the new .pfx, then replaces the saved certificate with it.
+  Future<MsixCertificate> _installMsixCertificate(String tmp, String password, String origin) async {
+    final cer = '$tmp.cer';
+    try {
+      final info = await _inspectPfx(tmp, password, cerOut: cer);
+      if (info['hasPrivateKey'] != true) throw const KeyManagerException('This file has no private key');
+      if (info['codeSigning'] != true) throw const KeyManagerException('This certificate is not for code signing');
+      final entry = <String, Object?>{
+        'subject': info['subject'],
+        'thumbprint': info['thumbprint'],
+        'notAfter': info['notAfter'],
+        'origin': origin,
+        'password': protectString(password),
+      };
+      removeMsixCertificate();
+      File(tmp).renameSync(_msixPfx);
+      File(cer).renameSync(_msixCer);
+      File(_msixJson).writeAsStringSync(const JsonEncoder.withIndent('  ').convert(entry));
+      return MsixCertificate.fromMap(entry);
+    } finally {
+      for (final f in [tmp, cer]) {
+        if (File(f).existsSync()) File(f).deleteSync();
+      }
+    }
+  }
+
+  /// Reads a .pfx with Windows' own certificate classes. The password goes
+  /// through the environment and the key is not added to any store.
+  Future<Map<String, Object?>> _inspectPfx(String path, String password, {required String cerOut}) async {
+    const script = r'''
+$ErrorActionPreference = 'Stop'
+$flags = [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+$c = New-Object Security.Cryptography.X509Certificates.X509Certificate2($env:H2A_PFX, $env:H2A_PW, $flags)
+$eku = @($c.Extensions | Where-Object { $_ -is [Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] } |
+  ForEach-Object { $_.EnhancedKeyUsages } | Where-Object { $_.Value -eq '1.3.6.1.5.5.7.3.3' })
+[IO.File]::WriteAllBytes($env:H2A_CER, $c.Export('Cert'))
+[ordered]@{ subject = $c.Subject; thumbprint = $c.Thumbprint; notAfter = $c.NotAfter.ToUniversalTime().ToString('o');
+  codeSigning = $eku.Count -gt 0; hasPrivateKey = $c.HasPrivateKey } | ConvertTo-Json -Compress
+''';
+    final r = await Process.run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script],
+        environment: {'H2A_PFX': path, 'H2A_PW': password, 'H2A_CER': cerOut},
+        stdoutEncoding: utf8,
+        stderrEncoding: utf8);
+    if (r.exitCode != 0) {
+      final err = '${r.stderr}'.trim();
+      if (err.contains('password')) throw const KeyManagerException('Wrong certificate password');
+      throw KeyManagerException('Could not read the certificate: ${err.split('\n').first}');
+    }
+    return (jsonDecode((r.stdout as String).trim()) as Map).cast<String, Object?>();
+  }
+
+  /// Lets the user save the public certificate (.cer) to share.
+  Future<String?> saveMsixCer() => _saveCopy(_msixCer, 'installer-certificate.cer', 'Save certificate');
+
+  /// Forgets the installer certificate.
+  void removeMsixCertificate() {
+    for (final f in [_msixJson, _msixPfx, _msixCer]) {
+      if (File(f).existsSync()) File(f).deleteSync();
+    }
+  }
 
   // ---- Release keys
 

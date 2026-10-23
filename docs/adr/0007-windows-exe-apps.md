@@ -45,7 +45,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
     "Developer tools" build.
   - URL apps show the project's offline page, or a built-in one with
     "Try again", when the site cannot be reached.
-  - Per-app browser data in `%LOCALAPPDATA%\iLoveHTML Apps\<applicationId>`.
+  - Per-app browser data in `%LOCALAPPDATA%\HTML2APK Apps\<applicationId>`.
   - If WebView2 is missing, the app explains and offers Microsoft's
     download page.
   - `HTML2APK_CONSOLE_LOG=<file>` makes the app log navigations and
@@ -80,7 +80,7 @@ wrapper** is copied and personalised; nothing is compiled per app.
 
 ## Not done
 
-- Code signing with the user's certificate; installer/MSIX.
+- Authenticode signing of the bare .exe. (Signed installers: ADR 0008.)
 - Windows-specific project settings (window size, single instance,
   title bar colour); fixed at 1280×800, resizable.
 - Version info resource (file properties show no product version).

@@ -7,6 +7,7 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_controller.dart';
+import '../engine/msix_builder.dart';
 import '../engine/on_device_engine.dart';
 import 'preview_screen.dart';
 import 'signing_keys_screen.dart';
@@ -728,9 +729,173 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             icon: const Icon(Icons.play_arrow),
             label: Text(_building ? 'Building…' : 'Build .exe'),
           ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          _msixSection(context),
         ]),
       ),
     );
+  }
+
+  // ---- Windows installer (ADR 0008)
+
+  late final WindowsSdkTools? _sdk = widget.controller.desktopEngine?.sdkTools;
+
+  Future<void> _buildMsix() async {
+    setState(() {
+      _log.clear();
+      _result = null;
+    });
+    final result = await widget.controller.buildMsix(widget.project, (line) {
+      if (mounted) setState(() => _log.add(line));
+    });
+    if (mounted) setState(() => _result = result);
+  }
+
+  Widget _msixSection(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final desktop = widget.controller.desktopEngine!;
+    final cert = desktop.msixCertificate();
+    final until = cert == null ? '' : MaterialLocalizations.of(context).formatMediumDate(cert.notAfter.toLocal());
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        const Icon(Icons.install_desktop_outlined),
+        const SizedBox(width: 8),
+        Text('Windows installer (.msix)', style: t.titleSmall),
+      ]),
+      const SizedBox(height: 8),
+      Text('Installs the app like other Windows software: Start menu entry, clean uninstall, and updates when '
+          'you share a higher version. Every installer is signed with a certificate.',
+          style: t.bodySmall),
+      const SizedBox(height: 12),
+      if (_sdk == null)
+        Text('Needs the Windows SDK. Install it with:\nwinget install Microsoft.WindowsSDK.10.0.26100',
+            style: monoStyle(context, size: 12))
+      else ...[
+        if (cert == null)
+          Text('No certificate yet. Use your own code-signing certificate, or create a test certificate to try it.',
+              style: t.bodySmall)
+        else ...[
+          Text('Publisher: ${cert.publisherName} · valid until $until', style: monoStyle(context, size: 12)),
+          if (cert.isTest)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                  'Test certificate: Windows installs the app only after people trust it once. Share the .cer '
+                  'file next to the installer; people double-click it → Install Certificate → Local Machine → '
+                  '"Trusted People". A certificate bought from a certificate authority needs no such step.',
+                  style: t.bodySmall),
+            ),
+        ],
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          OutlinedButton.icon(
+            onPressed: _building ? null : () => _replaceCert(cert, _createCert),
+            icon: const Icon(Icons.add_moderator_outlined),
+            label: const Text('Create test certificate'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _building ? null : () => _replaceCert(cert, _importCert),
+            icon: const Icon(Icons.file_open_outlined),
+            label: const Text('Use my .pfx'),
+          ),
+          if (cert != null)
+            OutlinedButton.icon(
+              onPressed: () => _certAction(desktop.saveMsixCer, 'Saved the certificate'),
+              icon: const Icon(Icons.save_alt),
+              label: const Text('Save .cer'),
+            ),
+        ]),
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: _building || cert == null ? null : _buildMsix,
+          icon: const Icon(Icons.play_arrow),
+          label: Text(_building ? 'Building…' : 'Build installer'),
+        ),
+      ],
+    ]);
+  }
+
+  /// Installed apps only update from installers with the same publisher.
+  Future<void> _replaceCert(MsixCertificate? current, Future<void> Function() action) async {
+    if (current != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Replace the certificate?'),
+          content: Text('Apps installed from installers signed by "${current.publisherName}" update only from '
+              'installers with the same publisher name. Back up the current certificate first if you may need it.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Replace')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    await action();
+  }
+
+  Future<void> _createCert() async {
+    final name = await _askText('Create test certificate', 'Publisher name',
+        initial: Platform.environment['USERNAME'] ?? '',
+        help: 'Shown as the publisher when people install your apps.');
+    if (name == null) return;
+    await _certAction(() => widget.controller.desktopEngine!.createMsixCertificate(name), 'Test certificate created');
+  }
+
+  Future<void> _importCert() async {
+    final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pfx', 'p12']);
+    if (picked.isEmpty || !mounted) return;
+    final tmp = Directory.systemTemp.createTempSync('pfx');
+    try {
+      final path = p.join(tmp.path, 'certificate.pfx');
+      await picked.single.xFile.saveTo(path);
+      final password = await _askText('Use my certificate', 'Password of ${picked.single.name}', obscure: true);
+      if (password == null) return;
+      await _certAction(
+          () => widget.controller.desktopEngine!.importMsixCertificate(path, password), 'Certificate added');
+    } finally {
+      tmp.deleteSync(recursive: true);
+      await FilePicker.clearTemporaryFiles();
+    }
+  }
+
+  Future<void> _certAction(Future<Object?> Function() action, String done) async {
+    try {
+      final r = await action();
+      // A null result means the save dialog was cancelled.
+      if (mounted && r != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+      }
+    } on KeyManagerException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } on FileSystemException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<String?> _askText(String title, String label, {String initial = '', bool obscure = false, String? help}) {
+    final field = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: field,
+          autofocus: true,
+          obscureText: obscure,
+          decoration: InputDecoration(labelText: label, helperText: help, helperMaxLines: 3),
+          onSubmitted: (v) => Navigator.pop(c, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, field.text), child: const Text('OK')),
+        ],
+      ),
+    ).whenComplete(field.dispose);
   }
 
   Future<void> _save(String path) async {

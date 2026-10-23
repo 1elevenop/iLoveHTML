@@ -34,6 +34,12 @@ an Android WebView app, built entirely on the local machine.
   opens the site in its own window with Microsoft Edge WebView2. Needs the
   wrapper built once: `powershell -File tools/build_windows_wrapper.ps1`.
   Not code-signed yet, so downloaded copies show a SmartScreen warning.
+- **Windows installers** ([ADR 0008](docs/adr/0008-windows-msix-installers.md)):
+  Build → "Build installer" makes a signed `.msix` (Start menu entry,
+  clean uninstall, in-place updates). Signed with your own code-signing
+  `.pfx` or a test certificate made in the app; a test certificate must be
+  trusted once on each PC. Needs the Windows SDK
+  (`winget install Microsoft.WindowsSDK.10.0.26100`).
 - **Release signing** ([ADR 0004](docs/adr/0004-release-signing.md)):
   create or import release keys on the phone (.jks / .keystore / .p12,
   including legacy JKS), back them up as password-protected `.jks`,
@@ -76,15 +82,15 @@ an Android WebView app, built entirely on the local machine.
 
 ## Run the Windows app
 
-`ash
+```bash
 cd app
 flutter run -d windows
-`
+```
 
-Or lutter build windows and start
-pp\build\windows\x64\runner\Release\html2apk_app.exe; the
-ndroid_template folder next to the exe must stay with it. Projects and
-keys live in %APPDATA%\com.html2apk\html2apk_app\workspace.
+Or `flutter build windows` and start
+`app\build\windows\x64\runner\Release\iLoveHTML.exe`; the
+`android_template` folder next to the exe must stay with it. Projects and
+keys live in `%APPDATA%\com.html2apk\html2apk_app\workspace`.
 
 ## Run the Android app
 

@@ -90,7 +90,17 @@ class AppController extends ChangeNotifier {
   }
 
   /// Builds a Windows .exe (Windows only) and records it in the project's history.
-  Future<BuildResult> buildExe(ProjectHandle project, BuildLogSink log, {bool debug = false}) async {
+  Future<BuildResult> buildExe(ProjectHandle project, BuildLogSink log, {bool debug = false}) =>
+      _buildWindows(project, 'exe', debug: debug,
+          (d) => d.buildExe(project, outputPath: project.windowsExePath(debug: debug), log: log, debug: debug));
+
+  /// Builds a signed Windows installer (.msix) and records it in the history.
+  Future<BuildResult> buildMsix(ProjectHandle project, BuildLogSink log) => _buildWindows(
+      project, 'msix', (d) => d.buildMsix(project, outputPath: project.windowsMsixPath(), log: log));
+
+  Future<BuildResult> _buildWindows(
+      ProjectHandle project, String format, Future<BuildResult> Function(DesktopBuildEngine) run,
+      {bool debug = false}) async {
     final desktop = desktopEngine;
     if (desktop == null) {
       return const BuildResult(BuildStatus.failed,
@@ -99,14 +109,13 @@ class AppController extends ChangeNotifier {
     building.add(project.manifest.id);
     notifyListeners();
     try {
-      final result =
-          await desktop.buildExe(project, outputPath: project.windowsExePath(debug: debug), log: log, debug: debug);
+      final result = await run(desktop);
       final artifact = result.artifactPath;
       store.recordBuild(
         project,
         BuildRecord(
           time: DateTime.now(),
-          engine: 'windows-exe',
+          engine: 'windows-$format',
           status: result.status.name,
           durationMs: result.duration.inMilliseconds,
           artifactPath: artifact,
@@ -115,7 +124,7 @@ class AppController extends ChangeNotifier {
           versionCode: project.manifest.android.versionCode,
           message: result.message,
           variant: debug ? BuildVariant.debug.name : BuildVariant.release.name,
-          format: 'exe',
+          format: format,
         ),
       );
       return result;

@@ -46,6 +46,10 @@ class ProjectHandle {
   String windowsExePath({bool debug = false}) => p.join(
       exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-windows${debug ? '-debug' : ''}.exe');
 
+  /// Default location for a Windows installer of the current version (ADR 0008).
+  String windowsMsixPath() =>
+      p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-windows.msix');
+
   ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
 }
 
