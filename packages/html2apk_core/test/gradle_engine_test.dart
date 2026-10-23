@@ -40,4 +40,24 @@ void main() {
     expect(log, isNot(contains('apksigner not found; signature not verified')));
   }, skip: report.ok && report.toolchain!.buildToolsDir != null ? false : 'No JDK/Android SDK build-tools',
       timeout: const Timeout(Duration(minutes: 10)));
+
+  test('deleting a project removes its Gradle build folder', () async {
+    final store = ProjectStore(p.join(tmp.path, 'ws'));
+    final site = File(p.join(tmp.path, 'index.html'))..writeAsStringSync('<!doctype html><h1>delete</h1>');
+    final project =
+        (await store.importFiles(paths: [site.path], name: 'Delete', applicationId: 'com.example.delete')).project;
+    final builds = Directory(p.join(store.workspaceDir, 'builds', project.manifest.id));
+
+    final result = await GradleProjectBuildEngine(
+      toolchain: report.toolchain!,
+      templateDir: template,
+      buildsDir: p.dirname(builds.path),
+    ).buildProject(project, outputPath: p.join(project.exportsDir, 'delete-debug.apk'), log: (_) {});
+    expect(result.status, BuildStatus.succeeded, reason: result.message);
+    expect(builds.existsSync(), isTrue);
+
+    store.delete(project);
+    expect(Directory(project.directory).existsSync(), isFalse);
+    expect(builds.existsSync(), isFalse, reason: 'build scratch (site copy, Gradle output) must go with the project');
+  }, skip: report.ok ? false : 'No JDK/Android SDK', timeout: const Timeout(Duration(minutes: 10)));
 }

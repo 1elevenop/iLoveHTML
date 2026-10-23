@@ -76,8 +76,8 @@ class DesktopBuildEngine implements ProjectBuildEngine, KeyManager {
         keyPassword: unprotectString(entry['keyPassword']! as String),
       );
     }
-    final engine =
-        GradleProjectBuildEngine(toolchain: tc, templateDir: templateDir, buildsDir: p.join(workspaceDir, 'builds'));
+    final engine = GradleProjectBuildEngine(
+        toolchain: tc, templateDir: templateDir, buildsDir: ProjectStore(workspaceDir).buildsDir);
     return engine.buildProject(project,
         outputPath: outputPath, log: log, cancel: cancel, variant: variant, signing: resolved, format: format);
   }

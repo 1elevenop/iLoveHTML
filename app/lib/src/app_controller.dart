@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:html2apk_core/html2apk_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'engine/desktop_engine.dart';
 import 'engine/on_device_engine.dart';
@@ -191,14 +192,36 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  /// Total bytes used by the workspace.
+  /// Total bytes used by the workspace. Never throws: entries that cannot be
+  /// read, or vanish while counting (a build is running), are skipped. On
+  /// Windows the walk uses a `\\?\` path, because Gradle's build folders go
+  /// past the 260 characters a plain path can reach.
   int storageBytes() {
-    final dir = Directory(workspaceDir);
-    if (!dir.existsSync()) return 0;
-    return dir
-        .listSync(recursive: true, followLinks: false)
-        .whereType<File>()
-        .fold(0, (sum, f) => sum + f.lengthSync());
+    var root = p.normalize(p.absolute(workspaceDir));
+    if (Platform.isWindows && !root.startsWith(r'\\')) root = '\\\\?\\$root';
+    return _bytesUnder(Directory(root));
+  }
+
+  static int _bytesUnder(Directory dir) {
+    final List<FileSystemEntity> entries;
+    try {
+      entries = dir.listSync(followLinks: false);
+    } on FileSystemException {
+      return 0;
+    }
+    var sum = 0;
+    for (final e in entries) {
+      try {
+        if (e is File) {
+          sum += e.lengthSync();
+        } else if (e is Directory) {
+          sum += _bytesUnder(e);
+        }
+      } on FileSystemException {
+        // Removed while counting.
+      }
+    }
+    return sum;
   }
 }
 

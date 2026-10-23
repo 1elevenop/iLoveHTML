@@ -148,6 +148,10 @@ class ProjectStore {
 
   String get projectsDir => p.join(workspaceDir, 'projects');
 
+  /// Scratch space of desktop builds (generated Gradle projects, logs), one
+  /// folder per project id. Removed together with the project.
+  String get buildsDir => p.join(workspaceDir, 'builds');
+
   ProjectHandle load(String projectDir) {
     final text = File(p.join(projectDir, 'project.json')).readAsStringSync();
     return ProjectHandle(projectDir, migrator.load(text));
@@ -201,6 +205,12 @@ class ProjectStore {
     final dir = Directory(project.directory);
     if (!p.isWithin(p.absolute(projectsDir), p.absolute(dir.path))) {
       throw ArgumentError.value(project.directory, 'project', 'is outside the workspace');
+    }
+    // Build scratch first: if it is locked (a build still running), the
+    // project stays and the delete can be retried.
+    final builds = Directory(p.join(buildsDir, project.manifest.id));
+    if (p.isWithin(p.absolute(buildsDir), p.absolute(builds.path)) && builds.existsSync()) {
+      builds.deleteSync(recursive: true);
     }
     dir.deleteSync(recursive: true);
   }

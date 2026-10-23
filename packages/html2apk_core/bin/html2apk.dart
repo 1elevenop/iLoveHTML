@@ -82,7 +82,7 @@ Future<void> main(List<String> args) async {
     stdout.writeln('Warning: missing asset $m');
   }
 
-  final buildsDir = p.join(workspace, 'builds');
+  final buildsDir = store.buildsDir;
   final engine = GradleProjectBuildEngine(toolchain: toolchain, templateDir: template, buildsDir: buildsDir);
   final outDir = opts['out'];
   final apkPath = aab ? project.releaseAabPath : (release ? project.releaseApkPath : project.debugApkPath);
