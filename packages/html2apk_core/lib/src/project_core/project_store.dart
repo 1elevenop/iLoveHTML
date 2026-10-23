@@ -99,6 +99,9 @@ class BuildRecord {
   bool get succeeded => status == 'succeeded';
   bool get isRelease => variant == 'release';
 
+  /// An APK or AAB, as opposed to a Windows `exe` or `msix`.
+  bool get isAndroid => format == 'apk' || format == 'aab';
+
   Map<String, Object?> toJson() => {
         'time': time.toUtc().toIso8601String(),
         'engine': engine,
@@ -286,9 +289,10 @@ class ProjectStore {
 
   /// Problems that should stop a release build, e.g. a version code that
   /// is not higher than the last release (Android refuses such updates and
-  /// Google Play rejects the upload).
+  /// Google Play rejects the upload). Windows builds don't count: they
+  /// share the version but never reach Android.
   String? releaseBlocker(ProjectHandle project) {
-    final last = buildHistory(project).where((b) => b.isRelease && b.succeeded).firstOrNull;
+    final last = buildHistory(project).where((b) => b.isAndroid && b.isRelease && b.succeeded).firstOrNull;
     final code = project.manifest.android.versionCode;
     if (last?.versionCode != null && code <= last!.versionCode!) {
       return 'Version code $code is not higher than the last release (${last.versionCode}). '

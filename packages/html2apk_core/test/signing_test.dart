@@ -22,8 +22,15 @@ void main() {
     return (await store.importZip(zipPath: zip.path, name: 'A', applicationId: 'com.example.a')).project;
   }
 
-  BuildRecord record({required String variant, required int code, String status = 'succeeded'}) => BuildRecord(
-      time: DateTime.now(), engine: 'test', status: status, durationMs: 1, versionCode: code, variant: variant);
+  BuildRecord record({required String variant, required int code, String status = 'succeeded', String format = 'apk'}) =>
+      BuildRecord(
+          time: DateTime.now(),
+          engine: 'test',
+          status: status,
+          durationMs: 1,
+          versionCode: code,
+          variant: variant,
+          format: format);
 
   test('release needs a higher version code than the last release', () async {
     var pr = await project();
@@ -34,6 +41,20 @@ void main() {
     expect(store.releaseBlocker(pr), isNull, reason: 'failed releases do not count');
     store.recordBuild(pr, record(variant: 'release', code: 1));
     expect(store.releaseBlocker(pr), contains('not higher than the last release (1)'));
+    pr = store.update(pr, pr.manifest.copyWith(android: pr.manifest.android.copyWith(versionCode: 2)));
+    expect(store.releaseBlocker(pr), isNull);
+  });
+
+  test('Windows builds do not block the next Android release', () async {
+    var pr = await project();
+    // Windows apps are recorded as release builds with the project's version.
+    store.recordBuild(pr, record(variant: 'release', code: 1, format: 'exe'));
+    store.recordBuild(pr, record(variant: 'release', code: 1, format: 'msix'));
+    expect(store.releaseBlocker(pr), isNull);
+    store.recordBuild(pr, record(variant: 'release', code: 1, format: 'aab'));
+    store.recordBuild(pr, record(variant: 'release', code: 1, format: 'exe'));
+    expect(store.releaseBlocker(pr), contains('not higher than the last release (1)'),
+        reason: 'an Android release behind a Windows build still counts');
     pr = store.update(pr, pr.manifest.copyWith(android: pr.manifest.android.copyWith(versionCode: 2)));
     expect(store.releaseBlocker(pr), isNull);
   });
