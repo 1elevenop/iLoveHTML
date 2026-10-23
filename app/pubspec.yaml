@@ -11,6 +11,7 @@ dependencies:
   file_picker: ^13.1.0
   flutter:
     sdk: flutter
+  flutter_svg: ^2.3.0
   html2apk_core:
     path: ../packages/html2apk_core
   path: ^1.9.1

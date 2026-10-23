@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../app_controller.dart';
 import '../engine/msix_builder.dart';
 import '../engine/on_device_engine.dart';
+import '../image_import.dart';
 import 'preview_screen.dart';
 import 'signing_keys_screen.dart';
 import 'theme.dart';
@@ -207,16 +208,29 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  Future<void> _pickFile(List<String> extensions, ProjectHandle Function(String path) apply, String done) async {
+  /// [convert] turns the picked file's bytes into what [apply] expects.
+  Future<void> _pickFile(List<String> extensions, ProjectHandle Function(String path) apply, String done,
+      {Future<Uint8List> Function(Uint8List bytes, String extension)? convert}) async {
     final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: extensions);
     if (picked.isEmpty) return;
     final tmp = Directory.systemTemp.createTempSync('pick');
     try {
       final path = p.join(tmp.path, 'picked.${extensions.first}');
       await picked.single.xFile.saveTo(path);
-      _takeFileFields(apply(path));
+      if (convert != null) {
+        final ext = p.extension(picked.single.name).toLowerCase().replaceFirst('.', '');
+        File(path).writeAsBytesSync(await convert(File(path).readAsBytesSync(), ext));
+      }
+      final updated = apply(path);
+      // The new file replaces the old one at the same path; drop the cached picture.
+      for (final rel in [updated.manifest.iconPath, updated.manifest.splashPath]) {
+        if (rel != null) await FileImage(File(p.join(updated.directory, rel))).evict();
+      }
+      _takeFileFields(updated);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
     } on InvalidProjectException catch (e) {
+      _report(e);
+    } on ImageImportException catch (e) {
       _report(e);
     } finally {
       tmp.deleteSync(recursive: true);
@@ -224,10 +238,14 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     }
   }
 
-  Future<void> _pickIcon() => _pickFile(['png'], (f) => widget.controller.setIcon(_current, f), 'Icon updated');
+  // Android needs PNG: other formats are converted, icons centred on a square.
+  Future<void> _pickIcon() => _pickFile(
+      pickableImageExtensions, (f) => widget.controller.setIcon(_current, f), 'Icon updated',
+      convert: (b, ext) => toPng(b, isSvg: ext == 'svg', square: true, maxSide: 1024));
 
-  Future<void> _pickSplash() =>
-      _pickFile(['png'], (f) => widget.controller.setSplash(_current, f), 'Splash image updated');
+  Future<void> _pickSplash() => _pickFile(
+      pickableImageExtensions, (f) => widget.controller.setSplash(_current, f), 'Splash image updated',
+      convert: (b, ext) => toPng(b, isSvg: ext == 'svg', maxSide: 1440));
 
   Future<void> _pickOfflinePage() =>
       _pickFile(['html', 'htm'], (f) => widget.controller.setOfflinePage(_current, f), 'Offline page added');
@@ -325,11 +343,11 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               ),
               const SizedBox(width: 16),
               Expanded(child: Text(icon == null ? 'Default icon' : 'Custom icon', style: Theme.of(context).textTheme.bodyMedium)),
-              OutlinedButton.icon(onPressed: _pickIcon, icon: const Icon(Icons.image_outlined), label: const Text('Choose PNG')),
+              OutlinedButton.icon(onPressed: _pickIcon, icon: const Icon(Icons.image_outlined), label: const Text('Choose image')),
             ]),
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('Square PNG, at least 48 px; 512 × 512 recommended.', style: Theme.of(context).textTheme.bodySmall),
+              child: Text('PNG, JPEG, WebP, GIF, BMP or SVG, at least 48 px; 512 × 512 recommended. Non-square images are centred.', style: Theme.of(context).textTheme.bodySmall),
             ),
             const _Section('Content'),
             if (local)
