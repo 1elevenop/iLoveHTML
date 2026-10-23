@@ -96,7 +96,7 @@ keys live in `%APPDATA%\com.html2apk\html2apk_app\workspace`.
 
 1. Set `version:` in `app/pubspec.yaml` (raise the number after `+` every time).
 2. `flutter build apk --release` and `flutter build windows --release` in `app/`.
-3. Copy the APK and a ZIP of `appuild\windowsdunner\Release` (plus a
+3. Copy the APK and a ZIP of `app\build\windows\x64\runner\Release` (plus a
    read-me) into `release/v<version>/` with `SHA256SUMS.txt`. `release/` is not
    committed.
 
