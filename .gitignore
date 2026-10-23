@@ -9,11 +9,13 @@ android_template/wrapper.properties
 out/
 *.apk
 *.aab
+*.msix
 
 # Signing material must never be committed
 *.jks
 *.keystore
 *.p12
+*.pfx
 key.properties
 
 # IDE
@@ -34,3 +36,6 @@ app/android/app/src/main/assets/base/
 
 # Windows wrapper build output (tools/build_windows_wrapper.ps1)
 windows_template/dist/
+
+# Other tools' local data
+.antigravitycli/

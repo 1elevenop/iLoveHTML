@@ -43,7 +43,7 @@ UI only had the Android engine (ADR 0002) and Android-only features
   with C++".
 - Windows Developer Mode, because Flutter links plugins with symlinks.
 - The repo on an NTFS drive (exFAT has no symlinks). The repo moved from
-  `E:` (exFAT) to `D:\Build HTML Android App`.
+  `E:` (exFAT) to `D:\Build HTML Android App` (renamed to `D:\iLoveHTML` on 2026-10-23).
 - JDK 17+ and Android SDK as for the CLI (Phase 1).
 
 ## Verified (2026-10-22)

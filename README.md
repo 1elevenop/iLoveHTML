@@ -76,7 +76,7 @@ an Android WebView app, built entirely on the local machine.
 - Internet on the first build only (Gradle, AGP, AndroidX go into `~/.gradle`)
 - For the Windows app: Visual Studio 2022 (Build Tools is enough) with
   "Desktop development with C++", Windows **Developer Mode** on, and the
-  repo on an NTFS drive (this repo lives at D:\Build HTML Android App).
+  repo on an NTFS drive (this repo lives at D:\iLoveHTML).
   Flutter links plugins with symlinks, which need Developer Mode and
   which exFAT drives cannot hold.
 
