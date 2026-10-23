@@ -92,6 +92,19 @@ Or `flutter build windows` and start
 `android_template` folder next to the exe must stay with it. Projects and
 keys live in `%APPDATA%\com.html2apk\html2apk_app\workspace`.
 
+## Releasing iLoveHTML
+
+1. Set `version:` in `app/pubspec.yaml` (raise the number after `+` every time).
+2. `flutter build apk --release` and `flutter build windows --release` in `app/`.
+3. Copy the APK and a ZIP of `appuild\windowsdunner\Release` (plus a
+   read-me) into `release/v<version>/` with `SHA256SUMS.txt`. `release/` is not
+   committed.
+
+Release APKs are signed with iLoveHTML's own key when `app/android/key.properties`
+exists (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`); without it they
+fall back to the debug key. The key and its `key.properties` live outside the
+repo; every future update must be signed with the same key, so keep a backup.
+
 ## Run the Android app
 
 ```bash

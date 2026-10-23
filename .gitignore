@@ -39,3 +39,6 @@ windows_template/dist/
 
 # Other tools' local data
 .antigravitycli/
+
+# Release builds (made by hand, shared outside Git)
+release/
