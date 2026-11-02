@@ -69,6 +69,12 @@ Future<void> _browserPreview(BuildContext context, ProjectHandle project) async 
     server = await PreviewServer.start(project.sourceDir);
     url = server.urlFor(m.source.entry);
   } else {
+    // FileProtocolHandler would also run a file: path, so only checked https URLs get there.
+    final error = validateRemoteUrl(m.source.entry);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
     url = Uri.parse(m.source.entry);
   }
   final missing = <String>[];

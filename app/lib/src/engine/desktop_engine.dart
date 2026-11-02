@@ -86,13 +86,8 @@ class DesktopBuildEngine implements ProjectBuildEngine, KeyManager {
   Future<String?> saveFile(String path) => _saveCopy(path, p.basename(path), 'Save ${p.basename(path)}');
 
   static Future<String?> _saveCopy(String source, String fileName, String title) async {
-    final ext = p.extension(fileName).substring(1);
     final uri = await FilePicker.saveFile(
-        dialogTitle: title,
-        fileName: fileName,
-        bytes: await File(source).readAsBytes(),
-        type: FileType.custom,
-        allowedExtensions: [ext]);
+        dialogTitle: title, fileName: fileName, bytes: await File(source).readAsBytes());
     return uri?.toFilePath();
   }
   /// The Windows app wrapper, installed next to the executable (ADR 0007).
