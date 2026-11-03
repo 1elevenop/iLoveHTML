@@ -14,6 +14,11 @@ sourceSets {
         // Everything except the parts that need the Android framework.
         kotlin.exclude("com/html2apk/engine/SigningKeyStore.kt", "com/html2apk/engine/DeviceSigningKey.kt")
     }
+    test {
+        // The generated apps' share/download checks, which use no Android APIs.
+        kotlin.srcDir("../android_template/app/src/main/kotlin")
+        kotlin.include("com/html2apk/engine/**", "com/html2apk/runtime/ShareRules.kt", "com/html2apk/runtime/ShareRulesTest.kt")
+    }
 }
 
 dependencies {

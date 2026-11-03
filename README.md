@@ -54,6 +54,12 @@ an Android WebView app, built entirely on the local machine.
 - **Share and downloads**: `navigator.share` (text and links) opens
   Android's share sheet; https, `data:` and `blob:` downloads are saved to
   Downloads. Both can be switched off per project.
+- **Share images and PDFs** ([ADR 0009](docs/adr/0009-file-sharing.md)):
+  `navigator.share({files})` sends images and PDFs to WhatsApp, Gmail and
+  other apps. On Android 10+ shared images are also saved to
+  `Pictures/<gallery folder>`. A project can name the gallery folder and
+  an app to open directly (e.g. `com.whatsapp`). Test page:
+  `samples/feature-site/share.html`.
 - Not built yet: camera/location and other native features, SQLite index,
   templates.
 

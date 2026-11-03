@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Share test</title>
+<link rel="stylesheet" href="css/style.css"></head>
+<body><main>
+  <h1>Share test</h1>
+  <p><canvas id="card" width="600" height="320" style="width:100%;max-width:300px;border:1px solid #ccc"></canvas></p>
+  <p>
+    <button id="one">Share image</button>
+    <button id="two">Share 2 images</button>
+    <button id="pdf">Share PDF</button>
+    <button id="text">Share text</button>
+    <button id="save">Download image</button>
+  </p>
+  <p id="result">canShare: …</p>
+  <p><a href="index.html">Home</a></p>
+</main>
+<script>
+var canvas = document.getElementById('card');
+var result = document.getElementById('result');
+function log(s) { result.textContent = s; }
+
+function draw(hue) {
+  var g = canvas.getContext('2d');
+  g.fillStyle = 'hsl(' + hue + ', 70%, 45%)';
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.fillStyle = '#fff';
+  g.font = 'bold 48px sans-serif';
+  g.fillText('iLoveHTML', 40, 140);
+  g.font = '28px sans-serif';
+  g.fillText(new Date().toLocaleString(), 40, 210);
+}
+
+function png(name, hue) {
+  draw(hue);
+  return new Promise(function (resolve) {
+    canvas.toBlob(function (blob) { resolve(new File([blob], name, { type: 'image/png' })); }, 'image/png');
+  });
+}
+
+// A one-page PDF with a line of text, built by hand so no library is needed.
+function pdf() {
+  var text = 'iLoveHTML share test ' + new Date().toISOString();
+  var objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+  var stream = 'BT /F1 12 Tf 20 100 Td (' + text + ') Tj ET';
+  objs[3] = '<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream';
+  var out = '%PDF-1.4\n', offsets = [];
+  objs.forEach(function (o, i) { offsets.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  var xref = out.length;
+  out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+  offsets.forEach(function (o) { out += String(o).padStart(10, '0') + ' 00000 n \n'; });
+  out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+  return new File([out], 'share-test.pdf', { type: 'application/pdf' });
+}
+
+function share(data) {
+  if (!navigator.canShare || !navigator.canShare(data)) return log('canShare said no for this data');
+  navigator.share(data).then(function () { log('Shared'); }, function (e) { log('Share failed: ' + e.name + ' ' + e.message); });
+}
+
+// Each file is made before share() runs inside the click, so the tap still counts as a user gesture.
+var files = {};
+Promise.all([png('share-test.png', 210), png('share-test-2.png', 20)]).then(function (list) {
+  files.one = list[0];
+  files.two = list;
+  draw(210);
+  log('canShare(image): ' + (navigator.canShare ? navigator.canShare({ files: [files.one] }) : 'not available'));
+});
+
+document.getElementById('one').onclick = function () { share({ files: [files.one], title: 'iLoveHTML', text: 'Made in an iLoveHTML app' }); };
+document.getElementById('two').onclick = function () { share({ files: files.two, title: 'Two images' }); };
+document.getElementById('pdf').onclick = function () { share({ files: [pdf()], title: 'PDF' }); };
+document.getElementById('text').onclick = function () { share({ title: 'iLoveHTML', text: 'Text only', url: location.href }); };
+document.getElementById('save').onclick = function () {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(files.one);
+  a.download = 'saved-test.png';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+</script>
+</body></html>

@@ -247,6 +247,43 @@ void main() {
       expect(AndroidGenerator.buildAndroidManifest(remote), contains('android.permission.INTERNET'));
       expect(AndroidGenerator.runtimeConfig(remote)['source'], {'type': 'remote', 'entry': 'https://example.com'});
     });
+    test('file sharing options: defaults, round trip, validation and output', () {
+      final m = manifest();
+      expect(m.webView.shareFiles, isTrue);
+      expect(m.webView.galleryFolder, isNull);
+      expect(m.webView.shareTarget, isNull);
+      // Projects saved before these options existed get the defaults.
+      final old = Map<String, Object?>.of(m.webView.toJson())
+        ..remove('shareFiles')
+        ..remove('galleryFolder')
+        ..remove('shareTarget');
+      expect(WebViewSettings.fromJson(old).shareFiles, isTrue);
+
+      final set = m.copyWith(
+          webView: m.webView.copyWith(shareFiles: false, galleryFolder: () => 'Kishor G', shareTarget: () => 'com.whatsapp'));
+      final back = WebViewSettings.fromJson(jsonDecode(jsonEncode(set.webView.toJson())) as Map<String, Object?>);
+      expect([back.shareFiles, back.galleryFolder, back.shareTarget], [false, 'Kishor G', 'com.whatsapp']);
+      expect(validateManifest(set), isEmpty);
+      final config = AndroidGenerator.runtimeConfig(set);
+      expect([config['shareFiles'], config['galleryFolder'], config['shareTarget']], [false, 'Kishor G', 'com.whatsapp']);
+      expect(set.webView.copyWith(galleryFolder: () => null).galleryFolder, isNull);
+
+      for (final bad in ['a/b', r'a\b', '../x', ' x', '.hidden', 'x' * 61, 'a:b']) {
+        final issues = validateManifest(m.copyWith(webView: m.webView.copyWith(galleryFolder: () => bad)));
+        expect(issues.map((i) => i.field), contains('webView.galleryFolder'), reason: bad);
+      }
+      for (final bad in ['whatsapp', 'com..x', 'com.x;y', '1com.x']) {
+        final issues = validateManifest(m.copyWith(webView: m.webView.copyWith(shareTarget: () => bad)));
+        expect(issues.map((i) => i.field), contains('webView.shareTarget'), reason: bad);
+      }
+    });
+    test('manifest declares the FileProvider for file shares', () {
+      final xml = AndroidGenerator.buildAndroidManifest(manifest());
+      expect(xml, contains('android:name="androidx.core.content.FileProvider"'));
+      expect(xml, contains(r'android:authorities="${applicationId}.html2apk.files"'));
+      expect(xml, contains('android:exported="false"'));
+      expect(xml, contains('@xml/html2apk_file_paths'));
+    });
     test('generates a project from the template', () async {
       final template = p.normalize(p.join(Directory.current.path, '..', '..', 'android_template'));
       final store = ProjectStore(p.join(tmp.path, 'ws'));

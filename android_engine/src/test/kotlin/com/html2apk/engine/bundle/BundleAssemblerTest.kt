@@ -49,7 +49,9 @@ class BundleAssemblerTest {
         m.setLabel("Bundle Test")
         m.setScreenOrientation(1)
         m.addPermissions(listOf("android.permission.INTERNET"))
+        m.setProviderAuthority("com.example.bundle.html2apk.files")
         val text = String(m.encode(), Charsets.UTF_8)
+        assertTrue("com.example.bundle.html2apk.files" in text && "com.html2apk.template.html2apk.files" !in text)
         assertEquals("com.example.bundle", ProtoManifest(m.encode()).packageName)
         for (s in listOf("Bundle Test", "4.2", "uses-permission", "android.permission.INTERNET")) {
             assertTrue(s in text, "missing $s")

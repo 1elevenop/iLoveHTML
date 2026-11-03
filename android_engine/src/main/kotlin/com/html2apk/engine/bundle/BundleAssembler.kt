@@ -3,6 +3,7 @@ package com.html2apk.engine.bundle
 import com.html2apk.engine.ApkAssembler
 import com.html2apk.engine.AppSpec
 import com.html2apk.engine.WebsiteFile
+import com.html2apk.engine.providerAuthority
 import java.io.File
 import java.io.InputStream
 import java.security.PrivateKey
@@ -58,6 +59,7 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
         m.setVersionName(spec.versionName)
         m.setLabel(spec.label)
         m.setScreenOrientation(spec.screenOrientation)
+        m.setProviderAuthority(providerAuthority(spec.applicationId))
         if (spec.permissions.isNotEmpty()) m.addPermissions(spec.permissions.sorted())
         return m.encode()
     }

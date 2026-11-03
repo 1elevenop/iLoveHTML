@@ -103,6 +103,9 @@ class AndroidGenerator {
         'fileUploads': m.webView.fileUploads,
         'webShare': m.webView.webShare,
         'downloads': m.webView.downloads,
+        'shareFiles': m.webView.shareFiles,
+        'galleryFolder': m.webView.galleryFolder,
+        'shareTarget': m.webView.shareTarget,
         'offlinePage': m.offlineFallbackPage,
         'statusBarColor': m.appearance.statusBarColor,
         'navigationBarColor': m.appearance.navigationBarColor,
@@ -165,6 +168,16 @@ class AndroidGenerator {
       ..writeln('                <category android:name="android.intent.category.LAUNCHER" />')
       ..writeln('            </intent-filter>')
       ..writeln('        </activity>')
+      // Shares files on Android 7-9; the on-device engine rewrites the authority.
+      ..writeln('        <provider')
+      ..writeln('            android:name="androidx.core.content.FileProvider"')
+      ..writeln('            android:authorities="\${applicationId}.html2apk.files"')
+      ..writeln('            android:exported="false"')
+      ..writeln('            android:grantUriPermissions="true">')
+      ..writeln('            <meta-data')
+      ..writeln('                android:name="android.support.FILE_PROVIDER_PATHS"')
+      ..writeln('                android:resource="@xml/html2apk_file_paths" />')
+      ..writeln('        </provider>')
       ..writeln('    </application>')
       ..writeln('</manifest>');
     return b.toString();

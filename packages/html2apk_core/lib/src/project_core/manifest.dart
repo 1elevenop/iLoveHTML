@@ -75,6 +75,9 @@ class WebViewSettings {
     this.fileUploads = true,
     this.webShare = true,
     this.downloads = true,
+    this.shareFiles = true,
+    this.galleryFolder,
+    this.shareTarget,
   });
 
   final bool javaScriptEnabled;
@@ -97,6 +100,17 @@ class WebViewSettings {
   /// Saves downloads (https, data: and blob: links) to the Downloads folder.
   final bool downloads;
 
+  /// Lets `navigator.share({files})` share images and PDFs.
+  final bool shareFiles;
+
+  /// Gallery folder (`Pictures/<name>`) for shared and downloaded images;
+  /// null means shared images use the app name and downloads stay in Downloads.
+  final String? galleryFolder;
+
+  /// Package opened directly for file shares (e.g. `com.whatsapp`) instead
+  /// of the share sheet, when installed.
+  final String? shareTarget;
+
   Map<String, Object?> toJson() => {
         'javaScriptEnabled': javaScriptEnabled,
         'domStorageEnabled': domStorageEnabled,
@@ -107,6 +121,9 @@ class WebViewSettings {
         'fileUploads': fileUploads,
         'webShare': webShare,
         'downloads': downloads,
+        'shareFiles': shareFiles,
+        'galleryFolder': galleryFolder,
+        'shareTarget': shareTarget,
       };
 
   WebViewSettings copyWith({
@@ -119,6 +136,9 @@ class WebViewSettings {
     bool? fileUploads,
     bool? webShare,
     bool? downloads,
+    bool? shareFiles,
+    String? Function()? galleryFolder,
+    String? Function()? shareTarget,
   }) =>
       WebViewSettings(
         javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
@@ -130,6 +150,9 @@ class WebViewSettings {
         fileUploads: fileUploads ?? this.fileUploads,
         webShare: webShare ?? this.webShare,
         downloads: downloads ?? this.downloads,
+        shareFiles: shareFiles ?? this.shareFiles,
+        galleryFolder: galleryFolder != null ? galleryFolder() : this.galleryFolder,
+        shareTarget: shareTarget != null ? shareTarget() : this.shareTarget,
       );
 
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
@@ -142,6 +165,9 @@ class WebViewSettings {
         fileUploads: json['fileUploads'] as bool? ?? true,
         webShare: json['webShare'] as bool? ?? true,
         downloads: json['downloads'] as bool? ?? true,
+        shareFiles: json['shareFiles'] as bool? ?? true,
+        galleryFolder: json['galleryFolder'] as String?,
+        shareTarget: json['shareTarget'] as String?,
       );
 }
 

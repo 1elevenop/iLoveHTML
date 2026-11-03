@@ -50,6 +50,19 @@ const supportedPermissions = {
   'android.permission.VIBRATE',
 };
 
+/// Error for a gallery folder name (one folder, no path), or null when valid.
+String? galleryFolderError(String s) {
+  if (s.trim().isEmpty || s.trim() != s) return 'Must not be empty or start/end with spaces';
+  if (s.length > 60) return 'At most 60 characters';
+  if (RegExp(r'[\\/:*?"<>|\x00-\x1f]').hasMatch(s) || s.startsWith('.')) {
+    return r'Must not contain \ / : * ? " < > | or start with a dot';
+  }
+  return null;
+}
+
+/// Android package names such as com.whatsapp.
+bool isPackageName(String s) => RegExp(r'^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$').hasMatch(s) && s.length <= 255;
+
 bool isHexColor(String s) => RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(s);
 
 /// Highest versionCode accepted by Google Play.
@@ -110,6 +123,13 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
   final ua = m.webView.userAgentSuffix;
   if (ua != null && (ua.length > 200 || ua.contains(RegExp(r'[\x00-\x1f]')))) {
     issues.add(const ValidationIssue('webView.userAgentSuffix', 'Must be at most 200 printable characters'));
+  }
+  final folder = m.webView.galleryFolder;
+  final folderError = folder == null ? null : galleryFolderError(folder);
+  if (folderError != null) issues.add(ValidationIssue('webView.galleryFolder', folderError));
+  final target = m.webView.shareTarget;
+  if (target != null && !isPackageName(target)) {
+    issues.add(const ValidationIssue('webView.shareTarget', 'Must be an Android package name like com.whatsapp'));
   }
   return issues;
 }

@@ -135,6 +135,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   late final _versionName = TextEditingController(text: _m.android.versionName);
   late final _versionCode = TextEditingController(text: '${_m.android.versionCode}');
   late final _ua = TextEditingController(text: _m.webView.userAgentSuffix ?? '');
+  late final _galleryFolder = TextEditingController(text: _m.webView.galleryFolder ?? '');
+  late final _shareTarget = TextEditingController(text: _m.webView.shareTarget ?? '');
   late final _siteUrl = TextEditingController(text: _m.source.type == SourceType.url ? _m.source.entry : '');
   late final _hosts = TextEditingController(text: _m.webView.allowedHosts.join(', '));
   late final _statusColor = TextEditingController(text: _m.appearance.statusBarColor);
@@ -148,7 +150,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   @override
   void dispose() {
-    for (final c in [_name, _id, _versionName, _versionCode, _ua, _siteUrl, _hosts, _statusColor, _navColor, _splashColor]) {
+    for (final c in [_name, _id, _versionName, _versionCode, _ua, _galleryFolder, _shareTarget, _siteUrl, _hosts, _statusColor,
+      _navColor, _splashColor]) {
       c.dispose();
     }
     super.dispose();
@@ -162,6 +165,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   void _save() {
     if (!_form.currentState!.validate()) return;
     final ua = _ua.text.trim();
+    final folder = _galleryFolder.text.trim();
+    final target = _shareTarget.text.trim();
     final m = _m.copyWith(
       name: _name.text.trim(),
       source: _m.source.type == SourceType.url ? ProjectSource.url(_siteUrl.text.trim()) : null,
@@ -172,6 +177,8 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
       ),
       webView: _m.webView.copyWith(
         userAgentSuffix: () => ua.isEmpty ? null : ua,
+        galleryFolder: () => folder.isEmpty ? null : folder,
+        shareTarget: () => target.isEmpty ? null : target,
         allowedHosts: _parseHosts(_hosts.text),
       ),
       // Set by release builds, not by this form: always keep the stored value.
@@ -491,6 +498,39 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               subtitle: const Text('Download links and generated files are saved to the Downloads folder.'),
               value: _m.webView.downloads,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(downloads: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Share images and PDFs'),
+              subtitle: const Text('navigator.share({files}) sends images and PDFs to other apps. '
+                  'On Android 10+ shared images are also saved to the gallery.'),
+              value: _m.webView.shareFiles,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(shareFiles: v))),
+            ),
+            TextFormField(
+              controller: _galleryFolder,
+              decoration: const InputDecoration(
+                labelText: 'Gallery folder (optional)',
+                hintText: 'e.g. Kishor G',
+                helperText: 'Pictures/<folder> for shared and downloaded images. Empty: the app name for shares, '
+                    'Downloads for downloads.',
+                helperMaxLines: 2,
+              ),
+              validator: (v) => (v ?? '').trim().isEmpty ? null : galleryFolderError((v ?? '').trim()),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _shareTarget,
+              decoration: const InputDecoration(
+                labelText: 'Share straight to app (optional)',
+                hintText: 'e.g. com.whatsapp',
+                helperText: 'Package that file shares open directly when installed, instead of the share sheet.',
+                helperMaxLines: 2,
+              ),
+              validator: (v) {
+                final t = (v ?? '').trim();
+                return t.isEmpty || isPackageName(t) ? null : 'Use a package name like com.whatsapp';
+              },
             ),
             if (!local) ...[
               const _Section('Offline'),

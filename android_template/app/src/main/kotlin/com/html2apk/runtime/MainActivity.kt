@@ -70,7 +70,7 @@ class MainActivity : Activity() {
         configureSettings(webView.settings)
         webView.webViewClient = WrapperWebViewClient()
         webView.webChromeClient = WrapperChromeClient()
-        bridge = PageBridge(this, webView, bridgeOrigins(), share = config.webShare, downloads = config.downloads)
+        bridge = PageBridge(this, webView, bridgeOrigins(), config)
         bridge.install()
 
         if (Build.VERSION.SDK_INT >= 33) {

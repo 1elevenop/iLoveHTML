@@ -190,6 +190,7 @@ class AxmlDocument private constructor(
         const val ATTR_SCREEN_ORIENTATION = 0x0101001e
         const val ATTR_VERSION_CODE = 0x0101021b
         const val ATTR_VERSION_NAME = 0x0101021c
+        const val ATTR_AUTHORITIES = 0x01010018
 
         private fun le(size: Int): ByteBuffer = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
 

@@ -21,6 +21,12 @@ data class AppConfig(
     val webShare: Boolean,
     /** https, data: and blob: downloads saved to Downloads. */
     val downloads: Boolean,
+    /** navigator.share with image and PDF files. */
+    val shareFiles: Boolean,
+    /** Gallery folder for shared and downloaded images; null means the app name. */
+    val galleryFolder: String?,
+    /** Package opened directly for file shares instead of the share sheet. */
+    val shareTarget: String?,
     /** Page inside assets/www shown instead of the built-in error page. */
     val offlinePage: String?,
     val statusBarColor: Int,
@@ -77,6 +83,9 @@ data class AppConfig(
                 fileUploads = json.optBoolean("fileUploads", false),
                 webShare = json.optBoolean("webShare", false),
                 downloads = json.optBoolean("downloads", false),
+                shareFiles = json.optBoolean("shareFiles", false),
+                galleryFolder = ShareRules.folderName(optString(json, "galleryFolder")),
+                shareTarget = optString(json, "shareTarget")?.takeIf { ShareRules.isPackageName(it) },
                 offlinePage = offline,
                 statusBarColor = color(optString(json, "statusBarColor"), Color.BLACK),
                 navigationBarColor = color(optString(json, "navigationBarColor"), Color.BLACK),

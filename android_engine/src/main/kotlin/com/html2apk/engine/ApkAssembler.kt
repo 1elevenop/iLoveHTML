@@ -12,6 +12,9 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+/** FileProvider authority of a generated app; must match the runtime's PageBridge. */
+fun providerAuthority(applicationId: String) = "$applicationId.html2apk.files"
+
 /** What changes between the prebuilt base APK and a user's app. */
 data class AppSpec(
     val applicationId: String,
@@ -99,6 +102,11 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         doc.setInt(requireNotNull(doc.attribute(activity, AxmlDocument.ATTR_SCREEN_ORIENTATION)) {
             "Base manifest must declare android:screenOrientation"
         }, spec.screenOrientation)
+
+        // Each app needs its own FileProvider authority, or a second app fails to install.
+        doc.elements("provider").singleOrNull()?.let { provider ->
+            doc.setString(requireNotNull(doc.attribute(provider, AxmlDocument.ATTR_AUTHORITIES)), providerAuthority(spec.applicationId))
+        }
 
         val manifestIndex = doc.nodes.indexOf(manifest)
         for (permission in spec.permissions.sortedDescending()) {
