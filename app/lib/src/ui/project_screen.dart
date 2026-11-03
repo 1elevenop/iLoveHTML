@@ -478,6 +478,20 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               value: _m.webView.fileUploads,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(fileUploads: v))),
             ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Share'),
+              subtitle: const Text('navigator.share opens Android\'s share sheet for text and links.'),
+              value: _m.webView.webShare,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(webShare: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Downloads'),
+              subtitle: const Text('Download links and generated files are saved to the Downloads folder.'),
+              value: _m.webView.downloads,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(downloads: v))),
+            ),
             if (!local) ...[
               const _Section('Offline'),
               Text(

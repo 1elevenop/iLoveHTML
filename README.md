@@ -51,6 +51,9 @@ an Android WebView app, built entirely on the local machine.
   Save to device) or on Windows (`--release --aab --keystore … --alias …`).
   Validate with `java -jar .tools/bundletool.jar validate --bundle app.aab`
   (bundletool is downloaded to `.tools/`, not committed).
+- **Share and downloads**: `navigator.share` (text and links) opens
+  Android's share sheet; https, `data:` and `blob:` downloads are saved to
+  Downloads. Both can be switched off per project.
 - Not built yet: camera/location and other native features, SQLite index,
   templates.
 

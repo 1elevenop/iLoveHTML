@@ -73,6 +73,8 @@ class WebViewSettings {
     this.userAgentSuffix,
     this.pullToRefresh = false,
     this.fileUploads = true,
+    this.webShare = true,
+    this.downloads = true,
   });
 
   final bool javaScriptEnabled;
@@ -89,6 +91,12 @@ class WebViewSettings {
   /// Lets `<input type="file">` open Android's file picker.
   final bool fileUploads;
 
+  /// Adds `navigator.share` (text and links) using Android's share sheet.
+  final bool webShare;
+
+  /// Saves downloads (https, data: and blob: links) to the Downloads folder.
+  final bool downloads;
+
   Map<String, Object?> toJson() => {
         'javaScriptEnabled': javaScriptEnabled,
         'domStorageEnabled': domStorageEnabled,
@@ -97,6 +105,8 @@ class WebViewSettings {
         'userAgentSuffix': userAgentSuffix,
         'pullToRefresh': pullToRefresh,
         'fileUploads': fileUploads,
+        'webShare': webShare,
+        'downloads': downloads,
       };
 
   WebViewSettings copyWith({
@@ -107,6 +117,8 @@ class WebViewSettings {
     String? Function()? userAgentSuffix,
     bool? pullToRefresh,
     bool? fileUploads,
+    bool? webShare,
+    bool? downloads,
   }) =>
       WebViewSettings(
         javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
@@ -116,6 +128,8 @@ class WebViewSettings {
         userAgentSuffix: userAgentSuffix != null ? userAgentSuffix() : this.userAgentSuffix,
         pullToRefresh: pullToRefresh ?? this.pullToRefresh,
         fileUploads: fileUploads ?? this.fileUploads,
+        webShare: webShare ?? this.webShare,
+        downloads: downloads ?? this.downloads,
       );
 
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
@@ -126,6 +140,8 @@ class WebViewSettings {
         userAgentSuffix: json['userAgentSuffix'] as String?,
         pullToRefresh: json['pullToRefresh'] as bool? ?? false,
         fileUploads: json['fileUploads'] as bool? ?? true,
+        webShare: json['webShare'] as bool? ?? true,
+        downloads: json['downloads'] as bool? ?? true,
       );
 }
 

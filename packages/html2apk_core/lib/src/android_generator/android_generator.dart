@@ -101,6 +101,8 @@ class AndroidGenerator {
         'userAgentSuffix': m.webView.userAgentSuffix,
         'pullToRefresh': m.webView.pullToRefresh,
         'fileUploads': m.webView.fileUploads,
+        'webShare': m.webView.webShare,
+        'downloads': m.webView.downloads,
         'offlinePage': m.offlineFallbackPage,
         'statusBarColor': m.appearance.statusBarColor,
         'navigationBarColor': m.appearance.navigationBarColor,

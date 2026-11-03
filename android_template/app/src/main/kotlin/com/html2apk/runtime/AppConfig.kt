@@ -17,6 +17,10 @@ data class AppConfig(
     val userAgentSuffix: String?,
     val pullToRefresh: Boolean,
     val fileUploads: Boolean,
+    /** navigator.share for text and links, through Android's share sheet. */
+    val webShare: Boolean,
+    /** https, data: and blob: downloads saved to Downloads. */
+    val downloads: Boolean,
     /** Page inside assets/www shown instead of the built-in error page. */
     val offlinePage: String?,
     val statusBarColor: Int,
@@ -71,6 +75,8 @@ data class AppConfig(
                 userAgentSuffix = ua?.takeIf { it.isNotBlank() },
                 pullToRefresh = json.optBoolean("pullToRefresh", false),
                 fileUploads = json.optBoolean("fileUploads", false),
+                webShare = json.optBoolean("webShare", false),
+                downloads = json.optBoolean("downloads", false),
                 offlinePage = offline,
                 statusBarColor = color(optString(json, "statusBarColor"), Color.BLACK),
                 navigationBarColor = color(optString(json, "navigationBarColor"), Color.BLACK),

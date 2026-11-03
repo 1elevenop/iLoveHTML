@@ -49,6 +49,7 @@ class MainActivity : Activity() {
     private var failedUrl: String? = null
     private var showingErrorPage = false
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private lateinit var bridge: PageBridge
     private val isDebuggable get() = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     // Bundled content is served from https://appassets.androidplatform.net/assets/...
@@ -69,6 +70,8 @@ class MainActivity : Activity() {
         configureSettings(webView.settings)
         webView.webViewClient = WrapperWebViewClient()
         webView.webChromeClient = WrapperChromeClient()
+        bridge = PageBridge(this, webView, bridgeOrigins(), share = config.webShare, downloads = config.downloads)
+        bridge.install()
 
         if (Build.VERSION.SDK_INT >= 33) {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(
@@ -227,6 +230,16 @@ class MainActivity : Activity() {
             host in config.allowedHosts || host == ASSET_HOST
     }
 
+    /** Origin rules for the page bridge: the same sites [isInternal] keeps in the app. */
+    private fun bridgeOrigins(): Set<String> = buildSet {
+        add("https://$ASSET_HOST")
+        if (config.sourceType == AppConfig.SourceType.REMOTE) {
+            add("https://$startHost")
+            add(if (startHost.startsWith("www.")) "https://${startHost.removePrefix("www.")}" else "https://www.$startHost")
+        }
+        config.allowedHosts.forEach { add("https://$it") }
+    }
+
     private fun openExternally(uri: Uri) {
         if (config.externalLinks == AppConfig.ExternalLinks.BLOCK) return
         if (uri.scheme !in EXTERNAL_SCHEMES) return
@@ -276,6 +289,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
         fileCallback?.onReceiveValue(null)
+        bridge.destroy()
         webView.destroy()
         super.onDestroy()
     }

@@ -11,6 +11,8 @@
   "userAgentSuffix": null,
   "pullToRefresh": false,
   "fileUploads": true,
+  "webShare": true,
+  "downloads": true,
   "offlinePage": null,
   "statusBarColor": "#000000",
   "navigationBarColor": "#000000",

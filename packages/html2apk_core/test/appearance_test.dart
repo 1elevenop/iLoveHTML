@@ -61,6 +61,8 @@ void main() {
       expect(m.iconPath, 'branding/icon.png');
       expect(m.webView.pullToRefresh, isFalse);
       expect(m.webView.fileUploads, isTrue);
+      expect(m.webView.webShare, isTrue);
+      expect(m.webView.downloads, isTrue);
       expect(m.appearance.statusBarColor, '#000000');
       expect(m.toJson()['schemaVersion'], 2);
     });
@@ -153,6 +155,8 @@ void main() {
     expect(config['navigationBarColor'], '#FFFFFF');
     expect(config['pullToRefresh'], isTrue);
     expect(config['fileUploads'], isTrue);
+    expect(config['webShare'], isTrue);
+    expect(config['downloads'], isTrue);
     expect(config['offlinePage'], 'offline.html');
     expect(config['splash'], {'enabled': true, 'backgroundColor': '#FFFFFF', 'image': 'branding/splash.png'});
   });
