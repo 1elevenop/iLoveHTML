@@ -44,6 +44,14 @@ an Android WebView app, built entirely on the local machine.
   notifications while the app is open, with Android 13's permission prompt
   and `click` events (adds POST_NOTIFICATIONS). No push or service-worker
   notifications.
+- **Android TV and tablets**: "Android TV" lists the app on the TV home
+  screen with a 320x180 banner made from the icon and name, and the
+  remote's arrow keys move between links, buttons and fields (OK opens
+  them; pages that handle arrow keys keep them). "Rotate freely on
+  tablets" and "Desktop layout on tablets and TV" are separate options.
+  Every app now declares the touchscreen optional and carries a banner, so
+  **rebuild the base APK** (`tools/build_ondevice_base.ps1`, which also
+  records the banner in `base_info.json`).
 - **Project format:** `project.json` schema 2; schema-1 projects are
   upgraded automatically when loaded.
 - **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the

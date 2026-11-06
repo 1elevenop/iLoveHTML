@@ -104,16 +104,30 @@ class AxmlDocument private constructor(
      * Inserts `<[elementName] android:name="[nameValue]"/>` as a child of the
      * element at [parentIndex] in [nodes], before its first child.
      */
-    fun insertChildWithName(parentIndex: Int, elementName: String, nameValue: String) {
+    fun insertChildWithName(parentIndex: Int, elementName: String, nameValue: String) =
+        insertChild(parentIndex, elementName, nameValue)
+
+    /**
+     * Inserts `<[elementName] android:name="[nameValue]" android:required="…"/>`
+     * as the first child of the element at [parentIndex]. [required] is left
+     * out when null. Attribute names must already be in the base manifest's
+     * resource map (the base declares a uses-feature with android:required).
+     */
+    fun insertChild(parentIndex: Int, elementName: String, nameValue: String, required: Boolean? = null) {
         val parent = nodes[parentIndex] as StartElement
         val androidNs = indexOf(ANDROID_NS)
         val nameAttr = attrNameIndex(ATTR_NAME)
         require(androidNs >= 0 && nameAttr >= 0) { "android:name not available in base manifest" }
         val elem = addString(elementName)
         val value = addString(nameValue)
-        val start = StartElement(parent.line, -1, elem,
-            mutableListOf(Attribute(androidNs, nameAttr, value, TYPE_STRING, value)), 0, 0, 0)
-        nodes.add(parentIndex + 1, start)
+        // Sorted by resource ID, as aapt2 writes them: name (0x01010003) before required (0x0101028e).
+        val attributes = mutableListOf(Attribute(androidNs, nameAttr, value, TYPE_STRING, value))
+        if (required != null) {
+            val requiredAttr = attrNameIndex(ATTR_REQUIRED)
+            require(requiredAttr >= 0) { "android:required not in base manifest; rebuild the base APK" }
+            attributes += Attribute(androidNs, requiredAttr, -1, TYPE_INT_BOOLEAN, if (required) -1 else 0)
+        }
+        nodes.add(parentIndex + 1, StartElement(parent.line, -1, elem, attributes, 0, 0, 0))
         nodes.add(parentIndex + 2, EndElement(parent.line, -1, elem))
     }
 
@@ -183,6 +197,7 @@ class AxmlDocument private constructor(
         const val TYPE_REFERENCE = 0x01
         const val TYPE_STRING = 0x03
         const val TYPE_INT_DEC = 0x10
+        const val TYPE_INT_BOOLEAN = 0x12
 
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
         const val ATTR_NAME = 0x01010003
@@ -191,6 +206,7 @@ class AxmlDocument private constructor(
         const val ATTR_VERSION_CODE = 0x0101021b
         const val ATTR_VERSION_NAME = 0x0101021c
         const val ATTR_AUTHORITIES = 0x01010018
+        const val ATTR_REQUIRED = 0x0101028e
 
         private fun le(size: Int): ByteBuffer = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
 

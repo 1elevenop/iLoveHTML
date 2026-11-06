@@ -28,10 +28,14 @@ data class AppSpec(
     val iconPng: ByteArray?,
     /** Written to assets/branding/splash.png when present. */
     val splashPng: ByteArray? = null,
+    /** Lists the app on Android TV: leanback feature and launcher category. */
+    val androidTv: Boolean = false,
+    /** 320x180 TV launcher banner replacing the base's app_banner.png. */
+    val bannerPng: ByteArray? = null,
 )
 
 /** Metadata recorded when the base APK was built with Gradle. */
-data class BaseInfo(val basePackage: String, val iconEntry: String)
+data class BaseInfo(val basePackage: String, val iconEntry: String, val bannerEntry: String? = null)
 
 /** One website file, opened lazily so large sites are streamed, not buffered. */
 class WebsiteFile(val path: String, val size: Long, val open: () -> InputStream)
@@ -54,6 +58,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
     /** Writes an unsigned APK with [site] and [spec] applied. */
     fun assembleUnsigned(site: List<WebsiteFile>, spec: AppSpec, out: File, timings: Timings) {
         validateWebsite(site)
+        require(!spec.androidTv || baseInfo.bannerEntry != null) { "This base APK has no TV banner; rebuild the base APK" }
 
         ZipFile(base).use { zip ->
             ZipOutputStream(out.outputStream().buffered()).use { zos ->
@@ -72,6 +77,8 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
                         }
                         name == baseInfo.iconEntry && spec.iconPng != null ->
                             putBytes(zos, name, spec.iconPng, entry.method)
+                        name == baseInfo.bannerEntry && spec.bannerPng != null ->
+                            putBytes(zos, name, spec.bannerPng, entry.method)
                         entry.method == ZipEntry.STORED ->
                             putBytes(zos, name, zip.getInputStream(entry).use { it.readBytes() }, ZipEntry.STORED)
                         else -> putStream(zos, name) { zip.getInputStream(entry) }
@@ -109,6 +116,11 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
         }
 
         val manifestIndex = doc.nodes.indexOf(manifest)
+        if (spec.androidTv) {
+            doc.insertChild(manifestIndex, "uses-feature", LEANBACK_FEATURE, required = false)
+            val filter = doc.nodes.indexOf(doc.elements("intent-filter").single())
+            doc.insertChildWithName(filter, "category", LEANBACK_LAUNCHER)
+        }
         for (permission in spec.permissions.sortedDescending()) {
             doc.insertChildWithName(manifestIndex, "uses-permission", permission)
         }
@@ -153,6 +165,8 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
     }
 
     companion object {
+        const val LEANBACK_FEATURE = "android.software.leanback"
+        const val LEANBACK_LAUNCHER = "android.intent.category.LEANBACK_LAUNCHER"
         const val MIN_SDK = 24
 
         /** Must match AndroidGenerator.splashAssetPath on the Dart side. */

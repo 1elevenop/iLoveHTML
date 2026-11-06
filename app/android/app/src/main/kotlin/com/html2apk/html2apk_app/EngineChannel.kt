@@ -88,7 +88,7 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
 
     private fun baseInfo(): BaseInfo? = try {
         val j = JSONObject(activity.assets.open("base/base_info.json").bufferedReader().use { it.readText() })
-        BaseInfo(j.getString("basePackage"), j.getString("iconEntry"))
+        BaseInfo(j.getString("basePackage"), j.getString("iconEntry"), j.optString("bannerEntry").ifEmpty { null })
     } catch (_: java.io.IOException) {
         null
     }
@@ -109,6 +109,9 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
             configJson = call.argument<String>("configJson")!!,
             iconPng = iconPath?.let { insideWorkspace(it).readBytes() },
             splashPng = splashPath?.let { insideWorkspace(it).readBytes() },
+            androidTv = call.argument<Boolean>("androidTv") ?: false,
+            // Made by the Dart side from the icon and name; small (one 320x180 PNG).
+            bannerPng = call.argument<ByteArray>("bannerPng"),
         )
         val timings = ApkAssembler.Timings()
         val work = File(activity.cacheDir, "assembler").apply { deleteRecursively(); mkdirs() }

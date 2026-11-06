@@ -2,6 +2,9 @@ package com.html2apk.runtime
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.UiModeManager
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -65,6 +68,16 @@ class MainActivity : Activity() {
     private var darkThemeApplied = false
     private var appLock: AppLock? = null
     private var notifications: NotificationBridge? = null
+    /** True when TV navigation could not be added at document start and runs after each load instead. */
+    private var tvScriptAfterLoad = false
+
+    private val isTv: Boolean by lazy {
+        getSystemService(UiModeManager::class.java)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+    }
+
+    /** Tablets, foldables and Chromebooks: the shortest side is 600 dp or more. */
+    private val isLargeScreen get() = resources.configuration.smallestScreenWidthDp >= 600
     private val isDebuggable get() = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     // Bundled content is served from https://appassets.androidplatform.net/assets/...
@@ -100,6 +113,14 @@ class MainActivity : Activity() {
         webView.webChromeClient = WrapperChromeClient()
         bridge = PageBridge(this, webView, bridgeOrigins(), config)
         bridge.install()
+        if (config.rotateOnTablets && isLargeScreen && !isTv) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+        }
+        if (config.androidTv && isTv) {
+            tvScriptAfterLoad = !TvNavigation.install(webView, bridgeOrigins())
+            webView.isFocusable = true
+            webView.requestFocus()
+        }
         if (config.notifications) notifications = NotificationBridge(this, webView, bridgeOrigins()).also { it.install() }
 
         if (Build.VERSION.SDK_INT >= 33) {
@@ -303,6 +324,7 @@ class MainActivity : Activity() {
         s.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         s.javaScriptCanOpenWindowsAutomatically = false
         s.setSupportMultipleWindows(false)
+        if (config.desktopSiteOnLargeScreens && (isLargeScreen || isTv)) s.userAgentString = desktopUserAgent(s.userAgentString)
         config.userAgentSuffix?.let { s.userAgentString = "${s.userAgentString} $it" }
     }
 
@@ -524,6 +546,7 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            if (tvScriptAfterLoad && isInternal(Uri.parse(url))) TvNavigation.runAfterLoad(view)
             if (clearHistoryOnLoad) {
                 clearHistoryOnLoad = false
                 view.clearHistory()
@@ -577,6 +600,14 @@ class MainActivity : Activity() {
     }
 
     companion object {
+        /**
+         * Sites pick their phone layout from "Mobile" in the user agent. Without
+         * it (and without "; wv", the WebView marker) they serve the layout
+         * they give tablet browsers, which is usually the desktop one.
+         */
+        fun desktopUserAgent(ua: String): String =
+            ua.replace("; wv)", ")").replace(Regex(" Mobile(?= |$)"), "")
+
         private const val TAG = "HTML2APK"
         private const val ASSET_HOST = WebViewAssetLoader.DEFAULT_DOMAIN
         private const val RETRY_PATH = "/html2apk/retry"

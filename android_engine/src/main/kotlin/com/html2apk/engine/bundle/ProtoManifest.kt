@@ -10,7 +10,7 @@ package com.html2apk.engine.bundle
  *  XmlAttribute { namespace_uri = 1; name = 2; value = 3; source = 4; resource_id = 5; compiled_item = 6 }
  *  Item         { ref = 1; str = 2; ... prim = 7 }
  *  String       { value = 1 }
- *  Primitive    { ... int_decimal_value = 6 }
+ *  Primitive    { ... int_decimal_value = 6; boolean_value = 8 }
  */
 class ProtoManifest(bytes: ByteArray) {
     private val root = ProtoMessage.parse(bytes)
@@ -62,6 +62,48 @@ class ProtoManifest(bytes: ByteArray) {
         }
         val firstChild = manifest.fields.indexOfFirst { it.number == EL_CHILD }.let { if (it < 0) manifest.fields.size else it }
         manifest.fields.addAll(firstChild, newChildren)
+    }
+
+    /**
+     * Adds `<uses-feature android:name="[feature]" android:required="false"/>`
+     * to `<manifest>` and `<category android:name="[category]"/>` to the
+     * launcher activity's intent filter.
+     */
+    fun addTvSupport(feature: String, category: String) {
+        val firstChild = manifest.fields.indexOfFirst { it.number == EL_CHILD }.let { if (it < 0) manifest.fields.size else it }
+        manifest.fields.add(firstChild, childField("uses-feature", nameAttribute(feature), booleanAttribute("required", REQUIRED_RESOURCE_ID, false)))
+        editChild("application") { app ->
+            editChild(app, "activity") { activity ->
+                editChild(activity, "intent-filter") { filter ->
+                    filter.fields.add(childField("category", nameAttribute(category)))
+                }
+            }
+        }
+    }
+
+    private fun nameAttribute(value: String) = ProtoMessage().apply {
+        setString(ATTR_NS, ANDROID_NS)
+        setString(ATTR_NAME, "name")
+        setString(ATTR_VALUE, value)
+        setVarint(ATTR_RESOURCE_ID, NAME_RESOURCE_ID)
+    }
+
+    private fun booleanAttribute(name: String, resourceId: Long, value: Boolean) = ProtoMessage().apply {
+        setString(ATTR_NS, ANDROID_NS)
+        setString(ATTR_NAME, name)
+        setString(ATTR_VALUE, value.toString())
+        setVarint(ATTR_RESOURCE_ID, resourceId)
+        // A oneof member: written even when false.
+        val prim = ProtoMessage().apply { setVarint(PRIM_BOOLEAN, if (value) 1L else 0L) }
+        setMessage(ATTR_COMPILED, ProtoMessage().apply { setMessage(ITEM_PRIM, prim) })
+    }
+
+    private fun childField(elementName: String, vararg attributes: ProtoMessage): ProtoMessage.Field {
+        val element = ProtoMessage().apply {
+            setString(EL_NAME, elementName)
+            for (a in attributes) fields.add(ProtoMessage.Field(EL_ATTRIBUTE, ProtoMessage.LEN, a.encode()))
+        }
+        return ProtoMessage.Field(EL_CHILD, ProtoMessage.LEN, ProtoMessage().apply { setMessage(NODE_ELEMENT, element) }.encode())
     }
 
     private fun attributes(element: ProtoMessage) = element.messages(EL_ATTRIBUTE)
@@ -121,6 +163,8 @@ class ProtoManifest(bytes: ByteArray) {
         private const val ITEM_STR = 2
         private const val ITEM_PRIM = 7
         private const val PRIM_INT_DECIMAL = 6
+        private const val PRIM_BOOLEAN = 8
         private const val NAME_RESOURCE_ID = 0x01010003L
+        private const val REQUIRED_RESOURCE_ID = 0x0101028eL
     }
 }

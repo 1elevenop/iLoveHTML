@@ -43,6 +43,12 @@ data class AppConfig(
     val appLock: Boolean,
     /** The web Notification API, shown as Android notifications. */
     val notifications: Boolean,
+    /** Remote-control navigation when running on Android TV. */
+    val androidTv: Boolean,
+    /** Let tablets rotate even when phones are locked to one orientation. */
+    val rotateOnTablets: Boolean,
+    /** Desktop user agent (no "Mobile") on tablets and TVs. */
+    val desktopSiteOnLargeScreens: Boolean,
 ) {
     enum class SourceType { LOCAL, REMOTE }
     enum class ExternalLinks { BROWSER, BLOCK }
@@ -137,6 +143,9 @@ data class AppConfig(
                 },
                 appLock = json.optBoolean("appLock", false),
                 notifications = json.optBoolean("notifications", false),
+                androidTv = json.optBoolean("androidTv", false),
+                rotateOnTablets = json.optBoolean("rotateOnTablets", false),
+                desktopSiteOnLargeScreens = json.optBoolean("desktopSiteOnLargeScreens", false),
             )
         }
 

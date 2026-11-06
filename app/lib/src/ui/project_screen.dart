@@ -550,6 +550,30 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               value: _m.appearance.keepScreenOn,
               onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(keepScreenOn: v))),
             ),
+            const _Section('Devices'),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Android TV'),
+              subtitle: const Text('Shows the app on the TV home screen with a banner made from the icon and name. '
+                  'The remote\'s arrow keys move between links and buttons; OK opens them.'),
+              value: _m.devices.androidTv,
+              onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(androidTv: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Rotate freely on tablets'),
+              subtitle: const Text('Tablets and foldables may turn to any side, even when phones keep the '
+                  'orientation chosen above. Android 16 and later always allow this on large screens.'),
+              value: _m.devices.rotateOnTablets,
+              onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(rotateOnTablets: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Desktop layout on tablets and TV'),
+              subtitle: const Text('Asks websites for the layout they show on computers instead of the phone layout.'),
+              value: _m.devices.desktopSiteOnLargeScreens,
+              onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(desktopSiteOnLargeScreens: v))),
+            ),
             const _Section('Security'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

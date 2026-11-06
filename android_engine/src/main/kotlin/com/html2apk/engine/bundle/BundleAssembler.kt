@@ -27,6 +27,9 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
         ZipFile(baseBundle).use { zip ->
             val iconEntry = zip.entries().asSequence().map { it.name }
                 .firstOrNull { ICON_PATTERN.matches(it) }
+            val bannerEntry = zip.entries().asSequence().map { it.name }
+                .firstOrNull { BANNER_PATTERN.matches(it) }
+            require(!spec.androidTv || bannerEntry != null) { "This base bundle has no TV banner; rebuild the base APK" }
             ZipOutputStream(out.outputStream().buffered()).use { zos ->
                 for (entry in zip.entries()) {
                     val name = entry.name
@@ -39,6 +42,7 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
                             put(zos, name, timings.step("patch manifest") { patchManifest(bytes, spec) })
                         }
                         name == iconEntry && spec.iconPng != null -> put(zos, name, spec.iconPng)
+                        name == bannerEntry && spec.bannerPng != null -> put(zos, name, spec.bannerPng)
                         else -> putStream(zos, name) { zip.getInputStream(entry) }
                     }
                 }
@@ -61,6 +65,7 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
         m.setScreenOrientation(spec.screenOrientation)
         m.setProviderAuthority(providerAuthority(spec.applicationId))
         if (spec.permissions.isNotEmpty()) m.addPermissions(spec.permissions.sorted())
+        if (spec.androidTv) m.addTvSupport(ApkAssembler.LEANBACK_FEATURE, ApkAssembler.LEANBACK_LAUNCHER)
         return m.encode()
     }
 
@@ -104,5 +109,6 @@ class BundleAssembler(private val baseBundle: File, private val basePackage: Str
     companion object {
         const val MANIFEST = "base/manifest/AndroidManifest.xml"
         private val ICON_PATTERN = Regex("^base/res/drawable-nodpi[^/]*/app_icon\\.png$")
+        private val BANNER_PATTERN = Regex("^base/res/drawable-nodpi[^/]*/app_banner\\.png$")
     }
 }

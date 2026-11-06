@@ -1,4 +1,5 @@
 import 'package:html2apk_core/html2apk_core.dart';
+import 'package:image/image.dart' as img;
 import 'package:test/test.dart';
 
 ProjectManifest _manifest({AppearanceSettings? appearance, WebViewSettings? webView}) => ProjectManifest(
@@ -132,6 +133,55 @@ void main() {
       expect(back.appLock, isTrue);
       expect(back.webView.notifications, isTrue);
       expect(ProjectManifest.fromJson(_manifest().toJson()..remove('security')).appLock, isFalse);
+    });
+  });
+
+  group('TV and tablets', () {
+    test('off by default: touchscreen optional and banner set, no TV entries', () {
+      final xml = AndroidGenerator.buildAndroidManifest(_manifest());
+      expect(xml, contains('<uses-feature android:name="android.hardware.touchscreen" android:required="false" />'));
+      expect(xml, contains('android:banner="@drawable/app_banner"'));
+      expect(xml, isNot(contains('leanback')));
+      expect(xml, isNot(contains('LEANBACK_LAUNCHER')));
+      final config = AndroidGenerator.runtimeConfig(_manifest());
+      expect([config['androidTv'], config['rotateOnTablets'], config['desktopSiteOnLargeScreens']], [false, false, false]);
+    });
+
+    test('Android TV adds the optional leanback feature and the TV launcher', () {
+      final m = _manifest().copyWith(devices: const DeviceSettings(androidTv: true));
+      final xml = AndroidGenerator.buildAndroidManifest(m);
+      expect(xml, contains('<uses-feature android:name="android.software.leanback" android:required="false" />'));
+      final filter = xml.substring(xml.indexOf('<intent-filter>'), xml.indexOf('</intent-filter>'));
+      expect(filter, contains('android.intent.category.LAUNCHER'));
+      expect(filter, contains('android.intent.category.LEANBACK_LAUNCHER'));
+      expect(AndroidGenerator.runtimeConfig(m)['androidTv'], isTrue);
+    });
+
+    test('device settings round-trip and default for old projects', () {
+      final m = _manifest().copyWith(
+          devices: const DeviceSettings(androidTv: true, rotateOnTablets: true, desktopSiteOnLargeScreens: true));
+      final back = ProjectManifest.fromJson(m.toJson()).devices;
+      expect([back.androidTv, back.rotateOnTablets, back.desktopSiteOnLargeScreens], [true, true, true]);
+      expect(ProjectManifest.fromJson(_manifest().toJson()..remove('devices')).devices.androidTv, isFalse);
+    });
+
+    test('banner is 320x180 with the icon on the left', () {
+      final icon = img.Image(width: 512, height: 512);
+      img.fill(icon, color: img.ColorRgb8(255, 0, 0));
+      final png = makeTvBanner(iconPng: img.encodePng(icon), backgroundHex: '#000000', name: 'Shop');
+      final banner = img.decodePng(png)!;
+      expect([banner.width, banner.height], [tvBannerWidth, tvBannerHeight]);
+      final iconPixel = banner.getPixel(84, 90);
+      expect([iconPixel.r, iconPixel.g, iconPixel.b], [255, 0, 0]);
+      final corner = banner.getPixel(2, 2);
+      expect([corner.r, corner.g, corner.b], [0, 0, 0]);
+    });
+
+    test('banner works without an icon and with names the font cannot draw', () {
+      for (final name in ['', 'A very long application name that will not fit', 'Café ☕']) {
+        final banner = img.decodePng(makeTvBanner(backgroundHex: '#FFFFFF', name: name))!;
+        expect([banner.width, banner.height], [tvBannerWidth, tvBannerHeight], reason: name);
+      }
     });
   });
 }

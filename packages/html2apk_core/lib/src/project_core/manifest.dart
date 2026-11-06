@@ -230,6 +230,40 @@ class AppShortcut {
   int get hashCode => Object.hash(label, page);
 }
 
+/// Big screens: Android TV, tablets and foldables.
+class DeviceSettings {
+  const DeviceSettings({this.androidTv = false, this.rotateOnTablets = false, this.desktopSiteOnLargeScreens = false});
+
+  /// Lists the app on Android TV with a banner, and lets the remote's arrow
+  /// keys move between links and buttons.
+  final bool androidTv;
+
+  /// On tablets (600 dp and wider) the screen may rotate, even when
+  /// [ProjectManifest.orientation] locks phones to one orientation.
+  final bool rotateOnTablets;
+
+  /// On tablets and TVs, ask sites for their desktop layout (no "Mobile" in the user agent).
+  final bool desktopSiteOnLargeScreens;
+
+  Map<String, Object?> toJson() => {
+        'androidTv': androidTv,
+        'rotateOnTablets': rotateOnTablets,
+        'desktopSiteOnLargeScreens': desktopSiteOnLargeScreens,
+      };
+
+  factory DeviceSettings.fromJson(Map<String, Object?> json) => DeviceSettings(
+        androidTv: json['androidTv'] as bool? ?? false,
+        rotateOnTablets: json['rotateOnTablets'] as bool? ?? false,
+        desktopSiteOnLargeScreens: json['desktopSiteOnLargeScreens'] as bool? ?? false,
+      );
+
+  DeviceSettings copyWith({bool? androidTv, bool? rotateOnTablets, bool? desktopSiteOnLargeScreens}) => DeviceSettings(
+        androidTv: androidTv ?? this.androidTv,
+        rotateOnTablets: rotateOnTablets ?? this.rotateOnTablets,
+        desktopSiteOnLargeScreens: desktopSiteOnLargeScreens ?? this.desktopSiteOnLargeScreens,
+      );
+}
+
 /// Launchers show about four shortcuts; more are ignored.
 const int maxShortcuts = 4;
 const int maxShortcutLabelLength = 25;
@@ -324,6 +358,7 @@ class ProjectManifest {
     this.shortcuts = const [],
     this.optimizeAssets = false,
     this.appLock = false,
+    this.devices = const DeviceSettings(),
   });
 
   final String id;
@@ -365,6 +400,8 @@ class ProjectManifest {
   /// when the app opens and after 30 seconds in the background.
   final bool appLock;
 
+  final DeviceSettings devices;
+
   bool get requiresInternet => internetAccess || source.type == SourceType.url;
 
   Map<String, Object?> toJson() => {
@@ -386,6 +423,7 @@ class ProjectManifest {
         'shortcuts': [for (final s in shortcuts) s.toJson()],
         'build': {'optimizeAssets': optimizeAssets},
         'security': {'appLock': appLock},
+        'devices': devices.toJson(),
       };
 
   String toJsonString() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -422,6 +460,7 @@ class ProjectManifest {
       ],
       optimizeAssets: ((json['build'] as Map?)?['optimizeAssets'] as bool?) ?? false,
       appLock: ((json['security'] as Map?)?['appLock'] as bool?) ?? false,
+      devices: DeviceSettings.fromJson((json['devices'] as Map?)?.cast() ?? const {}),
     );
   }
 
@@ -442,6 +481,7 @@ class ProjectManifest {
     List<AppShortcut>? shortcuts,
     bool? optimizeAssets,
     bool? appLock,
+    DeviceSettings? devices,
   }) =>
       ProjectManifest(
         id: id,
@@ -462,6 +502,7 @@ class ProjectManifest {
         shortcuts: shortcuts ?? this.shortcuts,
         optimizeAssets: optimizeAssets ?? this.optimizeAssets,
         appLock: appLock ?? this.appLock,
+        devices: devices ?? this.devices,
       );
 }
 

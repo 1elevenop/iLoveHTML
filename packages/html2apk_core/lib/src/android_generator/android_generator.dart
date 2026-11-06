@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
@@ -6,6 +7,7 @@ import '../project_core/manifest.dart';
 import '../project_core/project_store.dart';
 import '../project_core/validation.dart';
 import 'resource_writers.dart';
+import 'tv_banner.dart';
 
 /// Wrapper template contents that are never copied into a generated project.
 const _templateExcludes = {'build', '.gradle', '.idea', '.kotlin', 'local.properties', 'wrapper.properties'};
@@ -93,6 +95,9 @@ class AndroidGenerator {
       // same entry inside a prebuilt APK, so the icon must stay a PNG.
       File(p.join(main, 'res', 'drawable-nodpi', 'app_icon.png')).writeAsBytesSync(bytes);
     }
+    if (m.devices.androidTv) {
+      File(p.join(main, 'res', 'drawable-nodpi', 'app_banner.png')).writeAsBytesSync(tvBannerFor(project));
+    }
   }
 
   /// Contents of assets/app_config.json read by the Kotlin runtime.
@@ -117,6 +122,9 @@ class AndroidGenerator {
         'backButton': m.webView.backButton.name,
         'notifications': m.webView.notifications,
         'appLock': m.appLock,
+        'androidTv': m.devices.androidTv,
+        'rotateOnTablets': m.devices.rotateOnTablets,
+        'desktopSiteOnLargeScreens': m.devices.desktopSiteOnLargeScreens,
         'offlinePage': m.offlineFallbackPage,
         'statusBarColor': m.appearance.statusBarColor,
         'navigationBarColor': m.appearance.navigationBarColor,
@@ -130,6 +138,16 @@ class AndroidGenerator {
           'image': m.splashPath == null ? null : splashAssetPath,
         },
       };
+
+  /// The TV launcher banner for [project], made from its icon and name.
+  static Uint8List tvBannerFor(ProjectHandle project) {
+    final icon = project.iconFile;
+    return makeTvBanner(
+      iconPng: icon == null ? null : File(icon).readAsBytesSync(),
+      backgroundHex: project.manifest.appearance.splashBackgroundColor,
+      name: project.manifest.name,
+    );
+  }
 
   /// Where a custom splash image lives inside the APK's assets.
   static const splashAssetPath = 'branding/splash.png';
@@ -166,9 +184,16 @@ class AndroidGenerator {
     for (final perm in permissions) {
       b.writeln('    <uses-permission android:name="${xmlEscape(perm)}" />');
     }
+    // Always written, so prebuilt base APKs carry android:required and the
+    // on-device engine can add the TV feature. TVs have no touchscreen.
+    b.writeln('    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />');
+    if (m.devices.androidTv) {
+      b.writeln('    <uses-feature android:name="android.software.leanback" android:required="false" />');
+    }
     b
       ..writeln('    <application')
       ..writeln('        android:allowBackup="false"')
+      ..writeln('        android:banner="@drawable/app_banner"')
       ..writeln('        android:icon="@drawable/app_icon"')
       ..writeln('        android:label="@string/app_name"')
       ..writeln('        android:supportsRtl="true"')
@@ -182,7 +207,9 @@ class AndroidGenerator {
       ..writeln('            android:exported="true">')
       ..writeln('            <intent-filter>')
       ..writeln('                <action android:name="android.intent.action.MAIN" />')
-      ..writeln('                <category android:name="android.intent.category.LAUNCHER" />')
+      ..writeln('                <category android:name="android.intent.category.LAUNCHER" />');
+    if (m.devices.androidTv) b.writeln('                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />');
+    b
       ..writeln('            </intent-filter>')
       ..writeln('        </activity>')
       // Shares files on Android 7-9; the on-device engine rewrites the authority.

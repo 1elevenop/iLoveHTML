@@ -62,6 +62,8 @@ class OnDeviceBuildEngine implements ProjectBuildEngine, KeyManager {
         'iconPath': project.iconFile,
         'splashPath': project.splashFile,
         'signingKeyId': releaseKey?.id,
+        'androidTv': m.devices.androidTv,
+        'bannerPng': m.devices.androidTv ? AndroidGenerator.tvBannerFor(project) : null,
         'format': format.name,
       });
       final timings = (r!['timingsMs'] as Map).cast<String, int>();
