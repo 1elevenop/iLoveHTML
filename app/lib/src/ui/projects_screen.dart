@@ -24,6 +24,11 @@ class ProjectsScreen extends StatelessWidget {
         title: const Text('Projects'),
         actions: [
           IconButton(
+            tooltip: 'Restore backup',
+            icon: const Icon(Icons.settings_backup_restore),
+            onPressed: () => restoreBackup(context, controller),
+          ),
+          IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.push(
@@ -197,6 +202,37 @@ String _ago(DateTime t) {
   if (d.inHours < 1) return '${d.inMinutes} min ago';
   if (d.inDays < 1) return '${d.inHours} h ago';
   return '${d.inDays} d ago';
+}
+
+/// Picks a .ilovehtml backup, restores it as a new project and opens it.
+Future<void> restoreBackup(BuildContext context, AppController controller) async {
+  // FileType.any: Android has no MIME type for .ilovehtml.
+  final file = await FilePicker.pickFile();
+  if (file == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  if (!file.name.toLowerCase().endsWith(backupExtension)) {
+    messenger.showSnackBar(const SnackBar(content: Text('Choose a $backupExtension backup file')));
+    return;
+  }
+  final tmp = Directory.systemTemp.createTempSync('restore');
+  try {
+    final path = p.join(tmp.path, 'backup$backupExtension');
+    await file.xFile.saveTo(path);
+    final project = await controller.restoreBackup(path);
+    if (!context.mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text('Restored ${project.manifest.name}')));
+    await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: project.manifest.id)));
+  } on Object catch (e) {
+    final text = switch (e) {
+      ArchiveRejectedException(:final message) => 'Not a usable backup: $message',
+      InvalidProjectException(:final issues) => issues.join('\n'),
+      _ => 'Restore failed: $e',
+    };
+    messenger.showSnackBar(SnackBar(content: Text(text)));
+  } finally {
+    tmp.deleteSync(recursive: true);
+  }
 }
 
 /// Picks a ZIP, asks for name and package ID, imports it, and opens the project.

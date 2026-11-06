@@ -85,6 +85,20 @@ class AppController extends ChangeNotifier {
     return project;
   }
 
+  /// Writes a backup of [project] into its exports folder and returns its path.
+  Future<String> backUp(ProjectHandle project) async {
+    final out = p.join(project.exportsDir, backupFileName(project));
+    await exportProjectBackup(project, out);
+    return out;
+  }
+
+  /// Restores a backup file as a new project.
+  Future<ProjectHandle> restoreBackup(String path) async {
+    final project = await importProjectBackup(store, path);
+    refresh();
+    return project;
+  }
+
   void delete(ProjectHandle project) {
     store.delete(project);
     refresh();

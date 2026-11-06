@@ -22,6 +22,18 @@ class ProjectScreen extends StatelessWidget {
   final AppController controller;
   final String projectId;
 
+  /// Saves the project as one .ilovehtml file the user can keep or move to another device.
+  Future<void> _backUp(BuildContext context, ProjectHandle project) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final path = await controller.backUp(project);
+      final where = await (controller.desktopEngine?.saveFile(path) ?? controller.deviceEngine?.saveFile(path));
+      if (where != null) messenger.showSnackBar(SnackBar(content: Text('Backup saved: ${p.basename(path)}')));
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Backup failed: ${e is PlatformException ? e.message : e}')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -35,6 +47,11 @@ class ProjectScreen extends StatelessWidget {
             appBar: AppBar(
               title: Text(project.manifest.name, overflow: TextOverflow.ellipsis),
               actions: [
+                IconButton(
+                  tooltip: 'Back up project',
+                  icon: const Icon(Icons.backup_outlined),
+                  onPressed: () => _backUp(context, controller.project(projectId)!),
+                ),
                 IconButton(
                   tooltip: 'Preview',
                   icon: const Icon(Icons.play_circle_outline),

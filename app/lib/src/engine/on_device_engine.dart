@@ -90,7 +90,8 @@ class OnDeviceBuildEngine implements ProjectBuildEngine, KeyManager {
   /// Lets the user save a built file (e.g. to Downloads or Drive). Returns null if cancelled.
   Future<String?> saveFile(String path) => _channel.invokeMethod<String>('saveFile', {
         'path': path,
-        'mimeType': path.endsWith('.aab') ? 'application/octet-stream' : 'application/vnd.android.package-archive',
+        // octet-stream keeps the file's own extension (.aab, .ilovehtml) instead of a guessed one.
+        'mimeType': path.endsWith('.apk') ? 'application/vnd.android.package-archive' : 'application/octet-stream',
       });
 
   // ---- Release keys. Errors arrive as PlatformException with a readable message.

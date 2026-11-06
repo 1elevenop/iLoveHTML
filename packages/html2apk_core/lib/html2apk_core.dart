@@ -14,6 +14,7 @@ export 'src/build_orchestrator/log_redaction.dart';
 export 'src/build_orchestrator/toolchain.dart';
 export 'src/project_core/manifest.dart';
 export 'src/project_core/migration.dart';
+export 'src/project_core/project_backup.dart';
 export 'src/project_core/project_store.dart';
 export 'src/project_core/validation.dart';
 export 'src/project_importer/files_importer.dart';
