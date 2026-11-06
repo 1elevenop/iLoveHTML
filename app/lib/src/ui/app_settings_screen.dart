@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:html2apk_core/html2apk_core.dart' show formatBytes;
 
 import '../app_controller.dart';
 import 'signing_keys_screen.dart';

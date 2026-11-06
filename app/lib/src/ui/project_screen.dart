@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -763,6 +764,158 @@ class _ColorFieldState extends State<_ColorField> {
   }
 }
 
+/// Serves the APK on the local network and shows a QR code for the phone.
+/// The server stops when the dialog closes, or after 10 minutes.
+class _QrInstallDialog extends StatefulWidget {
+  const _QrInstallDialog({required this.apkPath});
+
+  final String apkPath;
+
+  @override
+  State<_QrInstallDialog> createState() => _QrInstallDialogState();
+}
+
+class _QrInstallDialogState extends State<_QrInstallDialog> {
+  List<InternetAddress> _addresses = const [];
+  InternetAddress? _address;
+  LanFileServer? _server;
+  List<List<bool>> _qr = const [];
+  String? _error;
+  int _downloads = 0;
+  bool _expired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final list = await lanAddresses();
+      if (!mounted) return;
+      if (list.isEmpty) {
+        setState(() => _error = 'This computer is not on a Wi-Fi or Ethernet network.');
+        return;
+      }
+      setState(() => _addresses = list);
+      await _serve(list.first);
+    } on Object catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  Future<void> _serve(InternetAddress address) async {
+    await _server?.stop();
+    final server = await LanFileServer.start(widget.apkPath, address: address);
+    if (!mounted) {
+      await server.stop();
+      return;
+    }
+    server.onDownload.listen((n) {
+      if (mounted) setState(() => _downloads = n);
+    });
+    unawaited(server.done.then((_) {
+      if (mounted && identical(_server, server)) setState(() => _expired = true);
+    }));
+    setState(() {
+      _address = address;
+      _server = server;
+      _qr = qrMatrix(server.url.toString());
+      _expired = false;
+      _downloads = 0;
+    });
+  }
+
+  @override
+  void dispose() {
+    _server?.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final server = _server;
+    return AlertDialog(
+      title: const Text('Install on phone'),
+      content: SizedBox(
+        width: 360,
+        child: _error != null
+            ? Text(_error!)
+            : server == null
+                ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()))
+                : Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('1. Connect the phone to the same Wi-Fi as this computer.\n'
+                        '2. Scan the code with the phone camera and open the link.\n'
+                        '3. Open the downloaded file. Allow installs from the browser if Android asks.'),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: _expired
+                          ? const SizedBox(height: 240, child: Center(child: Text('The link has stopped.')))
+                          : Container(
+                              color: Colors.white,
+                              padding: const EdgeInsets.all(12),
+                              child: SizedBox.square(
+                                dimension: 240,
+                                child: CustomPaint(painter: _QrPainter(_qr)),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(server.url.toString(), style: t.bodySmall),
+                    if (_addresses.length > 1)
+                      DropdownButtonFormField<InternetAddress>(
+                        initialValue: _address,
+                        isExpanded: true,
+                        decoration: const InputDecoration(labelText: 'Network address'),
+                        items: [for (final a in _addresses) DropdownMenuItem(value: a, child: Text(a.address))],
+                        onChanged: (a) {
+                          if (a != null && a != _address) _serve(a);
+                        },
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                        _downloads == 0
+                            ? 'The link works for 10 minutes while this window is open.'
+                            : 'Downloaded $_downloads time${_downloads == 1 ? '' : 's'}.',
+                        style: t.bodySmall),
+                    const SizedBox(height: 4),
+                    Text('Use this only on a network you trust. Windows may ask to allow iLoveHTML through the '
+                        'firewall: allow it for private networks.', style: t.bodySmall),
+                  ]),
+      ),
+      actions: [
+        if (_expired && _address != null)
+          TextButton(onPressed: () => _serve(_address!), child: const Text('Start again')),
+        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+      ],
+    );
+  }
+}
+
+class _QrPainter extends CustomPainter {
+  _QrPainter(this.modules);
+
+  final List<List<bool>> modules;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final n = modules.length;
+    final cell = size.width / n;
+    final paint = Paint()..color = Colors.black;
+    for (var y = 0; y < n; y++) {
+      for (var x = 0; x < n; x++) {
+        // A small overlap stops thin white lines between squares.
+        if (modules[y][x]) canvas.drawRect(Rect.fromLTWH(x * cell, y * cell, cell + 0.5, cell + 0.5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_QrPainter old) => !identical(old.modules, modules);
+}
+
 /// Shows what takes space in the site and how much the optimizer would save.
 class _SizeReportDialog extends StatefulWidget {
   const _SizeReportDialog({required this.sourceDir});
@@ -1450,6 +1603,16 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                         icon: const Icon(Icons.folder_open_outlined),
                         label: const Text('Show in folder'),
                       ),
+                      if (!apkPath.endsWith('.aab'))
+                        OutlinedButton.icon(
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => _QrInstallDialog(apkPath: apkPath),
+                          ),
+                          icon: const Icon(Icons.qr_code_2),
+                          label: const Text('Install on phone'),
+                        ),
                     ] else ...[
                     if (!apkPath.endsWith('.aab'))
                       FilledButton.tonalIcon(

@@ -234,12 +234,6 @@ class AppController extends ChangeNotifier {
   }
 }
 
-String formatBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-  return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
-}
-
 /// Suggests a valid application ID from an app name, e.g. "My Shop!" -> com.example.myshop.
 String suggestApplicationId(String name) {
   var slug = name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');

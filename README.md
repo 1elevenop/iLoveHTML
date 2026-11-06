@@ -23,6 +23,16 @@ an Android WebView app, built entirely on the local machine.
   file picker, light/dark/follow-phone theme (sets `prefers-color-scheme`),
   fullscreen, keep screen on, and a choice of back-button behaviour
   (press twice to exit, ask before exit, or go to the start page).
+- **App shortcuts**: up to four pages in the icon's long-press menu
+  (Android 7.1+). Only listed pages open, so other apps cannot use the
+  shortcut to load anything else.
+- **Smaller apps**: "Optimize files when building" makes CSS, JSON, PNG
+  (lossless) and large JPEG files (85% quality) smaller in the build only;
+  HTML and JavaScript are copied unchanged. Settings → Size report shows
+  what takes space and what optimizing saves.
+- **Install by QR code (Windows)**: after a build, "Install on phone"
+  serves the APK on your Wi-Fi for 10 minutes behind a secret link and
+  shows a QR code to scan. Plain HTTP: use it on a network you trust.
 - **Project format:** `project.json` schema 2; schema-1 projects are
   upgraded automatically when loaded.
 - **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the

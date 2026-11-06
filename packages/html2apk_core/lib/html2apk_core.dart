@@ -6,6 +6,7 @@ export 'src/android_generator/resource_writers.dart';
 export 'src/build_orchestrator/artifact_inspector.dart';
 export 'src/build_orchestrator/asset_optimizer.dart';
 export 'src/build_orchestrator/build_staging.dart';
+export 'src/build_orchestrator/lan_share_server.dart';
 export 'src/build_orchestrator/build_adapter.dart';
 export 'src/build_orchestrator/gradle_adapter.dart';
 export 'src/build_orchestrator/gradle_project_engine.dart';
