@@ -313,6 +313,7 @@ class ProjectManifest {
     this.exportFormats = const ['apk'],
     this.releaseCertSha256,
     this.shortcuts = const [],
+    this.optimizeAssets = false,
   });
 
   final String id;
@@ -347,6 +348,9 @@ class ProjectManifest {
   /// Long-press menu on the app icon (Android 7.1+).
   final List<AppShortcut> shortcuts;
 
+  /// Make CSS, JSON and images smaller in the built app (the project files stay as they are).
+  final bool optimizeAssets;
+
   bool get requiresInternet => internetAccess || source.type == SourceType.url;
 
   Map<String, Object?> toJson() => {
@@ -366,6 +370,7 @@ class ProjectManifest {
         'exportFormats': exportFormats,
         'signing': {'releaseCertSha256': releaseCertSha256},
         'shortcuts': [for (final s in shortcuts) s.toJson()],
+        'build': {'optimizeAssets': optimizeAssets},
       };
 
   String toJsonString() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -400,6 +405,7 @@ class ProjectManifest {
         for (final s in (json['shortcuts'] as List?) ?? const [])
           if (s is Map) AppShortcut.fromJson(s.cast()),
       ],
+      optimizeAssets: ((json['build'] as Map?)?['optimizeAssets'] as bool?) ?? false,
     );
   }
 
@@ -418,6 +424,7 @@ class ProjectManifest {
     String? Function()? offlineFallbackPage,
     String? Function()? releaseCertSha256,
     List<AppShortcut>? shortcuts,
+    bool? optimizeAssets,
   }) =>
       ProjectManifest(
         id: id,
@@ -436,6 +443,7 @@ class ProjectManifest {
         exportFormats: exportFormats,
         releaseCertSha256: releaseCertSha256 != null ? releaseCertSha256() : this.releaseCertSha256,
         shortcuts: shortcuts ?? this.shortcuts,
+        optimizeAssets: optimizeAssets ?? this.optimizeAssets,
       );
 }
 

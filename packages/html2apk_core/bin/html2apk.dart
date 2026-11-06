@@ -92,8 +92,9 @@ Future<void> main(List<String> args) async {
   final logFile = File(p.join(buildsDir, project.manifest.id, 'build.log')).openWrite();
   final cancel = CancellationToken();
   final sub = ProcessSignal.sigint.watch().listen((_) => cancel.cancel());
+  final staged = await stageForBuild(project, stagingRoot: p.join(buildsDir, 'staging'), log: stdout.writeln);
   final result = await engine.buildProject(
-    project,
+    staged.project,
     outputPath: dest,
     cancel: cancel,
     variant: release ? BuildVariant.release : BuildVariant.debug,
@@ -107,6 +108,7 @@ Future<void> main(List<String> args) async {
       }
     },
   );
+  staged.dispose();
   await sub.cancel();
   await logFile.close();
   store.recordBuild(project, BuildRecord(

@@ -19,12 +19,15 @@ import 'validation.dart';
 ///     <project>/branding/...    icon, splash
 ///     <project>/exports/...     built artifacts
 class ProjectHandle {
-  ProjectHandle(this.directory, this.manifest);
+  ProjectHandle(this.directory, this.manifest, {String? sourceDir}) : _sourceDir = sourceDir;
 
   final String directory;
   final ProjectManifest manifest;
 
-  String get sourceDir => p.join(directory, 'source');
+  /// Set for a build copy whose site files were optimized elsewhere.
+  final String? _sourceDir;
+
+  String get sourceDir => _sourceDir ?? p.join(directory, 'source');
   String get brandingDir => p.join(directory, 'branding');
   String get exportsDir => p.join(directory, 'exports');
   String? get iconFile => manifest.iconPath == null ? null : p.join(directory, manifest.iconPath!);
@@ -50,7 +53,10 @@ class ProjectHandle {
   String windowsMsixPath() =>
       p.join(exportsDir, '${manifest.android.applicationId}-${manifest.android.versionName}-windows.msix');
 
-  ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m);
+  ProjectHandle withManifest(ProjectManifest m) => ProjectHandle(directory, m, sourceDir: _sourceDir);
+
+  /// The same project, reading its site files from [dir] (used for optimized builds).
+  ProjectHandle withSourceDir(String dir) => ProjectHandle(directory, manifest, sourceDir: dir);
 }
 
 /// A project directory that could not be loaded, kept so the UI can report it.

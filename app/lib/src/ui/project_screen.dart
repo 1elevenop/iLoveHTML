@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' hide Orientation;
@@ -450,6 +451,28 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                   label: const Text('Add shortcut'),
                 ),
               ),
+            if (local) ...[
+              const _Section('App size'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Optimize files when building'),
+                subtitle: const Text('Makes CSS, JSON, PNG and large JPEG files smaller in the app. '
+                    'JPEGs are saved again at 85% quality. Your project files do not change.'),
+                value: _m.optimizeAssets,
+                onChanged: (v) => _change(_m.copyWith(optimizeAssets: v)),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => _SizeReportDialog(sourceDir: widget.project.sourceDir),
+                  ),
+                  icon: const Icon(Icons.pie_chart_outline),
+                  label: const Text('Size report'),
+                ),
+              ),
+            ],
             const _Section('Appearance'),
             _ColorField(label: 'Status bar colour', controller: _statusColor, onChanged: () => setState(() => _dirty = true)),
             const SizedBox(height: 12),
@@ -738,6 +761,111 @@ class _ColorFieldState extends State<_ColorField> {
       ]),
     ]);
   }
+}
+
+/// Shows what takes space in the site and how much the optimizer would save.
+class _SizeReportDialog extends StatefulWidget {
+  const _SizeReportDialog({required this.sourceDir});
+
+  final String sourceDir;
+
+  @override
+  State<_SizeReportDialog> createState() => _SizeReportDialogState();
+}
+
+class _SizeReportDialogState extends State<_SizeReportDialog> {
+  late final Future<SiteSizeReport> _report = _scan(widget.sourceDir);
+
+  // Static, so the isolate closure captures only the path and not this State.
+  static Future<SiteSizeReport> _scan(String dir) => Isolate.run(() => SiteSizeReport.scan(dir));
+  Future<OptimizeResult>? _savings;
+
+  static const _kindNames = {
+    AssetKind.page: 'Pages',
+    AssetKind.script: 'JavaScript',
+    AssetKind.style: 'CSS',
+    AssetKind.image: 'Images',
+    AssetKind.font: 'Fonts',
+    AssetKind.media: 'Audio and video',
+    AssetKind.data: 'Data',
+    AssetKind.other: 'Other',
+  };
+
+  /// Runs the optimizer on a temporary copy, only to count the savings.
+  static Future<OptimizeResult> _trySavings(String sourceDir) => Isolate.run(() {
+        final tmp = Directory.systemTemp.createTempSync('size');
+        try {
+          return optimizeSite(sourceDir, tmp.path);
+        } finally {
+          tmp.deleteSync(recursive: true);
+        }
+      });
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return AlertDialog(
+      title: const Text('Size report'),
+      content: SizedBox(
+        width: 420,
+        child: FutureBuilder<SiteSizeReport>(
+          future: _report,
+          builder: (context, snap) {
+            final r = snap.data;
+            if (snap.hasError) return Text('Could not read the files: ${snap.error}');
+            if (r == null) return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()));
+            final kinds = r.bytesByKind.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+            return SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${r.files.length} files, ${formatBytes(r.totalBytes)}', style: text.titleMedium),
+                const SizedBox(height: 8),
+                for (final k in kinds) _row(_kindNames[k.key]!, formatBytes(k.value)),
+                const SizedBox(height: 16),
+                Text('Largest files', style: text.labelLarge),
+                for (final f in r.largest(8)) _row(f.path, formatBytes(f.bytes)),
+                if (r.warnings.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text('Advice', style: text.labelLarge),
+                  for (final w in r.warnings)
+                    Padding(padding: const EdgeInsets.only(top: 4), child: Text('• $w', style: text.bodySmall)),
+                ],
+                const SizedBox(height: 16),
+                if (_savings == null)
+                  OutlinedButton(
+                    onPressed: () => setState(() => _savings = _trySavings(widget.sourceDir)),
+                    child: const Text('Check what optimizing saves'),
+                  )
+                else
+                  FutureBuilder<OptimizeResult>(
+                    future: _savings,
+                    builder: (context, s) {
+                      final o = s.data;
+                      if (s.hasError) return Text('Check failed: ${s.error}');
+                      if (o == null) return const LinearProgressIndicator();
+                      return Text(
+                          'Optimizing makes ${o.changed.length} files smaller and saves ${formatBytes(o.savedBytes)} '
+                          '(${formatBytes(o.totalBefore)} → ${formatBytes(o.totalAfter)}). '
+                          'The APK is compressed too, so the APK saving is often smaller for CSS and JSON.',
+                          style: text.bodyMedium);
+                    },
+                  ),
+              ]),
+            );
+          },
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+    );
+  }
+
+  Widget _row(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(children: [
+          Expanded(child: Text(label, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 12),
+          Text(value),
+        ]),
+      );
 }
 
 /// Asks for a shortcut's name and page; returns null when cancelled.

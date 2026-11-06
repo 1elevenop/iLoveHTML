@@ -92,15 +92,18 @@ class AppController extends ChangeNotifier {
 
   /// Builds a Windows .exe (Windows only) and records it in the project's history.
   Future<BuildResult> buildExe(ProjectHandle project, BuildLogSink log, {bool debug = false}) =>
-      _buildWindows(project, 'exe', debug: debug,
-          (d) => d.buildExe(project, outputPath: project.windowsExePath(debug: debug), log: log, debug: debug));
+      _buildWindows(project, 'exe', log, debug: debug,
+          (d, staged) => d.buildExe(staged, outputPath: project.windowsExePath(debug: debug), log: log, debug: debug));
 
   /// Builds a signed Windows installer (.msix) and records it in the history.
   Future<BuildResult> buildMsix(ProjectHandle project, BuildLogSink log) => _buildWindows(
-      project, 'msix', (d) => d.buildMsix(project, outputPath: project.windowsMsixPath(), log: log));
+      project, 'msix', log, (d, staged) => d.buildMsix(staged, outputPath: project.windowsMsixPath(), log: log));
 
-  Future<BuildResult> _buildWindows(
-      ProjectHandle project, String format, Future<BuildResult> Function(DesktopBuildEngine) run,
+  /// Temporary copies of optimized sites live here during a build.
+  String get _stagingRoot => p.join(workspaceDir, 'staging');
+
+  Future<BuildResult> _buildWindows(ProjectHandle project, String format, BuildLogSink log,
+      Future<BuildResult> Function(DesktopBuildEngine, ProjectHandle staged) run,
       {bool debug = false}) async {
     final desktop = desktopEngine;
     if (desktop == null) {
@@ -109,8 +112,10 @@ class AppController extends ChangeNotifier {
     }
     building.add(project.manifest.id);
     notifyListeners();
+    StagedBuild? staged;
     try {
-      final result = await run(desktop);
+      staged = await stageForBuild(project, stagingRoot: _stagingRoot, log: log);
+      final result = await run(desktop, staged.project);
       final artifact = result.artifactPath;
       store.recordBuild(
         project,
@@ -130,6 +135,7 @@ class AppController extends ChangeNotifier {
       );
       return result;
     } finally {
+      staged?.dispose();
       building.remove(project.manifest.id);
       notifyListeners();
     }
@@ -154,8 +160,10 @@ class AppController extends ChangeNotifier {
     }
     building.add(project.manifest.id);
     notifyListeners();
+    StagedBuild? staged;
     try {
-      final result = await engine.buildProject(project,
+      staged = await stageForBuild(project, stagingRoot: _stagingRoot, log: log);
+      final result = await engine.buildProject(staged.project,
           outputPath: format == ArtifactFormat.aab
               ? project.releaseAabPath
               : (release ? project.releaseApkPath : project.debugApkPath),
@@ -187,6 +195,7 @@ class AppController extends ChangeNotifier {
       }
       return result;
     } finally {
+      staged?.dispose();
       building.remove(project.manifest.id);
       notifyListeners();
     }
