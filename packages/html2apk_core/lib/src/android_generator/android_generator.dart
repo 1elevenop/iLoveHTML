@@ -115,6 +115,8 @@ class AndroidGenerator {
         'galleryFolder': m.webView.galleryFolder,
         'shareTarget': m.webView.shareTarget,
         'backButton': m.webView.backButton.name,
+        'notifications': m.webView.notifications,
+        'appLock': m.appLock,
         'offlinePage': m.offlineFallbackPage,
         'statusBarColor': m.appearance.statusBarColor,
         'navigationBarColor': m.appearance.navigationBarColor,
@@ -135,6 +137,8 @@ class AndroidGenerator {
   /// Permissions the generated app declares, shared by every build engine.
   static List<String> permissionsFor(ProjectManifest m) => <String>{
         if (m.requiresInternet) 'android.permission.INTERNET',
+        if (m.appLock) 'android.permission.USE_BIOMETRIC',
+        if (m.webView.notifications) 'android.permission.POST_NOTIFICATIONS',
         ...m.permissions,
       }.toList()
         ..sort();

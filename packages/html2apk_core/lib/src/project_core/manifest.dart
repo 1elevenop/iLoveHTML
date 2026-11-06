@@ -98,6 +98,7 @@ class WebViewSettings {
     this.galleryFolder,
     this.shareTarget,
     this.backButton = BackButtonMode.history,
+    this.notifications = false,
   });
 
   final bool javaScriptEnabled;
@@ -134,6 +135,10 @@ class WebViewSettings {
   /// What the Android back button does.
   final BackButtonMode backButton;
 
+  /// Adds the web `Notification` API: the page can show Android notifications
+  /// while the app is open. Adds the POST_NOTIFICATIONS permission.
+  final bool notifications;
+
   Map<String, Object?> toJson() => {
         'javaScriptEnabled': javaScriptEnabled,
         'domStorageEnabled': domStorageEnabled,
@@ -148,6 +153,7 @@ class WebViewSettings {
         'galleryFolder': galleryFolder,
         'shareTarget': shareTarget,
         'backButton': backButton.name,
+        'notifications': notifications,
       };
 
   WebViewSettings copyWith({
@@ -164,6 +170,7 @@ class WebViewSettings {
     String? Function()? galleryFolder,
     String? Function()? shareTarget,
     BackButtonMode? backButton,
+    bool? notifications,
   }) =>
       WebViewSettings(
         javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
@@ -179,6 +186,7 @@ class WebViewSettings {
         galleryFolder: galleryFolder != null ? galleryFolder() : this.galleryFolder,
         shareTarget: shareTarget != null ? shareTarget() : this.shareTarget,
         backButton: backButton ?? this.backButton,
+        notifications: notifications ?? this.notifications,
       );
 
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
@@ -195,6 +203,7 @@ class WebViewSettings {
         galleryFolder: json['galleryFolder'] as String?,
         shareTarget: json['shareTarget'] as String?,
         backButton: _byName(BackButtonMode.values, json['backButton'], BackButtonMode.history),
+        notifications: json['notifications'] as bool? ?? false,
       );
 }
 
@@ -314,6 +323,7 @@ class ProjectManifest {
     this.releaseCertSha256,
     this.shortcuts = const [],
     this.optimizeAssets = false,
+    this.appLock = false,
   });
 
   final String id;
@@ -351,6 +361,10 @@ class ProjectManifest {
   /// Make CSS, JSON and images smaller in the built app (the project files stay as they are).
   final bool optimizeAssets;
 
+  /// Asks for the fingerprint, face or screen lock (PIN, pattern, password)
+  /// when the app opens and after 30 seconds in the background.
+  final bool appLock;
+
   bool get requiresInternet => internetAccess || source.type == SourceType.url;
 
   Map<String, Object?> toJson() => {
@@ -371,6 +385,7 @@ class ProjectManifest {
         'signing': {'releaseCertSha256': releaseCertSha256},
         'shortcuts': [for (final s in shortcuts) s.toJson()],
         'build': {'optimizeAssets': optimizeAssets},
+        'security': {'appLock': appLock},
       };
 
   String toJsonString() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -406,6 +421,7 @@ class ProjectManifest {
           if (s is Map) AppShortcut.fromJson(s.cast()),
       ],
       optimizeAssets: ((json['build'] as Map?)?['optimizeAssets'] as bool?) ?? false,
+      appLock: ((json['security'] as Map?)?['appLock'] as bool?) ?? false,
     );
   }
 
@@ -425,6 +441,7 @@ class ProjectManifest {
     String? Function()? releaseCertSha256,
     List<AppShortcut>? shortcuts,
     bool? optimizeAssets,
+    bool? appLock,
   }) =>
       ProjectManifest(
         id: id,
@@ -444,6 +461,7 @@ class ProjectManifest {
         releaseCertSha256: releaseCertSha256 != null ? releaseCertSha256() : this.releaseCertSha256,
         shortcuts: shortcuts ?? this.shortcuts,
         optimizeAssets: optimizeAssets ?? this.optimizeAssets,
+        appLock: appLock ?? this.appLock,
       );
 }
 

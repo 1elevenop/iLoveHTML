@@ -105,4 +105,33 @@ void main() {
       expect(errors(withShortcuts([for (var i = 0; i < 5; i++) AppShortcut(label: 'S$i', page: 'p$i.html')])), isNotEmpty);
     });
   });
+
+  group('app lock and notifications', () {
+    test('off by default, with no extra permissions', () {
+      final m = _manifest();
+      final config = AndroidGenerator.runtimeConfig(m);
+      expect(config['appLock'], isFalse);
+      expect(config['notifications'], isFalse);
+      expect(AndroidGenerator.permissionsFor(m), isNot(contains('android.permission.USE_BIOMETRIC')));
+      expect(AndroidGenerator.permissionsFor(m), isNot(contains('android.permission.POST_NOTIFICATIONS')));
+    });
+
+    test('turning them on adds the config and the permissions they need', () {
+      final m = _manifest(webView: const WebViewSettings(notifications: true)).copyWith(appLock: true);
+      final config = AndroidGenerator.runtimeConfig(m);
+      expect(config['appLock'], isTrue);
+      expect(config['notifications'], isTrue);
+      expect(AndroidGenerator.permissionsFor(m),
+          containsAll(['android.permission.USE_BIOMETRIC', 'android.permission.POST_NOTIFICATIONS']));
+      expect(validateManifest(m).where((i) => i.severity == IssueSeverity.error), isEmpty);
+    });
+
+    test('round-trip through project.json', () {
+      final m = _manifest(webView: const WebViewSettings(notifications: true)).copyWith(appLock: true);
+      final back = ProjectManifest.fromJson(m.toJson());
+      expect(back.appLock, isTrue);
+      expect(back.webView.notifications, isTrue);
+      expect(ProjectManifest.fromJson(_manifest().toJson()..remove('security')).appLock, isFalse);
+    });
+  });
 }

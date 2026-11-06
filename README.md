@@ -33,6 +33,17 @@ an Android WebView app, built entirely on the local machine.
 - **Install by QR code (Windows)**: after a build, "Install on phone"
   serves the APK on your Wi-Fi for 10 minutes behind a secret link and
   shows a QR code to scan. Plain HTTP: use it on a network you trust.
+- **Project backup**: "Back up project" saves settings, site files, icon
+  and splash as one `.ilovehtml` file (no builds, no signing keys);
+  "Restore backup" on the project list opens it as a new project, with
+  the same safety checks as website ZIPs.
+- **App lock**: generated apps can ask for the fingerprint, face or screen
+  lock when they open and after 30 seconds in the background (adds
+  USE_BIOMETRIC). Phones without a screen lock open the app with a hint.
+- **Notifications**: the web `Notification` API shows Android
+  notifications while the app is open, with Android 13's permission prompt
+  and `click` events (adds POST_NOTIFICATIONS). No push or service-worker
+  notifications.
 - **Project format:** `project.json` schema 2; schema-1 projects are
   upgraded automatically when loaded.
 - **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the
@@ -72,8 +83,8 @@ an Android WebView app, built entirely on the local machine.
   `Pictures/<gallery folder>`. A project can name the gallery folder and
   an app to open directly (e.g. `com.whatsapp`). Test page:
   `samples/feature-site/share.html`.
-- Not built yet: camera/location and other native features, SQLite index,
-  templates.
+- Not built yet: camera/location and other native features, push
+  notifications, SQLite index, templates.
 
 ## Layout
 

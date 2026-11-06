@@ -63,6 +63,8 @@ class MainActivity : Activity() {
     private var clearHistoryOnLoad = false
     /** The dark/light choice this activity was created with. */
     private var darkThemeApplied = false
+    private var appLock: AppLock? = null
+    private var notifications: NotificationBridge? = null
     private val isDebuggable get() = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     // Bundled content is served from https://appassets.androidplatform.net/assets/...
@@ -84,12 +86,21 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(isDebuggable)
 
         webView = WebView(this)
-        setContentView(createRootLayout(showSplash = config.splash.enabled && savedInstanceState == null))
+        val root = createRootLayout(showSplash = config.splash.enabled && savedInstanceState == null)
+        setContentView(root)
+        if (config.appLock) {
+            appLock = AppLock(
+                this, root, webView,
+                backgroundColor = if (darkThemeApplied) Color.rgb(18, 18, 18) else Color.WHITE,
+                textColor = if (darkThemeApplied) Color.WHITE else Color.rgb(30, 36, 48),
+            ).also { it.start(savedInstanceState) }
+        }
         configureSettings(webView.settings)
         webView.webViewClient = WrapperWebViewClient()
         webView.webChromeClient = WrapperChromeClient()
         bridge = PageBridge(this, webView, bridgeOrigins(), config)
         bridge.install()
+        if (config.notifications) notifications = NotificationBridge(this, webView, bridgeOrigins()).also { it.install() }
 
         if (Build.VERSION.SDK_INT >= 33) {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(
@@ -169,7 +180,7 @@ class MainActivity : Activity() {
      * Android 15+ forces edge-to-edge for targetSdk 35+, so on API 30+ we opt
      * in explicitly and colour the inset areas ourselves.
      */
-    private fun createRootLayout(showSplash: Boolean): View {
+    private fun createRootLayout(showSplash: Boolean): FrameLayout {
         val screen = FrameLayout(this)
         screen.setBackgroundColor(config.navigationBarColor)
 
@@ -365,7 +376,44 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        appLock?.onStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        appLock?.onResume()
+        notifications?.onResume()
+    }
+
+    /** Taps on the page's notifications arrive here while the app is running. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == NotificationBridge.ACTION_CLICK) notifications?.onClick(intent)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == NotificationBridge.REQUEST_PERMISSION) {
+            // An empty result means the request was interrupted, not answered.
+            notifications?.onPermissionResult(
+                granted = grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED,
+                answered = grantResults.isNotEmpty(),
+            )
+        }
+    }
+
+    override fun onStop() {
+        appLock?.onStop()
+        super.onStop()
+    }
+
     private fun handleBack() {
+        if (appLock?.locked == true) {
+            finish()
+            return
+        }
         if (config.backButton == AppConfig.BackButton.HOME) {
             // No history also counts as the start page, so a start URL that
             // redirects elsewhere cannot trap the user in a reload loop.
@@ -416,6 +464,10 @@ class MainActivity : Activity() {
 
     @Deprecated("Platform Activity API; this app does not use AndroidX Activity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == AppLock.REQUEST_UNLOCK) {
+            appLock?.onUnlockResult(resultCode)
+            return
+        }
         if (requestCode != REQUEST_FILE) {
             @Suppress("DEPRECATION")
             super.onActivityResult(requestCode, resultCode, data)
@@ -434,10 +486,12 @@ class MainActivity : Activity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
+        appLock?.save(outState)
     }
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        appLock?.onDestroy()
         fileCallback?.onReceiveValue(null)
         bridge.destroy()
         webView.destroy()

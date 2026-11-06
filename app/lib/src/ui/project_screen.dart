@@ -550,6 +550,15 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               value: _m.appearance.keepScreenOn,
               onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(keepScreenOn: v))),
             ),
+            const _Section('Security'),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('App lock'),
+              subtitle: const Text('Asks for the fingerprint, face or screen lock when the app opens, '
+                  'and after 30 seconds in the background. Phones without a screen lock open the app with a hint.'),
+              value: _m.appLock,
+              onChanged: (v) => _change(_m.copyWith(appLock: v)),
+            ),
             const _Section('WebView'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -587,6 +596,14 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               subtitle: const Text('Swipe down at the top of a page to reload it, or to retry after an error.'),
               value: _m.webView.pullToRefresh,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(pullToRefresh: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Notifications'),
+              subtitle: const Text('The page can use the web Notification API to show Android notifications '
+                  'while the app is open. Android 13+ asks the user first. No push messages.'),
+              value: _m.webView.notifications,
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(notifications: v))),
             ),
             DropdownButtonFormField<BackButtonMode>(
               initialValue: _m.webView.backButton,

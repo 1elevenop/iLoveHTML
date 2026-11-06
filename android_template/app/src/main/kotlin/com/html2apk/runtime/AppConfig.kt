@@ -39,6 +39,10 @@ data class AppConfig(
     val backButton: BackButton,
     /** Long-press menu on the app icon. */
     val shortcuts: List<Shortcut>,
+    /** Ask for the phone's lock (biometric or screen lock) to open the app. */
+    val appLock: Boolean,
+    /** The web Notification API, shown as Android notifications. */
+    val notifications: Boolean,
 ) {
     enum class SourceType { LOCAL, REMOTE }
     enum class ExternalLinks { BROWSER, BLOCK }
@@ -131,6 +135,8 @@ data class AppConfig(
                         if (label.isNotEmpty() && page.length <= 500) add(Shortcut(label, page))
                     }
                 },
+                appLock = json.optBoolean("appLock", false),
+                notifications = json.optBoolean("notifications", false),
             )
         }
 
