@@ -37,10 +37,15 @@ data class AppConfig(
     val fullscreen: Boolean,
     val keepScreenOn: Boolean,
     val backButton: BackButton,
+    /** Long-press menu on the app icon. */
+    val shortcuts: List<Shortcut>,
 ) {
     enum class SourceType { LOCAL, REMOTE }
     enum class ExternalLinks { BROWSER, BLOCK }
     enum class Theme { LIGHT, DARK, SYSTEM }
+
+    /** [page] is a path inside assets/www (local) or a path or https URL on the site (remote). */
+    data class Shortcut(val label: String, val page: String)
 
     /** Mirrors BackButtonMode in the Dart project model. */
     enum class BackButton { HISTORY, PRESS_TWICE_TO_EXIT, CONFIRM_EXIT, HOME }
@@ -50,6 +55,7 @@ data class AppConfig(
 
     companion object {
         const val SUPPORTED_SCHEMA = 1
+        const val MAX_SHORTCUTS = 4
 
         fun load(context: Context): AppConfig {
             val text = context.assets.open("app_config.json").bufferedReader().use { it.readText() }
@@ -115,6 +121,15 @@ data class AppConfig(
                     "confirmExit" -> BackButton.CONFIRM_EXIT
                     "home" -> BackButton.HOME
                     else -> BackButton.HISTORY
+                },
+                shortcuts = buildList {
+                    val list = json.optJSONArray("shortcuts")
+                    if (list != null) for (i in 0 until minOf(list.length(), MAX_SHORTCUTS)) {
+                        val item = list.optJSONObject(i) ?: continue
+                        val label = optString(item, "label")?.trim()?.take(25) ?: continue
+                        val page = optString(item, "page") ?: continue
+                        if (label.isNotEmpty() && page.length <= 500) add(Shortcut(label, page))
+                    }
                 },
             )
         }

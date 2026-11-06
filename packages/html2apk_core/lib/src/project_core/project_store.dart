@@ -179,6 +179,13 @@ class ProjectStore {
     if (offline != null && !File(p.join(project.sourceDir, offline)).existsSync()) {
       throw InvalidProjectException([ValidationIssue('offline.fallbackPage', 'Offline page "$offline" does not exist')]);
     }
+    if (manifest.source.type == SourceType.local) {
+      for (final s in manifest.shortcuts) {
+        if (!File(p.join(project.sourceDir, shortcutFilePath(s.page))).existsSync()) {
+          throw InvalidProjectException([ValidationIssue('shortcuts', 'Shortcut page "${s.page}" does not exist')]);
+        }
+      }
+    }
     final updated = project.withManifest(manifest);
     save(updated);
     return updated;

@@ -198,6 +198,33 @@ class WebViewSettings {
       );
 }
 
+/// One entry in the menu that opens when the user long-presses the app icon.
+class AppShortcut {
+  const AppShortcut({required this.label, required this.page});
+
+  /// Text in the menu, at most [maxShortcutLabelLength] characters.
+  final String label;
+
+  /// For local projects: a path inside `source/`, e.g. `shop/cart.html#top`.
+  /// For URL projects: a path on the site (`/cart`) or a full https URL on it.
+  final String page;
+
+  Map<String, Object?> toJson() => {'label': label, 'page': page};
+
+  factory AppShortcut.fromJson(Map<String, Object?> json) =>
+      AppShortcut(label: json['label'] as String? ?? '', page: json['page'] as String? ?? '');
+
+  @override
+  bool operator ==(Object other) => other is AppShortcut && other.label == label && other.page == page;
+
+  @override
+  int get hashCode => Object.hash(label, page);
+}
+
+/// Launchers show about four shortcuts; more are ignored.
+const int maxShortcuts = 4;
+const int maxShortcutLabelLength = 25;
+
 /// System bar colours and the in-app splash screen. Colours are `#RRGGBB`.
 class AppearanceSettings {
   const AppearanceSettings({
@@ -285,6 +312,7 @@ class ProjectManifest {
     this.buildProfiles = const ['debug'],
     this.exportFormats = const ['apk'],
     this.releaseCertSha256,
+    this.shortcuts = const [],
   });
 
   final String id;
@@ -316,6 +344,9 @@ class ProjectManifest {
   /// checked against it.
   final String? releaseCertSha256;
 
+  /// Long-press menu on the app icon (Android 7.1+).
+  final List<AppShortcut> shortcuts;
+
   bool get requiresInternet => internetAccess || source.type == SourceType.url;
 
   Map<String, Object?> toJson() => {
@@ -334,6 +365,7 @@ class ProjectManifest {
         'buildProfiles': buildProfiles,
         'exportFormats': exportFormats,
         'signing': {'releaseCertSha256': releaseCertSha256},
+        'shortcuts': [for (final s in shortcuts) s.toJson()],
       };
 
   String toJsonString() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -364,6 +396,10 @@ class ProjectManifest {
       buildProfiles: [...?(json['buildProfiles'] as List?)?.cast<String>()],
       exportFormats: [...?(json['exportFormats'] as List?)?.cast<String>()],
       releaseCertSha256: ((json['signing'] as Map?)?.cast<String, Object?>() ?? const {})['releaseCertSha256'] as String?,
+      shortcuts: [
+        for (final s in (json['shortcuts'] as List?) ?? const [])
+          if (s is Map) AppShortcut.fromJson(s.cast()),
+      ],
     );
   }
 
@@ -381,6 +417,7 @@ class ProjectManifest {
     bool? internetAccess,
     String? Function()? offlineFallbackPage,
     String? Function()? releaseCertSha256,
+    List<AppShortcut>? shortcuts,
   }) =>
       ProjectManifest(
         id: id,
@@ -398,6 +435,7 @@ class ProjectManifest {
         buildProfiles: buildProfiles,
         exportFormats: exportFormats,
         releaseCertSha256: releaseCertSha256 != null ? releaseCertSha256() : this.releaseCertSha256,
+        shortcuts: shortcuts ?? this.shortcuts,
       );
 }
 

@@ -215,6 +215,19 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   ProjectHandle get _current => widget.controller.project(_m.id)!;
 
+  Future<void> _addShortcut() async {
+    final shortcut = await showDialog<AppShortcut>(
+      context: context,
+      builder: (_) => _ShortcutDialog(type: _m.source.type, pages: _pages),
+    );
+    if (shortcut == null) return;
+    if (_m.shortcuts.any((s) => s.page == shortcut.page)) {
+      _report('A shortcut for "${shortcut.page}" already exists');
+      return;
+    }
+    _change(_m.copyWith(shortcuts: [..._m.shortcuts, shortcut]));
+  }
+
   void _report(Object e) {
     if (!mounted) return;
     final text = e is InvalidProjectException ? e.issues.join('\n') : '$e';
@@ -413,6 +426,30 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               selected: {_m.orientation},
               onSelectionChanged: (s) => _change(_m.copyWith(orientation: s.single)),
             ),
+            const _Section('Shortcuts'),
+            Text('Long-press the app icon to see these pages (Android 7.1 and later).',
+                style: Theme.of(context).textTheme.bodySmall),
+            for (final (i, s) in _m.shortcuts.indexed)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.shortcut),
+                title: Text(s.label),
+                subtitle: Text(s.page, overflow: TextOverflow.ellipsis),
+                trailing: IconButton(
+                  tooltip: 'Remove shortcut',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _change(_m.copyWith(shortcuts: [..._m.shortcuts]..removeAt(i))),
+                ),
+              ),
+            if (_m.shortcuts.length < maxShortcuts)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _addShortcut,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add shortcut'),
+                ),
+              ),
             const _Section('Appearance'),
             _ColorField(label: 'Status bar colour', controller: _statusColor, onChanged: () => setState(() => _dirty = true)),
             const SizedBox(height: 12),
@@ -700,6 +737,79 @@ class _ColorFieldState extends State<_ColorField> {
           ),
       ]),
     ]);
+  }
+}
+
+/// Asks for a shortcut's name and page; returns null when cancelled.
+class _ShortcutDialog extends StatefulWidget {
+  const _ShortcutDialog({required this.type, required this.pages});
+
+  final SourceType type;
+  final List<String> pages;
+
+  @override
+  State<_ShortcutDialog> createState() => _ShortcutDialogState();
+}
+
+class _ShortcutDialogState extends State<_ShortcutDialog> {
+  final _form = GlobalKey<FormState>();
+  final _label = TextEditingController();
+  final _page = TextEditingController();
+
+  @override
+  void dispose() {
+    _label.dispose();
+    _page.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final local = widget.type == SourceType.local;
+    return AlertDialog(
+      title: const Text('Add shortcut'),
+      content: Form(
+        key: _form,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextFormField(
+            controller: _label,
+            autofocus: true,
+            maxLength: maxShortcutLabelLength,
+            decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. Cart'),
+            validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a name' : null,
+          ),
+          if (local && widget.pages.isNotEmpty)
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Page'),
+              items: [for (final page in widget.pages) DropdownMenuItem(value: page, child: Text(page, overflow: TextOverflow.ellipsis))],
+              onChanged: (v) => _page.text = v ?? '',
+              validator: (v) => v == null ? 'Choose a page' : shortcutPageError(widget.type, v),
+            )
+          else
+            TextFormField(
+              controller: _page,
+              autocorrect: false,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                labelText: 'Page',
+                hintText: local ? 'e.g. cart.html' : 'e.g. /cart',
+              ),
+              validator: (v) => shortcutPageError(widget.type, (v ?? '').trim()),
+            ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () {
+            if (!_form.currentState!.validate()) return;
+            Navigator.pop(context, AppShortcut(label: _label.text.trim(), page: _page.text.trim()));
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
   }
 }
 

@@ -65,6 +65,14 @@ class AndroidGenerator {
       throw InvalidProjectException([ValidationIssue('offline.fallbackPage', 'Offline page "$offline" does not exist')]);
     }
 
+    if (m.source.type == SourceType.local) {
+      for (final s in m.shortcuts) {
+        if (!File(p.join(www.path, shortcutFilePath(s.page))).existsSync()) {
+          throw InvalidProjectException([ValidationIssue('shortcuts', 'Shortcut page "${s.page}" does not exist')]);
+        }
+      }
+    }
+
     final splash = project.splashFile;
     if (splash != null) {
       final target = File(p.join(main, 'assets', splashAssetPath));
@@ -113,6 +121,7 @@ class AndroidGenerator {
         'theme': m.appearance.theme.name,
         'fullscreen': m.appearance.fullscreen,
         'keepScreenOn': m.appearance.keepScreenOn,
+        'shortcuts': [for (final s in m.shortcuts) {'label': s.label.trim(), 'page': s.page}],
         'splash': {
           'enabled': m.appearance.splashEnabled,
           'backgroundColor': m.appearance.splashBackgroundColor,

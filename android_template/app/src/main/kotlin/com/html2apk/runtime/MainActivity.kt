@@ -5,10 +5,13 @@ import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -94,10 +97,70 @@ class MainActivity : Activity() {
             ) { handleBack() }
         }
 
+        publishShortcuts()
         if (savedInstanceState == null || webView.restoreState(savedInstanceState) == null) {
-            webView.loadUrl(startUrl())
+            webView.loadUrl(shortcutUrl(intent) ?: startUrl())
         }
     }
+
+    /**
+     * Shortcuts from app_config.json become the icon's long-press menu.
+     * Pinned copies of removed shortcuts are disabled so they cannot open
+     * a page that is no longer offered.
+     */
+    private fun publishShortcuts() {
+        if (Build.VERSION.SDK_INT < 25) return
+        val manager = getSystemService(ShortcutManager::class.java) ?: return
+        try {
+            val icon = Icon.createWithResource(this, applicationInfo.icon)
+            val wanted = config.shortcuts.take(manager.maxShortcutCountPerActivity).map { s ->
+                ShortcutInfo.Builder(this, shortcutId(s.page))
+                    .setShortLabel(s.label)
+                    .setLongLabel(s.label)
+                    .setIcon(icon)
+                    .setIntent(
+                        Intent(this, MainActivity::class.java)
+                            .setAction(ACTION_SHORTCUT)
+                            .putExtra(EXTRA_PAGE, s.page)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    )
+                    .build()
+            }
+            manager.setDynamicShortcuts(wanted)
+            val ids = wanted.map { it.id }.toSet()
+            val stale = manager.pinnedShortcuts.map { it.id }.filter { it !in ids }
+            if (stale.isNotEmpty()) manager.disableShortcuts(stale)
+        } catch (e: RuntimeException) {
+            // Rate limits or launcher quirks must never stop the app from opening.
+            Log.w(TAG, "Shortcuts not published: $e")
+        }
+    }
+
+    /**
+     * The page a shortcut asks for. The activity is exported, so any app can
+     * send this intent: only pages listed in the config are accepted, and
+     * the result must still be a page the app keeps inside the WebView.
+     */
+    private fun shortcutUrl(intent: Intent?): String? {
+        if (intent?.action != ACTION_SHORTCUT) return null
+        val page = intent.getStringExtra(EXTRA_PAGE) ?: return null
+        if (config.shortcuts.none { it.page == page }) return null
+        val url = when (config.sourceType) {
+            AppConfig.SourceType.LOCAL -> {
+                val file = page.split('?', '#').first()
+                if (file.isEmpty() || file.startsWith("/") || ':' in file || ".." in file.split('/') || '\\' in page) return null
+                "https://$ASSET_HOST/assets/www/$page"
+            }
+            AppConfig.SourceType.REMOTE -> try {
+                java.net.URI(startUrl()).resolve(page).toString()
+            } catch (_: IllegalArgumentException) {
+                return null
+            }
+        }
+        return url.takeIf { isInternal(Uri.parse(it)) }
+    }
+
+    private fun shortcutId(page: String) = "page:" + page.hashCode().toUInt().toString(16)
 
     /**
      * Builds: screen (navigation bar colour) > content (padded by system bar,
@@ -467,6 +530,8 @@ class MainActivity : Activity() {
         private const val SPLASH_MIN_MS = 600L
         private const val SPLASH_MAX_MS = 8000L
         private const val EXIT_WINDOW_MS = 2000L
+        private const val ACTION_SHORTCUT = "com.html2apk.runtime.OPEN_SHORTCUT"
+        private const val EXTRA_PAGE = "page"
         @Suppress("DEPRECATION")
         private const val LEGACY_FULLSCREEN_FLAGS = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
             View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION

@@ -131,5 +131,40 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
   if (target != null && !isPackageName(target)) {
     issues.add(const ValidationIssue('webView.shareTarget', 'Must be an Android package name like com.whatsapp'));
   }
+  if (m.shortcuts.length > maxShortcuts) {
+    issues.add(const ValidationIssue('shortcuts', 'At most $maxShortcuts shortcuts'));
+  }
+  final seen = <String>{};
+  for (final s in m.shortcuts) {
+    final label = s.label.trim();
+    if (label.isEmpty || label.length > maxShortcutLabelLength || label.contains(RegExp(r'[\x00-\x1f]'))) {
+      issues.add(ValidationIssue('shortcuts', 'Shortcut name must be 1-$maxShortcutLabelLength printable characters'));
+    }
+    final error = shortcutPageError(m.source.type, s.page);
+    if (error != null) issues.add(ValidationIssue('shortcuts', '"${s.page}": $error'));
+    if (!seen.add(s.page)) issues.add(ValidationIssue('shortcuts', '"${s.page}" is used by two shortcuts'));
+  }
   return issues;
+}
+
+/// The file part of a local shortcut page, without `?query` and `#hash`.
+String shortcutFilePath(String page) => page.split(RegExp(r'[?#]')).first;
+
+/// Checks a shortcut target; null when it is fine. URL projects must point
+/// at the same site, which the app checks again when the shortcut is opened.
+String? shortcutPageError(SourceType type, String page) {
+  if (page.isEmpty || page.length > 500 || page.contains(RegExp(r'[\x00-\x20\\]'))) {
+    return 'Use a page path without spaces';
+  }
+  switch (type) {
+    case SourceType.local:
+      final file = shortcutFilePath(page);
+      if (file.isEmpty || file.startsWith('/') || file.contains(':') || file.split('/').contains('..')) {
+        return 'Must be a page inside source/, e.g. cart.html';
+      }
+    case SourceType.url:
+      if (page.startsWith('https://')) return validateRemoteUrl(page);
+      if (!page.startsWith('/') || page.startsWith('//')) return 'Use a path like /cart or a full https:// address';
+  }
+  return null;
 }

@@ -51,4 +51,58 @@ void main() {
     expect(config['fullscreen'], isTrue);
     expect(config['keepScreenOn'], isTrue);
   });
+
+  group('shortcuts', () {
+    ProjectManifest withShortcuts(List<AppShortcut> list, {SourceType type = SourceType.local}) => ProjectManifest(
+          id: 'id',
+          name: 'Demo',
+          source: type == SourceType.local
+              ? const ProjectSource.local('index.html')
+              : const ProjectSource.url('https://example.com/'),
+          android: const AndroidSettings(applicationId: 'com.example.demo'),
+          shortcuts: list,
+        );
+    List<String> errors(ProjectManifest m) =>
+        [for (final i in validateManifest(m)) if (i.field == 'shortcuts') i.message];
+
+    test('round-trip through project.json and reach the runtime config', () {
+      final m = withShortcuts(const [AppShortcut(label: ' Cart ', page: 'shop/cart.html#top')]);
+      final back = ProjectManifest.fromJson(m.toJson());
+      expect(back.shortcuts, const [AppShortcut(label: ' Cart ', page: 'shop/cart.html#top')]);
+      expect(AndroidGenerator.runtimeConfig(m)['shortcuts'], [
+        {'label': 'Cart', 'page': 'shop/cart.html#top'}
+      ]);
+      expect(errors(m), isEmpty);
+    });
+
+    test('old projects have none', () {
+      final json = withShortcuts(const []).toJson()..remove('shortcuts');
+      expect(ProjectManifest.fromJson(json).shortcuts, isEmpty);
+    });
+
+    test('local pages must stay inside source/', () {
+      for (final bad in ['../secret.html', '/etc/passwd', 'a/../../b.html', 'file:x.html', 'a b.html', r'a\b.html', '']) {
+        expect(errors(withShortcuts([AppShortcut(label: 'X', page: bad)])), isNotEmpty, reason: bad);
+      }
+    });
+
+    test('URL pages must be a path or an https address', () {
+      final ok = withShortcuts(const [
+        AppShortcut(label: 'A', page: '/cart'),
+        AppShortcut(label: 'B', page: 'https://example.com/b'),
+      ], type: SourceType.url);
+      expect(errors(ok), isEmpty);
+      for (final bad in ['cart', '//evil.com/x', 'http://example.com/', 'javascript:alert(1)']) {
+        expect(errors(withShortcuts([AppShortcut(label: 'X', page: bad)], type: SourceType.url)), isNotEmpty, reason: bad);
+      }
+    });
+
+    test('names, count and duplicates are checked', () {
+      expect(errors(withShortcuts(const [AppShortcut(label: ' ', page: 'a.html')])), isNotEmpty);
+      expect(errors(withShortcuts([AppShortcut(label: 'x' * 26, page: 'a.html')])), isNotEmpty);
+      expect(errors(withShortcuts(const [AppShortcut(label: 'A', page: 'a.html'), AppShortcut(label: 'B', page: 'a.html')])),
+          isNotEmpty);
+      expect(errors(withShortcuts([for (var i = 0; i < 5; i++) AppShortcut(label: 'S$i', page: 'p$i.html')])), isNotEmpty);
+    });
+  });
 }
