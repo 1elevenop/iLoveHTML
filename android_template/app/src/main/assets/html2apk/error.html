@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Page unavailable</title>
 <style>
   body { font-family: sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f4f5f7; color: #1e2430; }
   main { max-width: 22rem; padding: 1.5rem; text-align: center; }
   a.retry { display: inline-block; margin-top: 1rem; padding: .7rem 1.4rem; border-radius: .5rem; background: #1e2430; color: #fff; font-size: 1rem; text-decoration: none; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #15181e; color: #e6e8ec; }
+    a.retry { background: #e6e8ec; color: #15181e; }
+  }
 </style>
 </head>
 <body>

@@ -106,9 +106,13 @@ class AndroidGenerator {
         'shareFiles': m.webView.shareFiles,
         'galleryFolder': m.webView.galleryFolder,
         'shareTarget': m.webView.shareTarget,
+        'backButton': m.webView.backButton.name,
         'offlinePage': m.offlineFallbackPage,
         'statusBarColor': m.appearance.statusBarColor,
         'navigationBarColor': m.appearance.navigationBarColor,
+        'theme': m.appearance.theme.name,
+        'fullscreen': m.appearance.fullscreen,
+        'keepScreenOn': m.appearance.keepScreenOn,
         'splash': {
           'enabled': m.appearance.splashEnabled,
           'backgroundColor': m.appearance.splashBackgroundColor,

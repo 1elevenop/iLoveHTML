@@ -10,6 +10,25 @@ enum Orientation { unspecified, portrait, landscape }
 
 enum ExternalLinkPolicy { browser, block }
 
+/// Light or dark theme for the generated app; sets the page's `prefers-color-scheme`.
+enum AppTheme { light, dark, system }
+
+/// What the back button does when the WebView has no page to go back to,
+/// or (for [home]) on every page but the start page.
+enum BackButtonMode {
+  /// Go back through the page history, then close the app.
+  history,
+
+  /// Like [history], but on the first page the user must press back twice.
+  pressTwiceToExit,
+
+  /// Like [history], but on the first page the app asks before it closes.
+  confirmExit,
+
+  /// Go straight to the start page; on the start page, close the app.
+  home,
+}
+
 /// Where the app's content comes from.
 class ProjectSource {
   const ProjectSource.local(this.entry) : type = SourceType.local;
@@ -78,6 +97,7 @@ class WebViewSettings {
     this.shareFiles = true,
     this.galleryFolder,
     this.shareTarget,
+    this.backButton = BackButtonMode.history,
   });
 
   final bool javaScriptEnabled;
@@ -111,6 +131,9 @@ class WebViewSettings {
   /// of the share sheet, when installed.
   final String? shareTarget;
 
+  /// What the Android back button does.
+  final BackButtonMode backButton;
+
   Map<String, Object?> toJson() => {
         'javaScriptEnabled': javaScriptEnabled,
         'domStorageEnabled': domStorageEnabled,
@@ -124,6 +147,7 @@ class WebViewSettings {
         'shareFiles': shareFiles,
         'galleryFolder': galleryFolder,
         'shareTarget': shareTarget,
+        'backButton': backButton.name,
       };
 
   WebViewSettings copyWith({
@@ -139,6 +163,7 @@ class WebViewSettings {
     bool? shareFiles,
     String? Function()? galleryFolder,
     String? Function()? shareTarget,
+    BackButtonMode? backButton,
   }) =>
       WebViewSettings(
         javaScriptEnabled: javaScriptEnabled ?? this.javaScriptEnabled,
@@ -153,6 +178,7 @@ class WebViewSettings {
         shareFiles: shareFiles ?? this.shareFiles,
         galleryFolder: galleryFolder != null ? galleryFolder() : this.galleryFolder,
         shareTarget: shareTarget != null ? shareTarget() : this.shareTarget,
+        backButton: backButton ?? this.backButton,
       );
 
   factory WebViewSettings.fromJson(Map<String, Object?> json) => WebViewSettings(
@@ -168,6 +194,7 @@ class WebViewSettings {
         shareFiles: json['shareFiles'] as bool? ?? true,
         galleryFolder: json['galleryFolder'] as String?,
         shareTarget: json['shareTarget'] as String?,
+        backButton: _byName(BackButtonMode.values, json['backButton'], BackButtonMode.history),
       );
 }
 
@@ -178,6 +205,9 @@ class AppearanceSettings {
     this.navigationBarColor = '#000000',
     this.splashEnabled = false,
     this.splashBackgroundColor = '#FFFFFF',
+    this.theme = AppTheme.light,
+    this.fullscreen = false,
+    this.keepScreenOn = false,
   });
 
   final String statusBarColor;
@@ -188,11 +218,23 @@ class AppearanceSettings {
   final bool splashEnabled;
   final String splashBackgroundColor;
 
+  /// Light, dark, or follow the phone's dark theme setting.
+  final AppTheme theme;
+
+  /// Hides the status and navigation bars; a swipe from the edge shows them for a moment.
+  final bool fullscreen;
+
+  /// Stops the screen from turning off while the app is open.
+  final bool keepScreenOn;
+
   Map<String, Object?> toJson() => {
         'statusBarColor': statusBarColor,
         'navigationBarColor': navigationBarColor,
         'splashEnabled': splashEnabled,
         'splashBackgroundColor': splashBackgroundColor,
+        'theme': theme.name,
+        'fullscreen': fullscreen,
+        'keepScreenOn': keepScreenOn,
       };
 
   factory AppearanceSettings.fromJson(Map<String, Object?> json) => AppearanceSettings(
@@ -200,6 +242,9 @@ class AppearanceSettings {
         navigationBarColor: json['navigationBarColor'] as String? ?? '#000000',
         splashEnabled: json['splashEnabled'] as bool? ?? false,
         splashBackgroundColor: json['splashBackgroundColor'] as String? ?? '#FFFFFF',
+        theme: _byName(AppTheme.values, json['theme'], AppTheme.light),
+        fullscreen: json['fullscreen'] as bool? ?? false,
+        keepScreenOn: json['keepScreenOn'] as bool? ?? false,
       );
 
   AppearanceSettings copyWith({
@@ -207,12 +252,18 @@ class AppearanceSettings {
     String? navigationBarColor,
     bool? splashEnabled,
     String? splashBackgroundColor,
+    AppTheme? theme,
+    bool? fullscreen,
+    bool? keepScreenOn,
   }) =>
       AppearanceSettings(
         statusBarColor: statusBarColor ?? this.statusBarColor,
         navigationBarColor: navigationBarColor ?? this.navigationBarColor,
         splashEnabled: splashEnabled ?? this.splashEnabled,
         splashBackgroundColor: splashBackgroundColor ?? this.splashBackgroundColor,
+        theme: theme ?? this.theme,
+        fullscreen: fullscreen ?? this.fullscreen,
+        keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       );
 }
 
@@ -359,4 +410,13 @@ String newProjectId([Random? random]) {
   final h = b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
   return '${h.substring(0, 8)}-${h.substring(8, 12)}-${h.substring(12, 16)}-'
       '${h.substring(16, 20)}-${h.substring(20)}';
+}
+
+/// Reads an enum stored by name; unknown or missing values (e.g. from a newer
+/// release) fall back to [fallback] instead of failing the whole project.
+T _byName<T extends Enum>(List<T> values, Object? name, T fallback) {
+  for (final v in values) {
+    if (v.name == name) return v;
+  }
+  return fallback;
 }

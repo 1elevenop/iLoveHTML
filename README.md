@@ -19,8 +19,10 @@ an Android WebView app, built entirely on the local machine.
   `example.com`/`www.example.com` treated as one site, other sites opened
   in the browser, status/navigation bar colours with readable icons,
   optional splash screen (your image or the app icon), pull-to-refresh
-  (also retries after an error), and file uploads through Android's
-  file picker.
+  (also retries after an error), file uploads through Android's
+  file picker, light/dark/follow-phone theme (sets `prefers-color-scheme`),
+  fullscreen, keep screen on, and a choice of back-button behaviour
+  (press twice to exit, ask before exit, or go to the start page).
 - **Project format:** `project.json` schema 2; schema-1 projects are
   upgraded automatically when loaded.
 - **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the

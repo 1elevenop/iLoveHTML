@@ -32,9 +32,18 @@ data class AppConfig(
     val statusBarColor: Int,
     val navigationBarColor: Int,
     val splash: Splash,
+    val theme: Theme,
+    /** Hide the status and navigation bars (immersive, swipe to show them). */
+    val fullscreen: Boolean,
+    val keepScreenOn: Boolean,
+    val backButton: BackButton,
 ) {
     enum class SourceType { LOCAL, REMOTE }
     enum class ExternalLinks { BROWSER, BLOCK }
+    enum class Theme { LIGHT, DARK, SYSTEM }
+
+    /** Mirrors BackButtonMode in the Dart project model. */
+    enum class BackButton { HISTORY, PRESS_TWICE_TO_EXIT, CONFIRM_EXIT, HOME }
 
     /** [image] is a path inside assets; null means show the app icon. */
     data class Splash(val enabled: Boolean, val backgroundColor: Int, val image: String?)
@@ -94,6 +103,19 @@ data class AppConfig(
                     backgroundColor = color(splash?.let { optString(it, "backgroundColor") }, Color.WHITE),
                     image = splashImage,
                 ),
+                theme = when (optString(json, "theme")) {
+                    "dark" -> Theme.DARK
+                    "system" -> Theme.SYSTEM
+                    else -> Theme.LIGHT
+                },
+                fullscreen = json.optBoolean("fullscreen", false),
+                keepScreenOn = json.optBoolean("keepScreenOn", false),
+                backButton = when (optString(json, "backButton")) {
+                    "pressTwiceToExit" -> BackButton.PRESS_TWICE_TO_EXIT
+                    "confirmExit" -> BackButton.CONFIRM_EXIT
+                    "home" -> BackButton.HOME
+                    else -> BackButton.HISTORY
+                },
             )
         }
 

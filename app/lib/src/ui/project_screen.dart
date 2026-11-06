@@ -440,6 +440,38 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                   TextButton(onPressed: () => _clearFile(widget.controller.clearSplash), child: const Text('Use app icon')),
               ]),
             ],
+            const SizedBox(height: 12),
+            Text('Theme', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
+            SegmentedButton<AppTheme>(
+              segments: const [
+                ButtonSegment(value: AppTheme.light, label: Text('Light')),
+                ButtonSegment(value: AppTheme.dark, label: Text('Dark')),
+                ButtonSegment(value: AppTheme.system, label: Text('Follow phone')),
+              ],
+              selected: {_m.appearance.theme},
+              onSelectionChanged: (s) => _change(_m.copyWith(appearance: _m.appearance.copyWith(theme: s.single))),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Sets prefers-color-scheme, so pages with dark-mode CSS switch to it.',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fullscreen'),
+              subtitle: const Text('Hides the status and navigation bars. Swipe from the edge to show them for a moment.'),
+              value: _m.appearance.fullscreen,
+              onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(fullscreen: v))),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Keep screen on'),
+              subtitle: const Text('The screen does not turn off while the app is open.'),
+              value: _m.appearance.keepScreenOn,
+              onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(keepScreenOn: v))),
+            ),
             const _Section('WebView'),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -478,6 +510,19 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               value: _m.webView.pullToRefresh,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(pullToRefresh: v))),
             ),
+            DropdownButtonFormField<BackButtonMode>(
+              initialValue: _m.webView.backButton,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Back button'),
+              items: const [
+                DropdownMenuItem(value: BackButtonMode.history, child: Text('Go back, then close the app')),
+                DropdownMenuItem(value: BackButtonMode.pressTwiceToExit, child: Text('Go back, then press twice to close')),
+                DropdownMenuItem(value: BackButtonMode.confirmExit, child: Text('Go back, then ask before closing')),
+                DropdownMenuItem(value: BackButtonMode.home, child: Text('Go to the start page, then close')),
+              ],
+              onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(backButton: v))),
+            ),
+            const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('File uploads'),

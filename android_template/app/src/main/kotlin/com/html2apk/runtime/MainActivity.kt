@@ -1,9 +1,11 @@
 package com.html2apk.runtime
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -16,6 +18,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.WindowManager
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -31,6 +34,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.webkit.WebViewAssetLoader
@@ -50,6 +54,12 @@ class MainActivity : Activity() {
     private var showingErrorPage = false
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private lateinit var bridge: PageBridge
+    /** Time of the first back press on the first page, for "press back twice to exit". */
+    private var backPressedAt = 0L
+    /** Set when the back button returns to the start page; that page then drops the old history. */
+    private var clearHistoryOnLoad = false
+    /** The dark/light choice this activity was created with. */
+    private var darkThemeApplied = false
     private val isDebuggable get() = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     // Bundled content is served from https://appassets.androidplatform.net/assets/...
@@ -61,8 +71,13 @@ class MainActivity : Activity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         config = AppConfig.load(this)
+        // Before super.onCreate and any view, so the window and the WebView use it.
+        // From targetSdk 33 the WebView's prefers-color-scheme follows this theme.
+        darkThemeApplied = useDarkTheme()
+        setTheme(if (darkThemeApplied) android.R.style.Theme_Material_NoActionBar else android.R.style.Theme_Material_Light_NoActionBar)
+        super.onCreate(savedInstanceState)
+        if (config.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WebView.setWebContentsDebuggingEnabled(isDebuggable)
 
         webView = WebView(this)
@@ -123,6 +138,12 @@ class MainActivity : Activity() {
                 lightIcons,
                 WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
             )
+            if (config.fullscreen) {
+                window.insetsController?.apply {
+                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(WindowInsets.Type.systemBars())
+                }
+            }
             screen.setOnApplyWindowInsetsListener { _, insets ->
                 val bars = insets.getInsets(
                     WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime()
@@ -144,6 +165,7 @@ class MainActivity : Activity() {
             var flags = 0
             if (isLight(config.statusBarColor)) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
             if (lightNavSupported && isLight(navColor)) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            if (config.fullscreen) flags = flags or LEGACY_FULLSCREEN_FLAGS
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = flags
         }
@@ -255,8 +277,73 @@ class MainActivity : Activity() {
         if (showingErrorPage) webView.loadUrl(failedUrl ?: startUrl()) else webView.reload()
     }
 
+    private fun useDarkTheme(): Boolean = when (config.theme) {
+        AppConfig.Theme.LIGHT -> false
+        AppConfig.Theme.DARK -> true
+        AppConfig.Theme.SYSTEM -> isNightMode(resources.configuration)
+    }
+
+    private fun isNightMode(c: Configuration) =
+        (c.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // uiMode is in configChanges, so the activity is not recreated on its own.
+        // Recreate it when the phone's dark theme changes; the page state is saved.
+        if (config.theme == AppConfig.Theme.SYSTEM && isNightMode(newConfig) != darkThemeApplied) recreate()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Dialogs, the keyboard and the share sheet can bring the bars back on Android 7-10.
+        if (hasFocus && config.fullscreen && Build.VERSION.SDK_INT < 30) {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or LEGACY_FULLSCREEN_FLAGS
+        }
+    }
+
     private fun handleBack() {
-        if (webView.canGoBack()) webView.goBack() else finish()
+        if (config.backButton == AppConfig.BackButton.HOME) {
+            // No history also counts as the start page, so a start URL that
+            // redirects elsewhere cannot trap the user in a reload loop.
+            if (!webView.canGoBack() || isOnStartPage()) finish() else goHome()
+            return
+        }
+        if (webView.canGoBack()) {
+            webView.goBack()
+            return
+        }
+        when (config.backButton) {
+            AppConfig.BackButton.PRESS_TWICE_TO_EXIT -> {
+                val now = SystemClock.uptimeMillis()
+                if (now - backPressedAt < EXIT_WINDOW_MS) {
+                    finish()
+                } else {
+                    backPressedAt = now
+                    Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
+            }
+            AppConfig.BackButton.CONFIRM_EXIT -> confirmExit()
+            else -> finish()
+        }
+    }
+
+    private fun isOnStartPage(): Boolean {
+        val current = webView.url ?: return true
+        return !showingErrorPage && current.substringBefore('#').trimEnd('/') == startUrl().trimEnd('/')
+    }
+
+    private fun goHome() {
+        clearHistoryOnLoad = true
+        webView.loadUrl(startUrl())
+    }
+
+    private fun confirmExit() {
+        AlertDialog.Builder(this)
+            .setMessage("Close the app?")
+            .setPositiveButton("Close") { _, _ -> finish() }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     @Deprecated("Used below API 33")
@@ -320,6 +407,10 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            if (clearHistoryOnLoad) {
+                clearHistoryOnLoad = false
+                view.clearHistory()
+            }
             refresh?.isRefreshing = false
             hideSplash()
         }
@@ -375,6 +466,10 @@ class MainActivity : Activity() {
         private const val REQUEST_FILE = 4201
         private const val SPLASH_MIN_MS = 600L
         private const val SPLASH_MAX_MS = 8000L
+        private const val EXIT_WINDOW_MS = 2000L
+        @Suppress("DEPRECATION")
+        private const val LEGACY_FULLSCREEN_FLAGS = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+            View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
         private val EXTERNAL_SCHEMES = setOf("https", "http", "mailto", "tel", "sms", "geo")
     }
 }
