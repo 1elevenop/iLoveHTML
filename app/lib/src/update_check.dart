@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -234,4 +235,124 @@ Future<String> fetchFromGitHub() async {
   } finally {
     client.close(force: true);
   }
+}
+
+/// Hosts a release download may redirect to (GitHub's own file storage).
+const _downloadHosts = {'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'};
+
+class UpdateDownloadException implements Exception {
+  const UpdateDownloadException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+/// Opens a GET to [url], following redirects only to GitHub's file hosts.
+Future<HttpClientResponse> _openTrusted(HttpClient client, Uri url) async {
+  var u = url;
+  for (var hop = 0; hop < 5; hop++) {
+    if (u.scheme != 'https' || !_downloadHosts.contains(u.host)) {
+      throw UpdateDownloadException('Refusing to download from ${u.host}');
+    }
+    final req = await client.getUrl(u);
+    req.followRedirects = false;
+    final res = await req.close().timeout(const Duration(seconds: 30));
+    if (res.isRedirect) {
+      final loc = res.headers.value(HttpHeaders.locationHeader);
+      await res.drain<void>();
+      if (loc == null) break;
+      u = u.resolve(loc);
+      continue;
+    }
+    if (res.statusCode != 200) {
+      await res.drain<void>();
+      throw UpdateDownloadException('HTTP ${res.statusCode}');
+    }
+    return res;
+  }
+  throw const UpdateDownloadException('Too many redirects');
+}
+
+/// The expected SHA-256 of [fileName] from the release's SHA256SUMS.txt
+/// (lines like `<hex> *<name>`).
+@visibleForTesting
+String? checksumFor(String sums, String fileName) {
+  for (final line in const LineSplitter().convert(sums)) {
+    final m = RegExp(r'^([0-9a-fA-F]{64})\s+\*?(.+)$').firstMatch(line.trim());
+    if (m != null && m.group(2)!.trim() == fileName) return m.group(1)!.toLowerCase();
+  }
+  return null;
+}
+
+/// Downloads the update file into [dir], reporting progress, and checks it
+/// against the release's SHA256SUMS.txt. Returns the file's path.
+///
+/// Browsers hold APK downloads until the user confirms a "might be harmful"
+/// prompt; downloading here avoids that, and the checksum proves the file is
+/// the one that was published.
+Future<String> downloadUpdate(
+  UpdateInfo info,
+  String dir, {
+  void Function(int received, int? total)? onProgress,
+  HttpClient Function()? clientFactory,
+}) async {
+  final url = Uri.parse(info.downloadUrl);
+  if (!isTrustedUrl(info.downloadUrl) || info.downloadUrl == info.pageUrl) {
+    throw const UpdateDownloadException('No download for this device in this release');
+  }
+  final fileName = url.pathSegments.last;
+  final sumsUrl = url.replace(pathSegments: [...url.pathSegments.take(url.pathSegments.length - 1), 'SHA256SUMS.txt']);
+  final client = (clientFactory ?? HttpClient.new)()
+    ..connectionTimeout = const Duration(seconds: 15)
+    ..userAgent = 'iLoveHTML-update';
+  final folder = Directory(dir);
+  // Only ever one update file; drop old ones.
+  if (folder.existsSync()) folder.deleteSync(recursive: true);
+  folder.createSync(recursive: true);
+  final target = File('$dir${Platform.pathSeparator}$fileName');
+  final partial = File('${target.path}.part');
+  try {
+    final sumsRes = await _openTrusted(client, sumsUrl);
+    final sums = await utf8.decodeStream(sumsRes.timeout(const Duration(seconds: 30)));
+    final expected = checksumFor(sums, fileName);
+    if (expected == null) throw UpdateDownloadException('$fileName is not listed in SHA256SUMS.txt');
+
+    final res = await _openTrusted(client, url);
+    final total = res.contentLength > 0 ? res.contentLength : null;
+    final digest = _DigestSink();
+    final hasher = sha256.startChunkedConversion(digest);
+    final out = partial.openWrite();
+    var received = 0;
+    try {
+      await for (final chunk in res.timeout(const Duration(seconds: 60))) {
+        out.add(chunk);
+        hasher.add(chunk);
+        received += chunk.length;
+        if (received > 512 * 1024 * 1024) throw const UpdateDownloadException('File too large');
+        onProgress?.call(received, total);
+      }
+    } finally {
+      await out.close();
+    }
+    hasher.close();
+    if (total != null && received != total) throw const UpdateDownloadException('Download incomplete');
+    if (digest.value.toString() != expected) {
+      throw const UpdateDownloadException('Checksum does not match; the file was not installed');
+    }
+    partial.renameSync(target.path);
+    return target.path;
+  } catch (_) {
+    if (partial.existsSync()) partial.deleteSync();
+    rethrow;
+  } finally {
+    client.close(force: true);
+  }
+}
+
+class _DigestSink implements Sink<Digest> {
+  late Digest value;
+  @override
+  void add(Digest data) => value = data;
+  @override
+  void close() {}
 }

@@ -1541,4 +1541,36 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '확인할 수 없습니다. 인터넷에 연결되어 있나요?';
+
+  @override
+  String get updateInAppHint =>
+      'iLoveHTML이 업데이트를 다운로드하고 확인한 뒤 Android가 이 버전 위에 설치할지 묻습니다. 프로젝트, 키, 설정은 그대로 유지됩니다.';
+
+  @override
+  String get verifyingDownload => '파일 확인 중…';
+
+  @override
+  String downloadingMb(String done) {
+    return '다운로드 중… $done MB';
+  }
+
+  @override
+  String downloadingOf(String done, String total) {
+    return '다운로드 중… $done / $total MB';
+  }
+
+  @override
+  String get installerOpened =>
+      'Android 설치 프로그램이 열렸습니다. 거기서 업데이트를 누르세요. 닫혔다면 설치를 누르세요.';
+
+  @override
+  String downloadFailed(String error) {
+    return '다운로드 실패: $error';
+  }
+
+  @override
+  String get openInBrowser => '브라우저에서 열기';
+
+  @override
+  String get tryAgain => '다시 시도';
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:html2apk_core/html2apk_core.dart' show formatBytes;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path/path.dart' as p;
 
 import '../app_controller.dart';
 import '../app_settings.dart';
@@ -40,7 +41,13 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            NewUpdateTile(updates: c.updates, settings: s),
+            NewUpdateTile(
+              updates: c.updates,
+              settings: s,
+              installer: c.deviceEngine == null
+                  ? null
+                  : UpdateInstaller(dir: p.join(c.workspaceDir, 'updates'), install: c.deviceEngine!.install),
+            ),
             Text(l.sectionAppearance, style: t.titleSmall),
             const SizedBox(height: 8),
             SegmentedButton<ThemeMode>(

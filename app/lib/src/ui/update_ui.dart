@@ -70,10 +70,13 @@ class _GlowState extends State<Glow> with SingleTickerProviderStateMixin {
 
 /// The glowing "NEW UPDATE" entry at the top of Settings.
 class NewUpdateTile extends StatelessWidget {
-  const NewUpdateTile({super.key, required this.updates, required this.settings});
+  const NewUpdateTile({super.key, required this.updates, required this.settings, this.installer});
 
   final UpdateChecker updates;
   final AppSettings settings;
+
+  /// Android: download and install inside the app.
+  final UpdateInstaller? installer;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +97,7 @@ class NewUpdateTile extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => showUpdateDialog(context, updates),
+            onTap: () => showUpdateDialog(context, updates, installer: installer),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(children: [
@@ -155,55 +158,176 @@ class UpdateDot extends StatelessWidget {
   }
 }
 
-Future<void> showUpdateDialog(BuildContext context, UpdateChecker updates) {
-  final info = updates.available;
-  if (info == null) return Future.value();
-  return showDialog<void>(context: context, builder: (_) => _UpdateDialog(info: info, current: updates.currentVersion));
+/// Where to put a downloaded update APK and how to hand it to Android's installer.
+class UpdateInstaller {
+  const UpdateInstaller({required this.dir, required this.install});
+
+  final String dir;
+
+  /// Opens the system installer; false when the user must first allow
+  /// installs from iLoveHTML (the settings page is opened for them).
+  final Future<bool> Function(String apkPath) install;
 }
 
-class _UpdateDialog extends StatelessWidget {
-  const _UpdateDialog({required this.info, required this.current});
+Future<void> showUpdateDialog(BuildContext context, UpdateChecker updates, {UpdateInstaller? installer}) {
+  final info = updates.available;
+  if (info == null) return Future.value();
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _UpdateDialog(info: info, current: updates.currentVersion, installer: installer),
+  );
+}
+
+enum _Step { ready, downloading, checking, installing, needsPermission, failed }
+
+class _UpdateDialog extends StatefulWidget {
+  const _UpdateDialog({required this.info, required this.current, required this.installer});
 
   final UpdateInfo info;
   final String? current;
+  final UpdateInstaller? installer;
+
+  @override
+  State<_UpdateDialog> createState() => _UpdateDialogState();
+}
+
+class _UpdateDialogState extends State<_UpdateDialog> {
+  _Step _step = _Step.ready;
+  int _received = 0;
+  int? _total;
+  String? _error;
+  String? _apk;
+
+  UpdateInfo get _info => widget.info;
+  bool get _direct => _info.downloadUrl != _info.pageUrl;
+
+  /// Android: fetch the APK here instead of in a browser, which would hold
+  /// it behind a "File might be harmful" prompt.
+  bool get _inApp => widget.installer != null && _direct;
+  bool get _working => _step == _Step.downloading || _step == _Step.checking;
+
+  Future<void> _download() async {
+    setState(() {
+      _step = _Step.downloading;
+      _error = null;
+      _received = 0;
+      _total = null;
+    });
+    try {
+      final path = await downloadUpdate(_info, widget.installer!.dir, onProgress: (r, t) {
+        if (!mounted) return;
+        // Repaint about every 256 KB, and at the end.
+        if (r - _received < 256 * 1024 && r != t) return;
+        setState(() {
+          _received = r;
+          _total = t;
+          if (t != null && r == t) _step = _Step.checking;
+        });
+      });
+      if (!mounted) return;
+      _apk = path;
+      await _install();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _step = _Step.failed;
+        _error = '$e';
+      });
+    }
+  }
+
+  Future<void> _install() async {
+    final apk = _apk;
+    if (apk == null) return;
+    final started = await widget.installer!.install(apk);
+    if (!mounted) return;
+    setState(() => _step = started ? _Step.installing : _Step.needsPermission);
+  }
+
+  String _mb(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = Theme.of(context).textTheme;
-    final direct = info.downloadUrl != info.pageUrl;
-    final howTo = Platform.isAndroid ? l.updateAndroidHint : (Platform.isWindows ? l.updateWindowsHint : null);
+    final howTo = _inApp ? l.updateInAppHint : (Platform.isWindows ? l.updateWindowsHint : null);
+    final progress = _total == null || _total == 0 ? null : _received / _total!;
     return AlertDialog(
-      title: Text(l.updateTitle(info.version)),
+      title: Text(l.updateTitle(_info.version)),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 420, maxWidth: 520),
+        constraints: const BoxConstraints(maxHeight: 440, maxWidth: 520),
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (current != null) Text(l.youHaveVersion(current!), style: t.bodySmall),
-            if (howTo != null && direct) ...[
+            if (widget.current != null) Text(l.youHaveVersion(widget.current!), style: t.bodySmall),
+            if (howTo != null && _direct && _step == _Step.ready) ...[
               const SizedBox(height: 8),
               Text(howTo, style: t.bodyMedium),
             ],
-            if (info.notes.isNotEmpty) ...[
+            if (_working) ...[
+              const SizedBox(height: 16),
+              LinearProgressIndicator(value: _step == _Step.checking ? null : progress),
+              const SizedBox(height: 6),
+              Text(
+                _step == _Step.checking
+                    ? l.verifyingDownload
+                    : (_total == null
+                        ? l.downloadingMb(_mb(_received))
+                        : l.downloadingOf(_mb(_received), _mb(_total!))),
+                style: t.bodySmall,
+              ),
+            ],
+            if (_step == _Step.installing) ...[
+              const SizedBox(height: 16),
+              Text(l.installerOpened, style: t.bodyMedium),
+            ],
+            if (_step == _Step.needsPermission) ...[
+              const SizedBox(height: 16),
+              Text(l.allowUnknownApps, style: t.bodyMedium),
+            ],
+            if (_step == _Step.failed) ...[
+              const SizedBox(height: 16),
+              Text(l.downloadFailed(_error ?? ''), style: t.bodyMedium?.copyWith(color: context.eleven.acc)),
+            ],
+            if (_info.notes.isNotEmpty && (_step == _Step.ready || _step == _Step.failed)) ...[
               const SizedBox(height: 16),
               Text(l.whatsNew, style: t.titleSmall),
               const SizedBox(height: 6),
-              SelectableText(info.notes, style: monoStyle(context, size: 11.5)),
+              SelectableText(_info.notes, style: monoStyle(context, size: 11.5)),
             ],
           ]),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l.later)),
-        TextButton(onPressed: () => openExternal(context, info.pageUrl), child: Text(l.releasePage)),
-        FilledButton.icon(
-          onPressed: () {
-            openExternal(context, info.downloadUrl);
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.download),
-          label: Text(l.downloadUpdate),
+        TextButton(
+          onPressed: _working ? null : () => Navigator.pop(context),
+          child: Text(_step == _Step.installing ? l.close : l.later),
         ),
+        if (!_inApp || _step == _Step.failed)
+          TextButton(
+            onPressed: () {
+              openExternal(context, _inApp ? _info.pageUrl : _info.downloadUrl);
+              Navigator.pop(context);
+            },
+            child: Text(_inApp ? l.openInBrowser : l.releasePage),
+          ),
+        if (_inApp && (_step == _Step.ready || _step == _Step.failed))
+          FilledButton.icon(
+            onPressed: _download,
+            icon: const Icon(Icons.download),
+            label: Text(_step == _Step.failed ? l.tryAgain : l.downloadUpdate),
+          ),
+        if (_inApp && (_step == _Step.needsPermission || _step == _Step.installing))
+          FilledButton.icon(onPressed: _install, icon: const Icon(Icons.install_mobile), label: Text(l.install)),
+        if (!_inApp)
+          FilledButton.icon(
+            onPressed: () {
+              openExternal(context, _info.downloadUrl);
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.download),
+            label: Text(l.downloadUpdate),
+          ),
       ],
     );
   }

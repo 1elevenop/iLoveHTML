@@ -435,5 +435,13 @@
   "checkNow": "Buscar ahora",
   "checkingUpdates": "Buscando…",
   "upToDate": "Tienes la última versión.",
-  "updateCheckFailed": "No se pudo comprobar. ¿Tienes conexión?"
+  "updateCheckFailed": "No se pudo comprobar. ¿Tienes conexión?",
+  "updateInAppHint": "iLoveHTML descarga la actualización, la comprueba y Android te pide instalarla sobre esta versión. Tus proyectos, claves y ajustes se mantienen.",
+  "verifyingDownload": "Comprobando el archivo…",
+  "downloadingMb": "Descargando… {done} MB",
+  "downloadingOf": "Descargando… {done} de {total} MB",
+  "installerOpened": "El instalador de Android está abierto. Toca Actualizar ahí. Si se cerró, toca Instalar.",
+  "downloadFailed": "Error en la descarga: {error}",
+  "openInBrowser": "Abrir en el navegador",
+  "tryAgain": "Reintentar"
 }

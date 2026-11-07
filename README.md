@@ -31,6 +31,16 @@ Everything is built on your own phone or PC: no account, no upload, no cloud.
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 Older versions (for Android 7–9) are no longer offered.
 
+## What's new in 1.2.2
+
+- **Updates install from inside the app (Android):** NEW UPDATE → Download
+  now fetches the APK in iLoveHTML with a progress bar, checks it against
+  the release's `SHA256SUMS.txt`, and opens Android's installer. Browsers
+  hold APK downloads behind a "File might be harmful" prompt, which made
+  downloads look stuck at 100%.
+
+Full notes: [release 1.2.2](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.2).
+
 ## What's new in 1.2.1
 
 - **Update notice:** when a new iLoveHTML is released, Settings shows a

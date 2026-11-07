@@ -435,5 +435,13 @@
   "checkNow": "Jetzt prüfen",
   "checkingUpdates": "Wird geprüft…",
   "upToDate": "Du hast die neueste Version.",
-  "updateCheckFailed": "Prüfung fehlgeschlagen. Bist du online?"
+  "updateCheckFailed": "Prüfung fehlgeschlagen. Bist du online?",
+  "updateInAppHint": "iLoveHTML lädt das Update herunter, prüft es, und Android fragt dann, ob es über diese Version installiert werden soll. Projekte, Schlüssel und Einstellungen bleiben.",
+  "verifyingDownload": "Datei wird geprüft…",
+  "downloadingMb": "Wird heruntergeladen… {done} MB",
+  "downloadingOf": "Wird heruntergeladen… {done} von {total} MB",
+  "installerOpened": "Der Android-Installer ist geöffnet. Tippe dort auf Aktualisieren. Falls er geschlossen wurde, tippe auf Installieren.",
+  "downloadFailed": "Download fehlgeschlagen: {error}",
+  "openInBrowser": "Im Browser öffnen",
+  "tryAgain": "Erneut versuchen"
 }

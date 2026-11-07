@@ -1589,4 +1589,36 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Prüfung fehlgeschlagen. Bist du online?';
+
+  @override
+  String get updateInAppHint =>
+      'iLoveHTML lädt das Update herunter, prüft es, und Android fragt dann, ob es über diese Version installiert werden soll. Projekte, Schlüssel und Einstellungen bleiben.';
+
+  @override
+  String get verifyingDownload => 'Datei wird geprüft…';
+
+  @override
+  String downloadingMb(String done) {
+    return 'Wird heruntergeladen… $done MB';
+  }
+
+  @override
+  String downloadingOf(String done, String total) {
+    return 'Wird heruntergeladen… $done von $total MB';
+  }
+
+  @override
+  String get installerOpened =>
+      'Der Android-Installer ist geöffnet. Tippe dort auf Aktualisieren. Falls er geschlossen wurde, tippe auf Installieren.';
+
+  @override
+  String downloadFailed(String error) {
+    return 'Download fehlgeschlagen: $error';
+  }
+
+  @override
+  String get openInBrowser => 'Im Browser öffnen';
+
+  @override
+  String get tryAgain => 'Erneut versuchen';
 }

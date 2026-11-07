@@ -2725,6 +2725,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not check. Are you online?'**
   String get updateCheckFailed;
+
+  /// No description provided for @updateInAppHint.
+  ///
+  /// In en, this message translates to:
+  /// **'iLoveHTML downloads the update, checks it, then Android asks to install it over this version. Your projects, keys and settings stay.'**
+  String get updateInAppHint;
+
+  /// No description provided for @verifyingDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the file…'**
+  String get verifyingDownload;
+
+  /// No description provided for @downloadingMb.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {done} MB'**
+  String downloadingMb(String done);
+
+  /// No description provided for @downloadingOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {done} of {total} MB'**
+  String downloadingOf(String done, String total);
+
+  /// No description provided for @installerOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Android\'s installer is open. Tap Update there. If it closed, tap Install.'**
+  String get installerOpened;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed: {error}'**
+  String downloadFailed(String error);
+
+  /// No description provided for @openInBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in browser'**
+  String get openInBrowser;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
 }
 
 class _AppLocalizationsDelegate

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html2apk_app/main.dart';
 import 'package:html2apk_app/src/app_controller.dart';
@@ -99,6 +98,46 @@ void main() {
     expect(c.state, UpdateCheckState.failed);
     expect(c.available, isNull);
   });
+
+  test('reads checksums from SHA256SUMS.txt', () {
+    const sums = 'ff6ffd12ec1fe6b896933f9302177b4613acbcd8862b41a6c4cec2ca19842298 *iLoveHTML-1.2.1.apk\n'
+        'EACB4AA525696B113D3FB4F0B864D84A8A366FF37FED0D19A27AF8BD3A3034BA  iLoveHTML-1.2.1-windows-x64.zip\n';
+    expect(checksumFor(sums, 'iLoveHTML-1.2.1.apk'), startsWith('ff6ffd12'));
+    expect(checksumFor(sums, 'iLoveHTML-1.2.1-windows-x64.zip'), startsWith('eacb4aa5'));
+    expect(checksumFor(sums, 'other.apk'), isNull);
+  });
+
+  test('refuses to download anything but this project\'s release files', () async {
+    final dir = Directory.systemTemp.createTempSync('upd');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const evil = UpdateInfo(
+      version: '9.9.9',
+      pageUrl: 'https://github.com/1elevenop/iLoveHTML/releases/tag/v9.9.9',
+      downloadUrl: 'https://evil.example/1elevenop/iLoveHTML/releases/download/v9.9.9/x.apk',
+      notes: '',
+    );
+    await expectLater(downloadUpdate(evil, dir.path), throwsA(isA<UpdateDownloadException>()));
+  });
+
+  test('downloads and checks the published v1.2.1 APK (set ILOVEHTML_NETWORK_TESTS=1)', () async {
+    final dir = Directory.systemTemp.createTempSync('upd');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const info = UpdateInfo(
+      version: '1.2.1',
+      pageUrl: 'https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.1',
+      downloadUrl: 'https://github.com/1elevenop/iLoveHTML/releases/download/v1.2.1/iLoveHTML-1.2.1.apk',
+      notes: '',
+    );
+    // flutter_test replaces HttpClient with a fake that answers 400; use the real one here.
+    final saved = HttpOverrides.current;
+    HttpOverrides.global = null;
+    addTearDown(() => HttpOverrides.global = saved);
+    var last = 0;
+    final path = await downloadUpdate(info, dir.path, onProgress: (r, t) => last = r);
+    expect(File(path).lengthSync(), last);
+    expect(p.basename(path), 'iLoveHTML-1.2.1.apk');
+    expect(File('$path.part').existsSync(), isFalse);
+  }, skip: Platform.environment['ILOVEHTML_NETWORK_TESTS'] == '1' ? false : 'network test', timeout: const Timeout(Duration(minutes: 5)));
 
   group('screens', () {
     late Directory tmp;

@@ -1539,4 +1539,36 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '確認できませんでした。オンラインですか?';
+
+  @override
+  String get updateInAppHint =>
+      'iLoveHTML がアップデートをダウンロードして確認し、Android がこのバージョンへの上書きインストールを確認します。プロジェクト・鍵・設定はそのまま残ります。';
+
+  @override
+  String get verifyingDownload => 'ファイルを確認中…';
+
+  @override
+  String downloadingMb(String done) {
+    return 'ダウンロード中… $done MB';
+  }
+
+  @override
+  String downloadingOf(String done, String total) {
+    return 'ダウンロード中… $done / $total MB';
+  }
+
+  @override
+  String get installerOpened =>
+      'Android のインストーラーが開いています。そこで「更新」をタップしてください。閉じてしまった場合は「インストール」をタップします。';
+
+  @override
+  String downloadFailed(String error) {
+    return 'ダウンロードに失敗しました: $error';
+  }
+
+  @override
+  String get openInBrowser => 'ブラウザーで開く';
+
+  @override
+  String get tryAgain => '再試行';
 }

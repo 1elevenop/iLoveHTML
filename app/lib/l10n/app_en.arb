@@ -944,5 +944,37 @@
   "checkNow": "Check now",
   "checkingUpdates": "Checking…",
   "upToDate": "You have the latest version.",
-  "updateCheckFailed": "Could not check. Are you online?"
+  "updateCheckFailed": "Could not check. Are you online?",
+  "updateInAppHint": "iLoveHTML downloads the update, checks it, then Android asks to install it over this version. Your projects, keys and settings stay.",
+  "verifyingDownload": "Checking the file…",
+  "downloadingMb": "Downloading… {done} MB",
+  "@downloadingMb": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadingOf": "Downloading… {done} of {total} MB",
+  "@downloadingOf": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "installerOpened": "Android's installer is open. Tap Update there. If it closed, tap Install.",
+  "downloadFailed": "Download failed: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "openInBrowser": "Open in browser",
+  "tryAgain": "Try again"
 }

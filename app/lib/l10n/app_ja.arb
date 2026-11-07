@@ -435,5 +435,13 @@
   "checkNow": "今すぐ確認",
   "checkingUpdates": "確認中…",
   "upToDate": "最新バージョンです。",
-  "updateCheckFailed": "確認できませんでした。オンラインですか?"
+  "updateCheckFailed": "確認できませんでした。オンラインですか?",
+  "updateInAppHint": "iLoveHTML がアップデートをダウンロードして確認し、Android がこのバージョンへの上書きインストールを確認します。プロジェクト・鍵・設定はそのまま残ります。",
+  "verifyingDownload": "ファイルを確認中…",
+  "downloadingMb": "ダウンロード中… {done} MB",
+  "downloadingOf": "ダウンロード中… {done} / {total} MB",
+  "installerOpened": "Android のインストーラーが開いています。そこで「更新」をタップしてください。閉じてしまった場合は「インストール」をタップします。",
+  "downloadFailed": "ダウンロードに失敗しました: {error}",
+  "openInBrowser": "ブラウザーで開く",
+  "tryAgain": "再試行"
 }

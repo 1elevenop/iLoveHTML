@@ -2,4 +2,6 @@
 <paths>
     <!-- Projects live in files/workspace/projects/<id>/; APKs in their exports/ folder. -->
     <files-path name="workspace" path="workspace/projects/" />
+    <!-- iLoveHTML's own update APK, downloaded in the app (Settings -> NEW UPDATE). -->
+    <files-path name="updates" path="workspace/updates/" />
 </paths>

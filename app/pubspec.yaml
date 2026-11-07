@@ -1,7 +1,7 @@
 name: html2apk_app
 description: "iLoveHTML: turn a website into an Android or Windows app."
 publish_to: 'none'
-version: 1.2.1+8
+version: 1.2.2+9
 
 environment:
   sdk: ^3.13.5

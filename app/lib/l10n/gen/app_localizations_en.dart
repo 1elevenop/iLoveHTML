@@ -1576,4 +1576,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateCheckFailed => 'Could not check. Are you online?';
+
+  @override
+  String get updateInAppHint =>
+      'iLoveHTML downloads the update, checks it, then Android asks to install it over this version. Your projects, keys and settings stay.';
+
+  @override
+  String get verifyingDownload => 'Checking the file…';
+
+  @override
+  String downloadingMb(String done) {
+    return 'Downloading… $done MB';
+  }
+
+  @override
+  String downloadingOf(String done, String total) {
+    return 'Downloading… $done of $total MB';
+  }
+
+  @override
+  String get installerOpened =>
+      'Android\'s installer is open. Tap Update there. If it closed, tap Install.';
+
+  @override
+  String downloadFailed(String error) {
+    return 'Download failed: $error';
+  }
+
+  @override
+  String get openInBrowser => 'Open in browser';
+
+  @override
+  String get tryAgain => 'Try again';
 }

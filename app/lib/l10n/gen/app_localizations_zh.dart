@@ -1522,4 +1522,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updateCheckFailed => '无法检查。是否已联网?';
+
+  @override
+  String get updateInAppHint =>
+      'iLoveHTML 会下载并校验更新,然后 Android 会询问是否覆盖安装当前版本。你的项目、密钥和设置都会保留。';
+
+  @override
+  String get verifyingDownload => '正在校验文件…';
+
+  @override
+  String downloadingMb(String done) {
+    return '正在下载… $done MB';
+  }
+
+  @override
+  String downloadingOf(String done, String total) {
+    return '正在下载… $done / $total MB';
+  }
+
+  @override
+  String get installerOpened => 'Android 安装程序已打开。请在其中点按\"更新\"。如果已关闭,请点按\"安装\"。';
+
+  @override
+  String downloadFailed(String error) {
+    return '下载失败:$error';
+  }
+
+  @override
+  String get openInBrowser => '在浏览器中打开';
+
+  @override
+  String get tryAgain => '重试';
 }
