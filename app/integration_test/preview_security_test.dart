@@ -7,6 +7,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html2apk_app/l10n/gen/app_localizations.dart';
+import 'package:html2apk_app/src/ui/theme.dart';
 import 'package:html2apk_app/src/app_controller.dart';
 import 'package:html2apk_app/src/engine/on_device_engine.dart';
 import 'package:html2apk_app/src/ui/preview_screen.dart';
@@ -59,7 +61,11 @@ void main() {
     final controller = AppController(workspaceDir: workspace.path, engine: OnDeviceBuildEngine());
     final report = await controller.importFiles([p.join(picked.path, 'index.html')], 'Probe', 'com.html2apk.probe');
 
-    await tester.pumpWidget(MaterialApp(home: PreviewScreen(project: report.project)));
+    await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: PreviewScreen(project: report.project)));
     for (var i = 0; i < 24; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }

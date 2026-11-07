@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html2apk_app/l10n/gen/app_localizations.dart';
+import 'package:html2apk_app/src/ui/theme.dart';
 import 'package:html2apk_app/main.dart';
 import 'package:html2apk_app/src/app_controller.dart';
 import 'package:html2apk_app/src/ui/url_import_dialog.dart';
@@ -61,7 +63,10 @@ void main() {
     final controller = AppController(workspaceDir: p.join(tmp.path, 'ws'));
     String? created;
     await tester.pumpWidget(MaterialApp(
-      home: Builder(
+        theme: buildTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
         builder: (context) => TextButton(
           onPressed: () async => created = await showDialog<String>(
               context: context, builder: (_) => UrlImportDialog(controller: controller, probe: _FakeProbe())),
@@ -87,7 +92,11 @@ void main() {
 
   testWidgets('URL dialog shows check failures', (tester) async {
     final controller = AppController(workspaceDir: p.join(tmp.path, 'ws'));
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: UrlImportDialog(controller: controller, probe: _FakeProbe()))));
+    await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: UrlImportDialog(controller: controller, probe: _FakeProbe()))));
     await tester.enterText(find.byType(TextField).first, 'https://down.example');
     await tester.tap(find.text('Check website'));
     await tester.pumpAndSettle();

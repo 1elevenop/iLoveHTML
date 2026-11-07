@@ -4,17 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'app_lock.dart';
+import 'app_settings.dart';
 import 'engine/desktop_engine.dart';
 import 'engine/on_device_engine.dart';
 
 /// App-wide state: the workspace, the project list and the build engine.
 /// Screens listen to it and call its methods.
 class AppController extends ChangeNotifier {
-  AppController({required this.workspaceDir, this.engine}) : store = ProjectStore(workspaceDir) {
+  AppController({required this.workspaceDir, this.engine, AppSettings? settings, AppLock? lock})
+      : store = ProjectStore(workspaceDir),
+        settings = settings ?? AppSettings.memory(),
+        lock = lock ?? AppLock(MemoryLockStorage()) {
     refresh();
   }
 
   final String workspaceDir;
+
+  /// Language, appearance and animation preferences.
+  final AppSettings settings;
+
+  /// PIN, password or fingerprint lock in front of the whole app.
+  final AppLock lock;
   final ProjectStore store;
 
   /// Null on platforms without a local build engine wired up yet.
@@ -52,6 +63,19 @@ class AppController extends ChangeNotifier {
 
   Future<ImportReport> importFiles(List<String> paths, String name, String applicationId) async {
     final report = await store.importFiles(paths: paths, name: name, applicationId: applicationId);
+    refresh();
+    return report;
+  }
+
+  /// Swaps the website files of a local project; settings, icon and keys stay.
+  Future<ReplaceReport> replaceWithZip(ProjectHandle project, String zipPath) async {
+    final report = await store.replaceWithZip(project, zipPath);
+    refresh();
+    return report;
+  }
+
+  Future<ReplaceReport> replaceWithFiles(ProjectHandle project, List<String> paths) async {
+    final report = await store.replaceWithFiles(project, paths);
     refresh();
     return report;
   }

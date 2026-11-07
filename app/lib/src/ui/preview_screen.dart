@@ -5,6 +5,7 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
+import 'l10n.dart';
 import 'theme.dart';
 
 /// Viewport sizes in logical pixels; the preview is scaled to fit the screen.
@@ -18,6 +19,8 @@ enum Viewport {
 
   final String label;
   final double? width;
+
+  String labelFor(BuildContext context) => this == device ? context.l10n.thisDevice : label;
 }
 
 class _Entry {
@@ -61,12 +64,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _start() async {
+    final l = context.l10n;
     try {
       final Uri start;
       if (_local) {
         final server = await PreviewServer.start(widget.project.sourceDir);
         _server = server;
-        _missingSub = server.onMissing.listen((path) => _add('missing', 'File not found: $path'));
+        _missingSub = server.onMissing.listen((path) => _add('missing', l.fileNotFound(path)));
         start = server.urlFor(_m.source.entry);
       } else {
         start = Uri.parse(_m.source.entry);
@@ -82,7 +86,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           onNavigationRequest: (req) {
             final uri = Uri.tryParse(req.url);
             if (uri != null && _isInternal(uri, start)) return NavigationDecision.navigate;
-            _add('blocked', 'Would open outside the app: ${req.url}');
+            _add('blocked', context.l10n.wouldOpenOutside(req.url));
             return NavigationDecision.prevent;
           },
           onProgress: (p) => setState(() => _progress = p),
@@ -90,7 +94,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           onPageFinished: _onUrl,
           onHttpError: (e) => _add('http', 'HTTP ${e.response?.statusCode}: ${e.request?.uri ?? ''}'),
           onWebResourceError: (e) {
-            if (e.isForMainFrame ?? true) _add('error', 'Page failed to load: ${e.description} (${e.url ?? ''})');
+            if (e.isForMainFrame ?? true) _add('error', context.l10n.pageFailedToLoad(e.description, e.url ?? ''));
           },
         ));
       // The previewed site is untrusted and runs inside iLoveHTML, whose private
@@ -104,7 +108,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       await web.loadRequest(start);
       if (mounted) setState(() => _web = web);
     } on Object catch (e) {
-      if (mounted) setState(() => _startError = 'Could not start the preview: $e');
+      if (mounted) setState(() => _startError = context.l10n.couldNotStartPreview('$e'));
     }
   }
 
@@ -159,7 +163,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         initialChildSize: 0.5,
         maxChildSize: 0.9,
         builder: (c, scroll) => _entries.isEmpty
-            ? const Center(child: Text('No console messages or issues'))
+            ? Center(child: Text(context.l10n.noConsoleMessages))
             : ListView.separated(
                 controller: scroll,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -193,17 +197,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final problems = _problemCount;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Preview · ${_m.name}', overflow: TextOverflow.ellipsis),
+        title: Text(context.l10n.previewTitle(_m.name), overflow: TextOverflow.ellipsis),
         actions: [
           PopupMenuButton<Viewport>(
-            tooltip: 'Viewport',
+            tooltip: context.l10n.viewport,
             icon: const Icon(Icons.aspect_ratio),
             initialValue: _viewport,
             onSelected: (v) => setState(() => _viewport = v),
-            itemBuilder: (_) => [for (final v in Viewport.values) PopupMenuItem(value: v, child: Text(v.label))],
+            itemBuilder: (_) => [for (final v in Viewport.values) PopupMenuItem(value: v, child: Text(v.labelFor(context)))],
           ),
           IconButton(
-            tooltip: 'Console and issues',
+            tooltip: context.l10n.consoleAndIssues,
             onPressed: _showConsole,
             icon: Badge(
               isLabelVisible: _entries.isNotEmpty,

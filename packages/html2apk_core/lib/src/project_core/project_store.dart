@@ -148,6 +148,25 @@ class ImportReport {
   final int fileCount;
 }
 
+/// Result of replacing a project's website files.
+class ReplaceReport {
+  ReplaceReport(
+    this.import, {
+    required this.startPageChanged,
+    required this.previousStartPage,
+    required this.droppedShortcuts,
+  });
+
+  final ImportReport import;
+
+  /// The old start page is not in the new files, so the first page found is used.
+  final bool startPageChanged;
+  final String previousStartPage;
+
+  /// Shortcut pages that no longer exist and were removed.
+  final List<String> droppedShortcuts;
+}
+
 /// Creates, loads and saves projects inside an app-controlled workspace.
 class ProjectStore {
   ProjectStore(this.workspaceDir, {this.migrator = const ManifestMigrator()});
@@ -376,6 +395,89 @@ class ProjectStore {
         final placed = importLooseFiles(paths, source);
         return placed.files;
       });
+
+  /// Replaces the website of an existing local project with a ZIP, keeping
+  /// the app's name, package ID, icon, settings, keys and build history.
+  Future<ReplaceReport> replaceWithZip(ProjectHandle project, String zipPath) =>
+      _replaceSource(project, (source) async => (await extractWebsiteZip(zipPath, source)).files);
+
+  /// Like [replaceWithZip], from individually picked files.
+  Future<ReplaceReport> replaceWithFiles(ProjectHandle project, List<String> paths) =>
+      _replaceSource(project, (source) async => importLooseFiles(paths, source).files);
+
+  /// Fills a fresh folder next to `source/`, then swaps it in. If anything
+  /// fails before the swap, the old website is untouched.
+  Future<ReplaceReport> _replaceSource(
+    ProjectHandle project,
+    Future<List<String>> Function(String sourceDir) fill,
+  ) async {
+    if (project.manifest.source.type != SourceType.local) {
+      throw InvalidProjectException(
+          [const ValidationIssue('source', 'Only projects made from HTML files or a ZIP can have their files replaced')]);
+    }
+    final current = p.normalize(project.sourceDir);
+    final fresh = '$current.new';
+    final old = '$current.old';
+    for (final d in [fresh, old]) {
+      if (Directory(d).existsSync()) Directory(d).deleteSync(recursive: true);
+    }
+    final List<String> files;
+    try {
+      files = await fill(fresh);
+    } catch (_) {
+      if (Directory(fresh).existsSync()) Directory(fresh).deleteSync(recursive: true);
+      rethrow;
+    }
+    final candidates = findEntryCandidates(files);
+    if (candidates.isEmpty) {
+      Directory(fresh).deleteSync(recursive: true);
+      throw ArchiveRejectedException('no .html file found');
+    }
+    final m = project.manifest;
+    // Keep the start page when the new website still has it.
+    final entry = files.contains(m.source.entry) ? m.source.entry : candidates.first;
+    final keptShortcuts = [
+      for (final s in m.shortcuts)
+        if (files.contains(shortcutFilePath(s.page))) s
+    ];
+    final droppedShortcuts = [
+      for (final s in m.shortcuts)
+        if (!files.contains(shortcutFilePath(s.page))) s.page
+    ];
+    final offline = m.offlineFallbackPage;
+    final keepOffline = offline != null && files.contains(offline);
+
+    Directory(current).renameSync(old);
+    try {
+      Directory(fresh).renameSync(current);
+    } catch (_) {
+      Directory(old).renameSync(current);
+      rethrow;
+    }
+    final ProjectHandle updated;
+    try {
+      updated = update(
+        project,
+        m.copyWith(
+          source: ProjectSource.local(entry),
+          shortcuts: keptShortcuts,
+          offlineFallbackPage: () => keepOffline ? offline : null,
+        ),
+      );
+    } catch (_) {
+      // Put the old website back.
+      Directory(current).deleteSync(recursive: true);
+      Directory(old).renameSync(current);
+      rethrow;
+    }
+    Directory(old).deleteSync(recursive: true);
+    return ReplaceReport(
+      ImportReport(updated, candidates, findMissingAssets(updated.sourceDir, files), files.length),
+      startPageChanged: entry != m.source.entry,
+      previousStartPage: m.source.entry,
+      droppedShortcuts: droppedShortcuts,
+    );
+  }
 
   Future<ImportReport> _importInto(
     String name,

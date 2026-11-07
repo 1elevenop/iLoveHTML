@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Checking and previewing live websites. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- App lock: fingerprint, face or screen lock. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <application
         android:label="iLoveHTML"
         android:allowBackup="false"
@@ -56,6 +58,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Opening https links (Buy Me a Coffee) in the browser. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

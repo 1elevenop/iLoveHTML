@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:html2apk_core/html2apk_core.dart';
 
 import '../app_controller.dart';
+import 'l10n.dart';
 import 'theme.dart';
 
 /// Adds https:// when the user typed only a host, e.g. "example.com".
@@ -86,7 +87,7 @@ class _UrlImportDialogState extends State<UrlImportDialog> {
     final scheme = Theme.of(context).colorScheme;
     final r = _result;
     return AlertDialog(
-      title: const Text('Website URL'),
+      title: Text(context.l10n.websiteUrl),
       scrollable: true,
       content: Form(
         key: _form,
@@ -111,7 +112,7 @@ class _UrlImportDialogState extends State<UrlImportDialog> {
                 onPressed: _checking ? null : _check,
                 child: _checking
                     ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Check website'),
+                    : Text(context.l10n.checkWebsite),
               ),
             if (_error != null)
               Padding(
@@ -123,20 +124,19 @@ class _UrlImportDialogState extends State<UrlImportDialog> {
                 Icon(r.ok ? Icons.check_circle_outline : Icons.warning_amber, size: 18,
                     color: r.ok ? scheme.primary : scheme.error),
                 const SizedBox(width: 8),
-                Expanded(child: Text(r.ok ? 'Website reachable' : 'Website answered with HTTP ${r.statusCode}')),
+                Expanded(child: Text(r.ok ? context.l10n.websiteReachable : context.l10n.websiteAnsweredHttp(r.statusCode))),
               ]),
               const SizedBox(height: 4),
               Text(r.finalUrl.toString(), style: monoStyle(context, size: 12)),
               if (r.redirects.isNotEmpty)
-                Text('Redirected ${r.redirects.length}× — the app will start at this address.', style: t.bodySmall),
+                Text(context.l10n.redirected(r.redirects.length), style: t.bodySmall),
               const SizedBox(height: 8),
-              Text('The app shows this site live and needs an internet connection. '
-                  'It does not work offline.', style: t.bodySmall),
+              Text(context.l10n.liveSiteNote, style: t.bodySmall),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'App name'),
-                validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a name' : null,
+                decoration: InputDecoration(labelText: context.l10n.appName),
+                validator: (v) => (v ?? '').trim().isEmpty ? context.l10n.enterName : null,
                 onChanged: (v) {
                   if (!_idEdited) _id.text = suggestApplicationId(v);
                 },
@@ -144,7 +144,7 @@ class _UrlImportDialogState extends State<UrlImportDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _id,
-                decoration: const InputDecoration(labelText: 'Package ID'),
+                decoration: InputDecoration(labelText: context.l10n.packageId),
                 style: monoStyle(context, size: 14),
                 autocorrect: false,
                 validator: (v) => validateApplicationId((v ?? '').trim()),
@@ -155,8 +155,8 @@ class _UrlImportDialogState extends State<UrlImportDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        if (r != null) FilledButton(onPressed: _create, child: const Text('Create')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
+        if (r != null) FilledButton(onPressed: _create, child: Text(context.l10n.create)),
       ],
     );
   }

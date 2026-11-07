@@ -6,8 +6,11 @@ import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_controller.dart';
+import '../app_settings.dart';
+import 'ascii.dart';
 import 'app_settings_screen.dart';
 import 'project_screen.dart';
+import 'l10n.dart';
 import 'theme.dart';
 import 'url_import_dialog.dart';
 
@@ -21,15 +24,15 @@ class ProjectsScreen extends StatelessWidget {
     final projects = controller.projects;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Projects'),
+        title: Text(context.l10n.projects),
         actions: [
           IconButton(
-            tooltip: 'Restore backup',
+            tooltip: context.l10n.restoreBackup,
             icon: const Icon(Icons.settings_backup_restore),
             onPressed: () => restoreBackup(context, controller),
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: context.l10n.settings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.push(
                 context, MaterialPageRoute(builder: (_) => AppSettingsScreen(controller: controller))),
@@ -39,10 +42,13 @@ class ProjectsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _newProject(context),
         icon: const Icon(Icons.add),
-        label: const Text('New app'),
+        label: Text(context.l10n.newApp),
       ),
       body: projects.isEmpty && controller.brokenProjects.isEmpty
-          ? _EmptyState(buildsWindowsApps: controller.desktopEngine != null)
+          ? _EmptyState(
+              buildsWindowsApps: controller.desktopEngine != null,
+              animate: animationsOn(context, controller.settings),
+            )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
@@ -54,7 +60,7 @@ class ProjectsScreen extends StatelessWidget {
                   Card(
                     child: ListTile(
                       leading: const Icon(Icons.error_outline),
-                      title: Text('Unreadable project: ${p.basename(broken.directory)}'),
+                      title: Text(context.l10n.unreadableProject(p.basename(broken.directory))),
                       subtitle: Text('${broken.error}'),
                     ),
                   ),
@@ -72,21 +78,20 @@ extension on ProjectsScreen {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.html),
-            title: const Text('HTML files'),
-            subtitle: const Text('Pick an .html page, plus its CSS, JavaScript and images if they are separate files. '
-                'Works offline.'),
+            title: Text(context.l10n.htmlFiles),
+            subtitle: Text(context.l10n.htmlFilesHint),
             onTap: () => Navigator.pop(c, 'files'),
           ),
           ListTile(
             leading: const Icon(Icons.folder_zip_outlined),
-            title: const Text('Website ZIP'),
-            subtitle: const Text('A whole website folder, zipped. Works offline.'),
+            title: Text(context.l10n.websiteZip),
+            subtitle: Text(context.l10n.websiteZipHint),
             onTap: () => Navigator.pop(c, 'zip'),
           ),
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Website URL'),
-            subtitle: const Text('Wrap a live https website. Needs an internet connection.'),
+            title: Text(context.l10n.websiteUrl),
+            subtitle: Text(context.l10n.websiteUrlHint),
             onTap: () => Navigator.pop(c, 'url'),
           ),
         ]),
@@ -107,7 +112,9 @@ extension on ProjectsScreen {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.buildsWindowsApps});
+  const _EmptyState({required this.buildsWindowsApps, required this.animate});
+
+  final bool animate;
 
   /// On Windows, projects also build Windows apps (.exe and .msix).
   final bool buildsWindowsApps;
@@ -121,14 +128,12 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.web_asset, size: 56, color: Theme.of(context).colorScheme.primary),
+            AsciiEmptyArt(animate: animate),
             const SizedBox(height: 16),
-            Text('No projects yet', style: t.titleLarge),
+            Text(context.l10n.noProjectsYet, style: t.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Turn HTML files, a website ZIP, or a live https website '
-              'into ${buildsWindowsApps ? 'an Android or Windows app' : 'an Android app'}. '
-              'Builds happen on this device.',
+              buildsWindowsApps ? context.l10n.emptyHintWindows : context.l10n.emptyHintAndroid,
               textAlign: TextAlign.center,
               style: t.bodyMedium,
             ),
@@ -182,10 +187,10 @@ class _ProjectCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       controller.building.contains(m.id)
-                          ? 'Building…'
+                          ? context.l10n.building
                           : last == null
-                              ? 'v${m.android.versionName} · not built yet'
-                              : 'v${m.android.versionName} · last build ${last.status} ${_ago(last.time)}',
+                              ? context.l10n.notBuiltYet(m.android.versionName)
+                              : context.l10n.lastBuild(m.android.versionName, last.status, _ago(context, last.time)),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -200,12 +205,12 @@ class _ProjectCard extends StatelessWidget {
   }
 }
 
-String _ago(DateTime t) {
+String _ago(BuildContext context, DateTime t) {
   final d = DateTime.now().difference(t);
-  if (d.inMinutes < 1) return 'just now';
-  if (d.inHours < 1) return '${d.inMinutes} min ago';
-  if (d.inDays < 1) return '${d.inHours} h ago';
-  return '${d.inDays} d ago';
+  if (d.inMinutes < 1) return context.l10n.justNow;
+  if (d.inHours < 1) return context.l10n.minutesAgo(d.inMinutes);
+  if (d.inDays < 1) return context.l10n.hoursAgo(d.inHours);
+  return context.l10n.daysAgo(d.inDays);
 }
 
 /// Picks a .ilovehtml backup, restores it as a new project and opens it.
@@ -214,8 +219,9 @@ Future<void> restoreBackup(BuildContext context, AppController controller) async
   final file = await FilePicker.pickFile();
   if (file == null || !context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
+  final l = context.l10n;
   if (!file.name.toLowerCase().endsWith(backupExtension)) {
-    messenger.showSnackBar(const SnackBar(content: Text('Choose a $backupExtension backup file')));
+    messenger.showSnackBar(SnackBar(content: Text(l.chooseBackupFile(backupExtension))));
     return;
   }
   final tmp = Directory.systemTemp.createTempSync('restore');
@@ -224,14 +230,14 @@ Future<void> restoreBackup(BuildContext context, AppController controller) async
     await file.xFile.saveTo(path);
     final project = await controller.restoreBackup(path);
     if (!context.mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text('Restored ${project.manifest.name}')));
+    messenger.showSnackBar(SnackBar(content: Text(l.restored(project.manifest.name))));
     await Navigator.push(context,
         MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: project.manifest.id)));
   } on Object catch (e) {
     final text = switch (e) {
-      ArchiveRejectedException(:final message) => 'Not a usable backup: $message',
+      ArchiveRejectedException(:final message) => l.notUsableBackup(message),
       InvalidProjectException(:final issues) => issues.join('\n'),
-      _ => 'Restore failed: $e',
+      _ => l.restoreFailed('$e'),
     };
     messenger.showSnackBar(SnackBar(content: Text(text)));
   } finally {
@@ -254,7 +260,7 @@ Future<void> importHtmlFiles(BuildContext context, AppController controller) asy
   if (files.isEmpty || !context.mounted) return;
   if (!files.any((f) => RegExp(r'\.html?$', caseSensitive: false).hasMatch(f.name))) {
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one .html file, plus any CSS, JavaScript or images it uses.')));
+        SnackBar(content: Text(context.l10n.selectHtmlFile)));
     await FilePicker.clearTemporaryFiles();
     return;
   }
@@ -283,7 +289,7 @@ Future<void> _importFlow(
     if (baseName.toLowerCase() == 'index') baseName = '';
     final details = await showDialog<(String, String)>(
       context: context,
-      builder: (_) => _ImportDialog(initialName: baseName.isEmpty ? 'My App' : baseName),
+      builder: (_) => _ImportDialog(initialName: baseName.isEmpty ? context.l10n.defaultAppName : baseName),
     );
     if (details == null || !context.mounted) return;
     final ImportReport report;
@@ -291,7 +297,7 @@ Future<void> _importFlow(
       report = await run(tmp.path, paths, details.$1, details.$2);
     } on Exception catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.importFailed('$e'))));
       }
       return;
     }
@@ -331,7 +337,7 @@ class _ImportDialogState extends State<_ImportDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('New app'),
+      title: Text(context.l10n.newApp),
       content: Form(
         key: _form,
         child: Column(
@@ -339,9 +345,9 @@ class _ImportDialogState extends State<_ImportDialog> {
           children: [
             TextFormField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'App name'),
+              decoration: InputDecoration(labelText: context.l10n.appName),
               textCapitalization: TextCapitalization.words,
-              validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a name' : null,
+              validator: (v) => (v ?? '').trim().isEmpty ? context.l10n.enterName : null,
               onChanged: (v) {
                 if (!_idEdited) _id.text = suggestApplicationId(v);
               },
@@ -349,9 +355,9 @@ class _ImportDialogState extends State<_ImportDialog> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _id,
-              decoration: const InputDecoration(
-                labelText: 'Package ID',
-                helperText: 'Unique ID on the device and in Play, e.g. com.yourname.app',
+              decoration: InputDecoration(
+                labelText: context.l10n.packageId,
+                helperText: context.l10n.packageIdHelp,
                 helperMaxLines: 2,
               ),
               style: monoStyle(context, size: 14),
@@ -363,12 +369,12 @@ class _ImportDialogState extends State<_ImportDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           onPressed: () {
             if (_form.currentState!.validate()) Navigator.pop(context, (_name.text.trim(), _id.text.trim()));
           },
-          child: const Text('Import'),
+          child: Text(context.l10n.importButton),
         ),
       ],
     );
@@ -391,24 +397,24 @@ class _ImportSummary extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Imported ${report.fileCount} ${report.fileCount == 1 ? 'file' : 'files'}', style: t.titleLarge),
+            Text(context.l10n.importedFiles(report.fileCount), style: t.titleLarge),
             const SizedBox(height: 12),
-            Text('Start page: ${report.project.manifest.source.entry}'),
+            Text(context.l10n.startPageIs(report.project.manifest.source.entry)),
             if (report.entryCandidates.length > 1)
-              Text('${report.entryCandidates.length} HTML pages found; you can change the start page in Settings.'),
+              Text(context.l10n.htmlPagesFound(report.entryCandidates.length)),
             const SizedBox(height: 12),
             if (missing.isEmpty)
-              const Row(children: [Icon(Icons.check_circle_outline, size: 18), SizedBox(width: 8), Text('No missing files found')])
+              Row(children: [Icon(Icons.check_circle_outline, size: 18), SizedBox(width: 8), Text(context.l10n.noMissingFiles)])
             else ...[
-              Text('${missing.length} referenced files are missing:', style: t.titleSmall),
+              Text(context.l10n.filesMissing(missing.length), style: t.titleSmall),
               const SizedBox(height: 4),
               for (final m in missing.take(8)) Text('• $m', style: monoStyle(context, size: 12)),
-              if (missing.length > 8) Text('…and ${missing.length - 8} more'),
+              if (missing.length > 8) Text(context.l10n.andMore(missing.length - 8)),
             ],
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,
-              child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Open project')),
+              child: FilledButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.openProject)),
             ),
           ],
         ),

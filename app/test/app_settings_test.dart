@@ -5,6 +5,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html2apk_app/l10n/gen/app_localizations.dart';
+import 'package:html2apk_app/src/ui/theme.dart';
 import 'package:html2apk_app/src/app_controller.dart';
 import 'package:html2apk_app/src/ui/app_settings_screen.dart';
 import 'package:path/path.dart' as p;
@@ -26,7 +28,11 @@ void main() {
 
     final controller = AppController(workspaceDir: ws);
     expect(controller.storageBytes(), 1244);
-    await tester.pumpWidget(MaterialApp(home: AppSettingsScreen(controller: controller)));
+    await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: AppSettingsScreen(controller: controller)));
     expect(tester.takeException(), isNull);
     expect(find.textContaining('0 projects · 1.2 KB'), findsOneWidget);
   });

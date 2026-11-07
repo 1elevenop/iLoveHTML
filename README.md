@@ -31,6 +31,30 @@ Everything is built on your own phone or PC: no account, no upload, no cloud.
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 Older versions (for Android 7–9) are no longer offered.
 
+## What's new in 1.2.0
+
+- **8 languages:** English, Español, Français, Deutsch, Português, 日本語,
+  中文 and 한국어. iLoveHTML follows the system language, or pick one in
+  Settings → Language.
+- **Themes:** dark (the original New ELEVEN look), light or follow the
+  system, with five accent colours (orange, terminal green, cyan, violet,
+  pink) in Settings → Appearance.
+- **Animation and ASCII art:** an ASCII logo typed out at launch, ASCII art
+  on the empty project list, an ASCII progress bar while building, and page
+  transitions. Turn them off in Settings → Animations (the system's
+  reduce-motion setting is respected too).
+- **About** in Settings: How to use, Terms of Use, Privacy Policy, app
+  version and credit, with a link to
+  [Buy Me a Coffee](https://buymeacoffee.com/1elevenop).
+- **App lock for iLoveHTML:** a PIN, password and/or fingerprint/face before
+  the app opens, with an optional hint and "Forgot PIN?" (verify with the
+  device's own lock or a one-time recovery code). Settings → Security.
+- **Replace website files:** swap a project's HTML files or ZIP for new
+  ones; name, package ID, icon, settings, release key and history stay.
+  Project → Settings → Content.
+
+Full notes: [release 1.2.0](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.0).
+
 ## What's new in 1.1.1
 
 - Apps you build: light/dark/follow-phone theme, fullscreen, keep screen

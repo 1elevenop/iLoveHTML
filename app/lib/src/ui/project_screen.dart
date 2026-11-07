@@ -12,8 +12,11 @@ import '../app_controller.dart';
 import '../engine/msix_builder.dart';
 import '../engine/on_device_engine.dart';
 import '../image_import.dart';
+import '../app_settings.dart';
+import 'ascii.dart';
 import 'preview_screen.dart';
 import 'signing_keys_screen.dart';
+import 'l10n.dart';
 import 'theme.dart';
 
 class ProjectScreen extends StatelessWidget {
@@ -25,12 +28,13 @@ class ProjectScreen extends StatelessWidget {
   /// Saves the project as one .ilovehtml file the user can keep or move to another device.
   Future<void> _backUp(BuildContext context, ProjectHandle project) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       final path = await controller.backUp(project);
       final where = await (controller.desktopEngine?.saveFile(path) ?? controller.deviceEngine?.saveFile(path));
-      if (where != null) messenger.showSnackBar(SnackBar(content: Text('Backup saved: ${p.basename(path)}')));
+      if (where != null) messenger.showSnackBar(SnackBar(content: Text(l.backupSaved(p.basename(path)))));
     } on Object catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Backup failed: ${e is PlatformException ? e.message : e}')));
+      messenger.showSnackBar(SnackBar(content: Text(l.backupFailed('${e is PlatformException ? e.message : e}'))));
     }
   }
 
@@ -40,7 +44,7 @@ class ProjectScreen extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final project = controller.project(projectId);
-        if (project == null) return const Scaffold(body: Center(child: Text('Project not found')));
+        if (project == null) return Scaffold(body: Center(child: Text(context.l10n.projectNotFound)));
         return DefaultTabController(
           length: 2,
           child: Scaffold(
@@ -48,12 +52,12 @@ class ProjectScreen extends StatelessWidget {
               title: Text(project.manifest.name, overflow: TextOverflow.ellipsis),
               actions: [
                 IconButton(
-                  tooltip: 'Back up project',
+                  tooltip: context.l10n.backUpProject,
                   icon: const Icon(Icons.backup_outlined),
                   onPressed: () => _backUp(context, controller.project(projectId)!),
                 ),
                 IconButton(
-                  tooltip: 'Preview',
+                  tooltip: context.l10n.preview,
                   icon: const Icon(Icons.play_circle_outline),
                   onPressed: () => Platform.isWindows
                       ? _browserPreview(context, controller.project(projectId)!)
@@ -61,9 +65,9 @@ class ProjectScreen extends StatelessWidget {
                           MaterialPageRoute(builder: (_) => PreviewScreen(project: controller.project(projectId)!))),
                 ),
               ],
-              bottom: const TabBar(tabs: [
-                Tab(icon: Icon(Icons.tune), text: 'Settings'),
-                Tab(icon: Icon(Icons.build_outlined), text: 'Build'),
+              bottom: TabBar(tabs: [
+                Tab(icon: Icon(Icons.tune), text: context.l10n.settings),
+                Tab(icon: Icon(Icons.build_outlined), text: context.l10n.build),
               ]),
             ),
             body: TabBarView(children: [
@@ -111,21 +115,20 @@ Future<void> _browserPreview(BuildContext context, ProjectHandle project) async 
       builder: (c, setState) {
         sub?.onData((path) => setState(() => missing.add(path)));
         return AlertDialog(
-          title: const Text('Preview in your browser'),
+          title: Text(context.l10n.previewInBrowser),
           content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             SelectableText(url.toString(), style: monoStyle(c, size: 12)),
             const SizedBox(height: 12),
             Text(server == null
-                ? 'The live site opened in your default browser.'
-                : 'Served from this PC only, while this window is open. The phone app adds a console and '
-                    'link checks; here use the browser\'s developer tools (F12).'),
+                ? context.l10n.liveSiteOpened
+                : context.l10n.servedFromPc),
             if (missing.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Missing files:', style: Theme.of(c).textTheme.titleSmall),
+              Text(context.l10n.missingFiles, style: Theme.of(c).textTheme.titleSmall),
               for (final f in missing.take(8)) Text(f, style: monoStyle(c, size: 12)),
             ],
           ]),
-          actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(server == null ? 'Close' : 'Stop preview'))],
+          actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(server == null ? context.l10n.close : context.l10n.stopPreview))],
         );
       },
     ),
@@ -161,7 +164,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   late final _statusColor = TextEditingController(text: _m.appearance.statusBarColor);
   late final _navColor = TextEditingController(text: _m.appearance.navigationBarColor);
   late final _splashColor = TextEditingController(text: _m.appearance.splashBackgroundColor);
-  late final List<String> _pages = findEntryCandidates(listRelativeFiles(widget.project.sourceDir));
+  late List<String> _pages = findEntryCandidates(listRelativeFiles(widget.project.sourceDir));
   bool _dirty = false;
 
   @override
@@ -214,7 +217,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
         _m = saved.manifest;
         _dirty = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.settingsSaved)));
     } on InvalidProjectException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.issues.join('\n'))));
     }
@@ -234,14 +237,93 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   ProjectHandle get _current => widget.controller.project(_m.id)!;
 
+  /// Picks a new ZIP or HTML files and swaps them in for the website.
+  Future<void> _replaceWebsite() async {
+    final l = context.l10n;
+    final kind = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.folder_zip_outlined),
+            title: Text(l.websiteZip),
+            subtitle: Text(l.replaceWithZipHint),
+            onTap: () => Navigator.pop(c, 'zip'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.html),
+            title: Text(l.htmlFiles),
+            subtitle: Text(l.replaceWithFilesHint),
+            onTap: () => Navigator.pop(c, 'files'),
+          ),
+        ]),
+      ),
+    );
+    if (kind == null || !mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(l.replaceWebsiteQ),
+        content: Text(l.replaceWebsiteBody(_m.name)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(l.replace)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final picked = kind == 'zip'
+        ? await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['zip'])
+        // FileType.any: Android's MIME filters miss common web types such as .js and .woff2.
+        : await FilePicker.pickFiles();
+    if (picked.isEmpty || !mounted) return;
+    if (kind == 'files' && !picked.any((f) => RegExp(r'\.html?$', caseSensitive: false).hasMatch(f.name))) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.selectHtmlFile)));
+      await FilePicker.clearTemporaryFiles();
+      return;
+    }
+    final tmp = Directory.systemTemp.createTempSync('replace');
+    try {
+      final paths = <String>[];
+      for (final f in picked) {
+        // Keep the original names: they decide where linked files end up.
+        final target = p.join(tmp.path, p.basename(f.name));
+        await f.xFile.saveTo(target);
+        paths.add(target);
+      }
+      final r = kind == 'zip'
+          ? await widget.controller.replaceWithZip(_current, paths.single)
+          : await widget.controller.replaceWithFiles(_current, paths);
+      final s = r.import.project.manifest;
+      if (!mounted) return;
+      setState(() {
+        _pages = findEntryCandidates(listRelativeFiles(r.import.project.sourceDir));
+        _m = _m.copyWith(
+          source: s.source,
+          shortcuts: s.shortcuts,
+          offlineFallbackPage: () => s.offlineFallbackPage,
+        );
+      });
+      await showDialog<void>(context: context, builder: (_) => _ReplaceSummary(report: r));
+    } on InvalidProjectException catch (e) {
+      _report(e);
+    } on Exception catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.replaceFailed('$e'))));
+    } finally {
+      tmp.deleteSync(recursive: true);
+      await FilePicker.clearTemporaryFiles();
+    }
+  }
+
   Future<void> _addShortcut() async {
+    final l = context.l10n;
     final shortcut = await showDialog<AppShortcut>(
       context: context,
       builder: (_) => _ShortcutDialog(type: _m.source.type, pages: _pages),
     );
     if (shortcut == null) return;
     if (_m.shortcuts.any((s) => s.page == shortcut.page)) {
-      _report('A shortcut for "${shortcut.page}" already exists');
+      _report(l.shortcutExists(shortcut.page));
       return;
     }
     _change(_m.copyWith(shortcuts: [..._m.shortcuts, shortcut]));
@@ -285,15 +367,15 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   // Android needs PNG: other formats are converted, icons centred on a square.
   Future<void> _pickIcon() => _pickFile(
-      pickableImageExtensions, (f) => widget.controller.setIcon(_current, f), 'Icon updated',
+      pickableImageExtensions, (f) => widget.controller.setIcon(_current, f), context.l10n.iconUpdated,
       convert: (b, ext) => toPng(b, isSvg: ext == 'svg', square: true, maxSide: 1024));
 
   Future<void> _pickSplash() => _pickFile(
-      pickableImageExtensions, (f) => widget.controller.setSplash(_current, f), 'Splash image updated',
+      pickableImageExtensions, (f) => widget.controller.setSplash(_current, f), context.l10n.splashUpdated,
       convert: (b, ext) => toPng(b, isSvg: ext == 'svg', maxSide: 1440));
 
   Future<void> _pickOfflinePage() =>
-      _pickFile(['html', 'htm'], (f) => widget.controller.setOfflinePage(_current, f), 'Offline page added');
+      _pickFile(['html', 'htm'], (f) => widget.controller.setOfflinePage(_current, f), context.l10n.offlinePageAdded);
 
   void _clearFile(ProjectHandle Function(ProjectHandle) clear) {
     try {
@@ -307,12 +389,11 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Delete project?'),
-        content: Text('This deletes "${_m.name}", its website files and built APKs from this device. '
-            'Apps already installed are not affected.'),
+        title: Text(context.l10n.deleteProjectQ),
+        content: Text(context.l10n.deleteProjectBody(_m.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(context.l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(context.l10n.delete)),
         ],
       ),
     );
@@ -328,7 +409,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
     final local = _m.source.type == SourceType.local;
     return Scaffold(
       floatingActionButton: _dirty
-          ? FloatingActionButton.extended(onPressed: _save, icon: const Icon(Icons.save_outlined), label: const Text('Save'))
+          ? FloatingActionButton.extended(onPressed: _save, icon: const Icon(Icons.save_outlined), label: Text(context.l10n.save))
           : null,
       body: Form(
         key: _form,
@@ -336,16 +417,16 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            const _Section('App'),
+            _Section(context.l10n.sectionApp),
             TextFormField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'App name'),
-              validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a name' : null,
+              decoration: InputDecoration(labelText: context.l10n.appName),
+              validator: (v) => (v ?? '').trim().isEmpty ? context.l10n.enterName : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _id,
-              decoration: const InputDecoration(labelText: 'Package ID'),
+              decoration: InputDecoration(labelText: context.l10n.packageId),
               style: monoStyle(context, size: 14),
               autocorrect: false,
               validator: (v) => validateApplicationId((v ?? '').trim()),
@@ -355,15 +436,15 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               Expanded(
                 child: TextFormField(
                   controller: _versionName,
-                  decoration: const InputDecoration(labelText: 'Version name'),
-                  validator: (v) => (v ?? '').trim().isEmpty ? 'Required' : null,
+                  decoration: InputDecoration(labelText: context.l10n.versionName),
+                  validator: (v) => (v ?? '').trim().isEmpty ? context.l10n.required : null,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
                   controller: _versionCode,
-                  decoration: const InputDecoration(labelText: 'Version code'),
+                  decoration: InputDecoration(labelText: context.l10n.versionCode),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (v) {
@@ -387,28 +468,43 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(child: Text(icon == null ? 'Default icon' : 'Custom icon', style: Theme.of(context).textTheme.bodyMedium)),
-              OutlinedButton.icon(onPressed: _pickIcon, icon: const Icon(Icons.image_outlined), label: const Text('Choose image')),
+              Expanded(child: Text(icon == null ? context.l10n.defaultIcon : context.l10n.customIcon, style: Theme.of(context).textTheme.bodyMedium)),
+              OutlinedButton.icon(onPressed: _pickIcon, icon: const Icon(Icons.image_outlined), label: Text(context.l10n.chooseImage)),
             ]),
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('PNG, JPEG, WebP, GIF, BMP or SVG, at least 48 px; 512 × 512 recommended. Non-square images are centred.', style: Theme.of(context).textTheme.bodySmall),
+              child: Text(context.l10n.iconHint, style: Theme.of(context).textTheme.bodySmall),
             ),
-            const _Section('Content'),
-            if (local)
+            _Section(context.l10n.sectionContent),
+            if (local) ...[
               DropdownButtonFormField<String>(
+                // Rebuilt when the website is replaced and the pages change.
+                key: ValueKey(_pages.join('|')),
                 initialValue: _pages.contains(_m.source.entry) ? _m.source.entry : null,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Start page'),
+                decoration: InputDecoration(labelText: context.l10n.startPage),
                 items: [for (final page in _pages) DropdownMenuItem(value: page, child: Text(page, overflow: TextOverflow.ellipsis))],
                 onChanged: (v) => _change(_m.copyWith(source: ProjectSource.local(v!))),
-              )
-            else ...[
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _replaceWebsite,
+                  icon: const Icon(Icons.swap_horiz),
+                  label: Text(context.l10n.replaceWebsite),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(context.l10n.replaceWebsiteHint, style: Theme.of(context).textTheme.bodySmall),
+              ),
+            ] else ...[
               TextFormField(
                 controller: _siteUrl,
-                decoration: const InputDecoration(
-                  labelText: 'Website URL',
-                  helperText: 'Loaded live; the app needs an internet connection.',
+                decoration: InputDecoration(
+                  labelText: context.l10n.websiteUrl,
+                  helperText: context.l10n.loadedLive,
                 ),
                 keyboardType: TextInputType.url,
                 autocorrect: false,
@@ -418,35 +514,35 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               const SizedBox(height: 12),
               TextFormField(
                 controller: _hosts,
-                decoration: const InputDecoration(
-                  labelText: 'Other sites that open inside the app (optional)',
+                decoration: InputDecoration(
+                  labelText: context.l10n.otherSites,
                   hintText: 'login.example.com, cdn.example.com',
-                  helperText: 'Comma-separated. Links to any other site open in the browser.',
+                  helperText: context.l10n.otherSitesHelp,
                   helperMaxLines: 2,
                 ),
                 autocorrect: false,
                 validator: (v) {
                   for (final h in _parseHosts(v ?? '')) {
-                    if (validateRemoteUrl('https://$h/') != null || h.contains('/')) return 'Invalid host "$h"';
+                    if (validateRemoteUrl('https://$h/') != null || h.contains('/')) return context.l10n.invalidHost(h);
                   }
                   return null;
                 },
               ),
             ],
             const SizedBox(height: 12),
-            Text('Orientation', style: Theme.of(context).textTheme.labelLarge),
+            Text(context.l10n.orientation, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
             SegmentedButton<Orientation>(
-              segments: const [
-                ButtonSegment(value: Orientation.unspecified, label: Text('Auto')),
-                ButtonSegment(value: Orientation.portrait, label: Text('Portrait')),
-                ButtonSegment(value: Orientation.landscape, label: Text('Landscape')),
+              segments: [
+                ButtonSegment(value: Orientation.unspecified, label: Text(context.l10n.orientationAuto)),
+                ButtonSegment(value: Orientation.portrait, label: Text(context.l10n.portrait)),
+                ButtonSegment(value: Orientation.landscape, label: Text(context.l10n.landscape)),
               ],
               selected: {_m.orientation},
               onSelectionChanged: (s) => _change(_m.copyWith(orientation: s.single)),
             ),
-            const _Section('Shortcuts'),
-            Text('Long-press the app icon to see these pages.',
+            _Section(context.l10n.sectionShortcuts),
+            Text(context.l10n.shortcutsHint,
                 style: Theme.of(context).textTheme.bodySmall),
             for (final (i, s) in _m.shortcuts.indexed)
               ListTile(
@@ -455,7 +551,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 title: Text(s.label),
                 subtitle: Text(s.page, overflow: TextOverflow.ellipsis),
                 trailing: IconButton(
-                  tooltip: 'Remove shortcut',
+                  tooltip: context.l10n.removeShortcut,
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _change(_m.copyWith(shortcuts: [..._m.shortcuts]..removeAt(i))),
                 ),
@@ -466,16 +562,15 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 child: TextButton.icon(
                   onPressed: _addShortcut,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add shortcut'),
+                  label: Text(context.l10n.addShortcut),
                 ),
               ),
             if (local) ...[
-              const _Section('App size'),
+              _Section(context.l10n.sectionAppSize),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Optimize files when building'),
-                subtitle: const Text('Makes CSS, JSON, PNG and large JPEG files smaller in the app. '
-                    'JPEGs are saved again at 85% quality. Your project files do not change.'),
+                title: Text(context.l10n.optimizeFiles),
+                subtitle: Text(context.l10n.optimizeFilesHint),
                 value: _m.optimizeAssets,
                 onChanged: (v) => _change(_m.copyWith(optimizeAssets: v)),
               ),
@@ -487,99 +582,96 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                     builder: (_) => _SizeReportDialog(sourceDir: widget.project.sourceDir),
                   ),
                   icon: const Icon(Icons.pie_chart_outline),
-                  label: const Text('Size report'),
+                  label: Text(context.l10n.sizeReport),
                 ),
               ),
             ],
-            const _Section('Appearance'),
-            _ColorField(label: 'Status bar colour', controller: _statusColor, onChanged: () => setState(() => _dirty = true)),
+            _Section(context.l10n.sectionAppearance),
+            _ColorField(label: context.l10n.statusBarColour, controller: _statusColor, onChanged: () => setState(() => _dirty = true)),
             const SizedBox(height: 12),
-            _ColorField(label: 'Navigation bar colour', controller: _navColor, onChanged: () => setState(() => _dirty = true)),
+            _ColorField(label: context.l10n.navBarColour, controller: _navColor, onChanged: () => setState(() => _dirty = true)),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Splash screen'),
+              title: Text(context.l10n.splashScreen),
               subtitle: Text(_m.splashPath == null
-                  ? 'Shows the app icon until the first page has loaded.'
-                  : 'Shows your splash image until the first page has loaded.'),
+                  ? context.l10n.splashIconHint
+                  : context.l10n.splashImageHint),
               value: _m.appearance.splashEnabled,
               onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(splashEnabled: v))),
             ),
             if (_m.appearance.splashEnabled) ...[
-              _ColorField(label: 'Splash background', controller: _splashColor, onChanged: () => setState(() => _dirty = true)),
+              _ColorField(label: context.l10n.splashBackground, controller: _splashColor, onChanged: () => setState(() => _dirty = true)),
               const SizedBox(height: 8),
               Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                 OutlinedButton.icon(
                   onPressed: _pickSplash,
                   icon: const Icon(Icons.image_outlined),
-                  label: Text(_m.splashPath == null ? 'Choose splash image' : 'Replace splash image'),
+                  label: Text(_m.splashPath == null ? context.l10n.chooseSplash : context.l10n.replaceSplash),
                 ),
                 if (_m.splashPath != null)
-                  TextButton(onPressed: () => _clearFile(widget.controller.clearSplash), child: const Text('Use app icon')),
+                  TextButton(onPressed: () => _clearFile(widget.controller.clearSplash), child: Text(context.l10n.useAppIcon)),
               ]),
             ],
             const SizedBox(height: 12),
-            Text('Theme', style: Theme.of(context).textTheme.labelLarge),
+            Text(context.l10n.theme, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
             SegmentedButton<AppTheme>(
-              segments: const [
-                ButtonSegment(value: AppTheme.light, label: Text('Light')),
-                ButtonSegment(value: AppTheme.dark, label: Text('Dark')),
-                ButtonSegment(value: AppTheme.system, label: Text('Follow phone')),
+              segments: [
+                ButtonSegment(value: AppTheme.light, label: Text(context.l10n.light)),
+                ButtonSegment(value: AppTheme.dark, label: Text(context.l10n.dark)),
+                ButtonSegment(value: AppTheme.system, label: Text(context.l10n.followPhone)),
               ],
               selected: {_m.appearance.theme},
               onSelectionChanged: (s) => _change(_m.copyWith(appearance: _m.appearance.copyWith(theme: s.single))),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('Sets prefers-color-scheme, so pages with dark-mode CSS switch to it.',
+              child: Text(context.l10n.themeHint,
                   style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Fullscreen'),
-              subtitle: const Text('Hides the status and navigation bars. Swipe from the edge to show them for a moment.'),
+              title: Text(context.l10n.fullscreen),
+              subtitle: Text(context.l10n.fullscreenHint),
               value: _m.appearance.fullscreen,
               onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(fullscreen: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Keep screen on'),
-              subtitle: const Text('The screen does not turn off while the app is open.'),
+              title: Text(context.l10n.keepScreenOn),
+              subtitle: Text(context.l10n.keepScreenOnHint),
               value: _m.appearance.keepScreenOn,
               onChanged: (v) => _change(_m.copyWith(appearance: _m.appearance.copyWith(keepScreenOn: v))),
             ),
-            const _Section('Devices'),
+            _Section(context.l10n.sectionDevices),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Android TV'),
-              subtitle: const Text('Shows the app on the TV home screen with a banner made from the icon and name. '
-                  'The remote\'s arrow keys move between links and buttons; OK opens them.'),
+              subtitle: Text(context.l10n.tvHint),
               value: _m.devices.androidTv,
               onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(androidTv: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Rotate freely on tablets'),
-              subtitle: const Text('Tablets and foldables may turn to any side, even when phones keep the '
-                  'orientation chosen above. Android 16 and later always allow this on large screens.'),
+              title: Text(context.l10n.rotateTablets),
+              subtitle: Text(context.l10n.rotateTabletsHint),
               value: _m.devices.rotateOnTablets,
               onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(rotateOnTablets: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Desktop layout on tablets and TV'),
-              subtitle: const Text('Asks websites for the layout they show on computers instead of the phone layout.'),
+              title: Text(context.l10n.desktopLayout),
+              subtitle: Text(context.l10n.desktopLayoutHint),
               value: _m.devices.desktopSiteOnLargeScreens,
               onChanged: (v) => _change(_m.copyWith(devices: _m.devices.copyWith(desktopSiteOnLargeScreens: v))),
             ),
-            const _Section('Security'),
+            _Section(context.l10n.sectionSecurity),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('App lock'),
-              subtitle: const Text('Asks for the fingerprint, face or screen lock when the app opens, '
-                  'and after 30 seconds in the background. Phones without a screen lock open the app with a hint.'),
+              title: Text(context.l10n.appLock),
+              subtitle: Text(context.l10n.appLockHint),
               value: _m.appLock,
               onChanged: (v) => _change(_m.copyWith(appLock: v)),
             ),
@@ -587,13 +679,13 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('JavaScript'),
-              subtitle: const Text('Most sites need this. Turn off for static pages.'),
+              subtitle: Text(context.l10n.javascriptHint),
               value: _m.webView.javaScriptEnabled,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(javaScriptEnabled: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Local storage'),
+              title: Text(context.l10n.localStorage),
               subtitle: const Text('localStorage and sessionStorage'),
               value: _m.webView.domStorageEnabled,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(domStorageEnabled: v))),
@@ -601,83 +693,80 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
             if (local)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Internet access'),
-                subtitle: const Text('Adds the INTERNET permission, for CDNs, APIs or fonts loaded from the web.'),
+                title: Text(context.l10n.internetAccess),
+                subtitle: Text(context.l10n.internetAccessHint),
                 value: _m.internetAccess,
                 onChanged: (v) => _change(_m.copyWith(internetAccess: v)),
               ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Open other sites in the browser'),
-              subtitle: const Text('When off, links to other sites do nothing.'),
+              title: Text(context.l10n.openOtherSites),
+              subtitle: Text(context.l10n.openOtherSitesHint),
               value: _m.webView.externalLinks == ExternalLinkPolicy.browser,
               onChanged: (v) => _change(_m.copyWith(
                   webView: _m.webView.copyWith(externalLinks: v ? ExternalLinkPolicy.browser : ExternalLinkPolicy.block))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Pull to refresh'),
-              subtitle: const Text('Swipe down at the top of a page to reload it, or to retry after an error.'),
+              title: Text(context.l10n.pullToRefresh),
+              subtitle: Text(context.l10n.pullToRefreshHint),
               value: _m.webView.pullToRefresh,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(pullToRefresh: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Notifications'),
-              subtitle: const Text('The page can use the web Notification API to show Android notifications '
-                  'while the app is open. Android 13+ asks the user first. No push messages.'),
+              title: Text(context.l10n.notifications),
+              subtitle: Text(context.l10n.notificationsHint),
               value: _m.webView.notifications,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(notifications: v))),
             ),
             DropdownButtonFormField<BackButtonMode>(
               initialValue: _m.webView.backButton,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Back button'),
-              items: const [
-                DropdownMenuItem(value: BackButtonMode.history, child: Text('Go back, then close the app')),
-                DropdownMenuItem(value: BackButtonMode.pressTwiceToExit, child: Text('Go back, then press twice to close')),
-                DropdownMenuItem(value: BackButtonMode.confirmExit, child: Text('Go back, then ask before closing')),
-                DropdownMenuItem(value: BackButtonMode.home, child: Text('Go to the start page, then close')),
+              decoration: InputDecoration(labelText: context.l10n.backButton),
+              items: [
+                DropdownMenuItem(value: BackButtonMode.history, child: Text(context.l10n.backHistory)),
+                DropdownMenuItem(value: BackButtonMode.pressTwiceToExit, child: Text(context.l10n.backTwice)),
+                DropdownMenuItem(value: BackButtonMode.confirmExit, child: Text(context.l10n.backConfirm)),
+                DropdownMenuItem(value: BackButtonMode.home, child: Text(context.l10n.backHome)),
               ],
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(backButton: v))),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('File uploads'),
-              subtitle: const Text('Lets file inputs open Android\'s file picker. The user chooses each file.'),
+              title: Text(context.l10n.fileUploads),
+              subtitle: Text(context.l10n.fileUploadsHint),
               value: _m.webView.fileUploads,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(fileUploads: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Share'),
-              subtitle: const Text('navigator.share opens Android\'s share sheet for text and links.'),
+              title: Text(context.l10n.share),
+              subtitle: Text(context.l10n.shareHint),
               value: _m.webView.webShare,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(webShare: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Downloads'),
-              subtitle: const Text('Download links and generated files are saved to the Downloads folder.'),
+              title: Text(context.l10n.downloads),
+              subtitle: Text(context.l10n.downloadsHint),
               value: _m.webView.downloads,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(downloads: v))),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Share images and PDFs'),
-              subtitle: const Text('navigator.share({files}) sends images and PDFs to other apps. '
-                  'On Android 10+ shared images are also saved to the gallery.'),
+              title: Text(context.l10n.shareFiles),
+              subtitle: Text(context.l10n.shareFilesHint),
               value: _m.webView.shareFiles,
               onChanged: (v) => _change(_m.copyWith(webView: _m.webView.copyWith(shareFiles: v))),
             ),
             TextFormField(
               controller: _galleryFolder,
-              decoration: const InputDecoration(
-                labelText: 'Gallery folder (optional)',
-                hintText: 'e.g. My Photos',
-                helperText: 'Pictures/<folder> for shared and downloaded images. Empty: the app name for shares, '
-                    'Downloads for downloads.',
+              decoration: InputDecoration(
+                labelText: context.l10n.galleryFolder,
+                hintText: context.l10n.galleryFolderExample,
+                helperText: context.l10n.galleryFolderHelp,
                 helperMaxLines: 2,
               ),
               validator: (v) => (v ?? '').trim().isEmpty ? null : galleryFolderError((v ?? '').trim()),
@@ -685,24 +774,23 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
             const SizedBox(height: 8),
             TextFormField(
               controller: _shareTarget,
-              decoration: const InputDecoration(
-                labelText: 'Share straight to app (optional)',
-                hintText: 'e.g. com.whatsapp',
-                helperText: 'Package that file shares open directly when installed, instead of the share sheet.',
+              decoration: InputDecoration(
+                labelText: context.l10n.shareToApp,
+                hintText: context.l10n.example('com.whatsapp'),
+                helperText: context.l10n.shareToAppHelp,
                 helperMaxLines: 2,
               ),
               validator: (v) {
                 final t = (v ?? '').trim();
-                return t.isEmpty || isPackageName(t) ? null : 'Use a package name like com.whatsapp';
+                return t.isEmpty || isPackageName(t) ? null : context.l10n.usePackageName;
               },
             ),
             if (!local) ...[
-              const _Section('Offline'),
+              _Section(context.l10n.sectionOffline),
               Text(
                 _m.offlineFallbackPage == null
-                    ? 'When the site cannot load, a built-in "Page unavailable" screen is shown.'
-                    : 'When the site cannot load, your page "${_m.offlineFallbackPage}" is shown. '
-                        'Link to https://appassets.androidplatform.net/html2apk/retry for a "Try again" button.',
+                    ? context.l10n.offlineBuiltIn
+                    : context.l10n.offlinePageShown(_m.offlineFallbackPage!),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -710,26 +798,26 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 OutlinedButton.icon(
                   onPressed: _pickOfflinePage,
                   icon: const Icon(Icons.cloud_off_outlined),
-                  label: Text(_m.offlineFallbackPage == null ? 'Choose offline page (.html)' : 'Replace offline page'),
+                  label: Text(_m.offlineFallbackPage == null ? context.l10n.chooseOfflinePage : context.l10n.replaceOfflinePage),
                 ),
                 if (_m.offlineFallbackPage != null)
                   TextButton(
                     onPressed: () => _clearFile(widget.controller.clearOfflinePage),
-                    child: const Text('Use built-in page'),
+                    child: Text(context.l10n.useBuiltInPage),
                   ),
               ]),
             ],
             const SizedBox(height: 16),
             TextFormField(
               controller: _ua,
-              decoration: const InputDecoration(labelText: 'User agent suffix (optional)', hintText: 'e.g. MyApp/1.0'),
-              validator: (v) => (v ?? '').length > 200 ? 'At most 200 characters' : null,
+              decoration: InputDecoration(labelText: context.l10n.userAgentSuffix, hintText: context.l10n.example('MyApp/1.0')),
+              validator: (v) => (v ?? '').length > 200 ? context.l10n.atMost200 : null,
             ),
-            const _Section('Danger zone'),
+            _Section(context.l10n.sectionDanger),
             OutlinedButton.icon(
               onPressed: _delete,
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Delete project'),
+              label: Text(context.l10n.deleteProject),
               style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             ),
           ],
@@ -793,7 +881,7 @@ class _ColorFieldState extends State<_ColorField> {
         ),
         style: monoStyle(context, size: 14),
         autocorrect: false,
-        validator: (v) => isHexColor((v ?? '').trim()) ? null : 'Use a colour like #1A73E8',
+        validator: (v) => isHexColor((v ?? '').trim()) ? null : context.l10n.useColourLike,
         onChanged: (_) {
           widget.onChanged();
           setState(() {});
@@ -853,7 +941,7 @@ class _QrInstallDialogState extends State<_QrInstallDialog> {
       final list = await lanAddresses();
       if (!mounted) return;
       if (list.isEmpty) {
-        setState(() => _error = 'This computer is not on a Wi-Fi or Ethernet network.');
+        setState(() => _error = context.l10n.noNetwork);
         return;
       }
       setState(() => _addresses = list);
@@ -896,7 +984,7 @@ class _QrInstallDialogState extends State<_QrInstallDialog> {
     final t = Theme.of(context).textTheme;
     final server = _server;
     return AlertDialog(
-      title: const Text('Install on phone'),
+      title: Text(context.l10n.installOnPhone),
       content: SizedBox(
         width: 360,
         child: _error != null
@@ -904,13 +992,11 @@ class _QrInstallDialogState extends State<_QrInstallDialog> {
             : server == null
                 ? const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()))
                 : Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('1. Connect the phone to the same Wi-Fi as this computer.\n'
-                        '2. Scan the code with the phone camera and open the link.\n'
-                        '3. Open the downloaded file. Allow installs from the browser if Android asks.'),
+                    Text(context.l10n.installSteps),
                     const SizedBox(height: 16),
                     Center(
                       child: _expired
-                          ? const SizedBox(height: 240, child: Center(child: Text('The link has stopped.')))
+                          ? SizedBox(height: 240, child: Center(child: Text(context.l10n.linkStopped)))
                           : Container(
                               color: Colors.white,
                               padding: const EdgeInsets.all(12),
@@ -926,7 +1012,7 @@ class _QrInstallDialogState extends State<_QrInstallDialog> {
                       DropdownButtonFormField<InternetAddress>(
                         initialValue: _address,
                         isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'Network address'),
+                        decoration: InputDecoration(labelText: context.l10n.networkAddress),
                         items: [for (final a in _addresses) DropdownMenuItem(value: a, child: Text(a.address))],
                         onChanged: (a) {
                           if (a != null && a != _address) _serve(a);
@@ -935,18 +1021,17 @@ class _QrInstallDialogState extends State<_QrInstallDialog> {
                     const SizedBox(height: 8),
                     Text(
                         _downloads == 0
-                            ? 'The link works for 10 minutes while this window is open.'
-                            : 'Downloaded $_downloads time${_downloads == 1 ? '' : 's'}.',
+                            ? context.l10n.linkWorks10Min
+                            : context.l10n.downloadedTimes(_downloads),
                         style: t.bodySmall),
                     const SizedBox(height: 4),
-                    Text('Use this only on a network you trust. Windows may ask to allow iLoveHTML through the '
-                        'firewall: allow it for private networks.', style: t.bodySmall),
+                    Text(context.l10n.trustedNetworkOnly, style: t.bodySmall),
                   ]),
       ),
       actions: [
         if (_expired && _address != null)
-          TextButton(onPressed: () => _serve(_address!), child: const Text('Start again')),
-        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+          TextButton(onPressed: () => _serve(_address!), child: Text(context.l10n.startAgain)),
+        FilledButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.done)),
       ],
     );
   }
@@ -991,16 +1076,16 @@ class _SizeReportDialogState extends State<_SizeReportDialog> {
   static Future<SiteSizeReport> _scan(String dir) => Isolate.run(() => SiteSizeReport.scan(dir));
   Future<OptimizeResult>? _savings;
 
-  static const _kindNames = {
-    AssetKind.page: 'Pages',
-    AssetKind.script: 'JavaScript',
-    AssetKind.style: 'CSS',
-    AssetKind.image: 'Images',
-    AssetKind.font: 'Fonts',
-    AssetKind.media: 'Audio and video',
-    AssetKind.data: 'Data',
-    AssetKind.other: 'Other',
-  };
+  static String _kindName(BuildContext context, AssetKind kind) => switch (kind) {
+        AssetKind.page => context.l10n.kindPages,
+        AssetKind.script => 'JavaScript',
+        AssetKind.style => 'CSS',
+        AssetKind.image => context.l10n.kindImages,
+        AssetKind.font => context.l10n.kindFonts,
+        AssetKind.media => context.l10n.kindMedia,
+        AssetKind.data => context.l10n.kindData,
+        AssetKind.other => context.l10n.kindOther,
+      };
 
   /// Runs the optimizer on a temporary copy, only to count the savings.
   static Future<OptimizeResult> _trySavings(String sourceDir) => Isolate.run(() {
@@ -1016,27 +1101,27 @@ class _SizeReportDialogState extends State<_SizeReportDialog> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return AlertDialog(
-      title: const Text('Size report'),
+      title: Text(context.l10n.sizeReport),
       content: SizedBox(
         width: 420,
         child: FutureBuilder<SiteSizeReport>(
           future: _report,
           builder: (context, snap) {
             final r = snap.data;
-            if (snap.hasError) return Text('Could not read the files: ${snap.error}');
+            if (snap.hasError) return Text(context.l10n.couldNotReadFiles('${snap.error}'));
             if (r == null) return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()));
             final kinds = r.bytesByKind.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
             return SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${r.files.length} files, ${formatBytes(r.totalBytes)}', style: text.titleMedium),
+                Text(context.l10n.filesAndSize(r.files.length, formatBytes(r.totalBytes)), style: text.titleMedium),
                 const SizedBox(height: 8),
-                for (final k in kinds) _row(_kindNames[k.key]!, formatBytes(k.value)),
+                for (final k in kinds) _row(_kindName(context, k.key), formatBytes(k.value)),
                 const SizedBox(height: 16),
-                Text('Largest files', style: text.labelLarge),
+                Text(context.l10n.largestFiles, style: text.labelLarge),
                 for (final f in r.largest(8)) _row(f.path, formatBytes(f.bytes)),
                 if (r.warnings.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text('Advice', style: text.labelLarge),
+                  Text(context.l10n.advice, style: text.labelLarge),
                   for (final w in r.warnings)
                     Padding(padding: const EdgeInsets.only(top: 4), child: Text('• $w', style: text.bodySmall)),
                 ],
@@ -1044,19 +1129,17 @@ class _SizeReportDialogState extends State<_SizeReportDialog> {
                 if (_savings == null)
                   OutlinedButton(
                     onPressed: () => setState(() => _savings = _trySavings(widget.sourceDir)),
-                    child: const Text('Check what optimizing saves'),
+                    child: Text(context.l10n.checkOptimizing),
                   )
                 else
                   FutureBuilder<OptimizeResult>(
                     future: _savings,
                     builder: (context, s) {
                       final o = s.data;
-                      if (s.hasError) return Text('Check failed: ${s.error}');
+                      if (s.hasError) return Text(context.l10n.checkFailed('${s.error}'));
                       if (o == null) return const LinearProgressIndicator();
                       return Text(
-                          'Optimizing makes ${o.changed.length} files smaller and saves ${formatBytes(o.savedBytes)} '
-                          '(${formatBytes(o.totalBefore)} → ${formatBytes(o.totalAfter)}). '
-                          'The APK is compressed too, so the APK saving is often smaller for CSS and JSON.',
+                          context.l10n.optimizeResult(o.changed.length, formatBytes(o.savedBytes), formatBytes(o.totalBefore), formatBytes(o.totalAfter)),
                           style: text.bodyMedium);
                     },
                   ),
@@ -1065,7 +1148,7 @@ class _SizeReportDialogState extends State<_SizeReportDialog> {
           },
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.close))],
     );
   }
 
@@ -1106,7 +1189,7 @@ class _ShortcutDialogState extends State<_ShortcutDialog> {
   Widget build(BuildContext context) {
     final local = widget.type == SourceType.local;
     return AlertDialog(
-      title: const Text('Add shortcut'),
+      title: Text(context.l10n.addShortcut),
       content: Form(
         key: _form,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1114,16 +1197,16 @@ class _ShortcutDialogState extends State<_ShortcutDialog> {
             controller: _label,
             autofocus: true,
             maxLength: maxShortcutLabelLength,
-            decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. Cart'),
-            validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a name' : null,
+            decoration: InputDecoration(labelText: context.l10n.name, hintText: context.l10n.exampleCart),
+            validator: (v) => (v ?? '').trim().isEmpty ? context.l10n.enterName : null,
           ),
           if (local && widget.pages.isNotEmpty)
             DropdownButtonFormField<String>(
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Page'),
+              decoration: InputDecoration(labelText: context.l10n.page),
               items: [for (final page in widget.pages) DropdownMenuItem(value: page, child: Text(page, overflow: TextOverflow.ellipsis))],
               onChanged: (v) => _page.text = v ?? '',
-              validator: (v) => v == null ? 'Choose a page' : shortcutPageError(widget.type, v),
+              validator: (v) => v == null ? context.l10n.choosePage : shortcutPageError(widget.type, v),
             )
           else
             TextFormField(
@@ -1131,21 +1214,21 @@ class _ShortcutDialogState extends State<_ShortcutDialog> {
               autocorrect: false,
               keyboardType: TextInputType.url,
               decoration: InputDecoration(
-                labelText: 'Page',
-                hintText: local ? 'e.g. cart.html' : 'e.g. /cart',
+                labelText: context.l10n.page,
+                hintText: context.l10n.example(local ? 'cart.html' : '/cart'),
               ),
               validator: (v) => shortcutPageError(widget.type, (v ?? '').trim()),
             ),
         ]),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           onPressed: () {
             if (!_form.currentState!.validate()) return;
             Navigator.pop(context, AppShortcut(label: _label.text.trim(), page: _page.text.trim()));
           },
-          child: const Text('Add'),
+          child: Text(context.l10n.add),
         ),
       ],
     );
@@ -1212,9 +1295,9 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             (keys.any((k) => k.id == _keyId) ? _keyId : keys.firstOrNull?.id);
       });
     } on PlatformException catch (e) {
-      if (mounted) setState(() => _log.add('Could not load release keys: ${e.message}'));
+      if (mounted) setState(() => _log.add(context.l10n.couldNotLoadKeys(e.message ?? '')));
     } on KeyManagerException catch (e) {
-      if (mounted) setState(() => _log.add('Could not load release keys: ${e.message}'));
+      if (mounted) setState(() => _log.add(context.l10n.couldNotLoadKeys(e.message)));
     }
   }
 
@@ -1230,13 +1313,11 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
         final ok = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: const Text('Different release key'),
-            content: Text('This app was first released with a different key (SHA-256 ${pinned.substring(0, 8)}…). '
-                'Phones that installed that release cannot update to an APK signed with "${key.alias}", '
-                'and Google Play will reject it as an update.'),
+            title: Text(context.l10n.differentKey),
+            content: Text(context.l10n.differentKeyBody(pinned.substring(0, 8), key.alias)),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Build anyway')),
+              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(context.l10n.cancel)),
+              TextButton(onPressed: () => Navigator.pop(c, true), child: Text(context.l10n.buildAnyway)),
             ],
           ),
         );
@@ -1281,25 +1362,23 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
           Row(children: [
             const Icon(Icons.desktop_windows_outlined),
             const SizedBox(width: 8),
-            Text('Windows app (.exe)', style: t.titleSmall),
+            Text(context.l10n.windowsExe, style: t.titleSmall),
           ]),
           const SizedBox(height: 8),
-          Text('One .exe file that opens this site in its own window with Microsoft Edge WebView2 '
-              '(built into Windows 11 and updated Windows 10). It is not code-signed, so Windows may show '
-              '"Windows protected your PC" until people choose More info → Run anyway.',
+          Text(context.l10n.exeDescription,
               style: t.bodySmall),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
-            title: const Text('Developer tools (for testing)'),
-            subtitle: const Text('F12 and Inspect work in the app; leave off for the version you share'),
+            title: Text(context.l10n.devTools),
+            subtitle: Text(context.l10n.devToolsHint),
             value: _exeDebug,
             onChanged: (v) => setState(() => _exeDebug = v),
           ),
           FilledButton.tonalIcon(
             onPressed: _building ? null : _buildExe,
             icon: const Icon(Icons.play_arrow),
-            label: Text(_building ? 'Building…' : 'Build .exe'),
+            label: Text(_building ? context.l10n.building : context.l10n.buildExe),
           ),
           const SizedBox(height: 16),
           const Divider(),
@@ -1334,29 +1413,26 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
       Row(children: [
         const Icon(Icons.install_desktop_outlined),
         const SizedBox(width: 8),
-        Text('Windows installer (.msix)', style: t.titleSmall),
+        Text(context.l10n.windowsMsix, style: t.titleSmall),
       ]),
       const SizedBox(height: 8),
-      Text('Installs the app like other Windows software: Start menu entry, clean uninstall, and updates when '
-          'you share a higher version. Every installer is signed with a certificate.',
+      Text(context.l10n.msixDescription,
           style: t.bodySmall),
       const SizedBox(height: 12),
       if (_sdk == null)
-        Text('Needs the Windows SDK. Install it with:\nwinget install Microsoft.WindowsSDK.10.0.26100',
+        Text(context.l10n.needsWindowsSdk,
             style: monoStyle(context, size: 12))
       else ...[
         if (cert == null)
-          Text('No certificate yet. Use your own code-signing certificate, or create a test certificate to try it.',
+          Text(context.l10n.noCertificate,
               style: t.bodySmall)
         else ...[
-          Text('Publisher: ${cert.publisherName} · valid until $until', style: monoStyle(context, size: 12)),
+          Text(context.l10n.publisherValidUntil(cert.publisherName, until), style: monoStyle(context, size: 12)),
           if (cert.isTest)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                  'Test certificate: Windows installs the app only after people trust it once. Share the .cer '
-                  'file next to the installer; people double-click it → Install Certificate → Local Machine → '
-                  '"Trusted People". A certificate bought from a certificate authority needs no such step.',
+                  context.l10n.testCertNote,
                   style: t.bodySmall),
             ),
         ],
@@ -1365,25 +1441,25 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
           OutlinedButton.icon(
             onPressed: _building ? null : () => _replaceCert(cert, _createCert),
             icon: const Icon(Icons.add_moderator_outlined),
-            label: const Text('Create test certificate'),
+            label: Text(context.l10n.createTestCert),
           ),
           OutlinedButton.icon(
             onPressed: _building ? null : () => _replaceCert(cert, _importCert),
             icon: const Icon(Icons.file_open_outlined),
-            label: const Text('Use my .pfx'),
+            label: Text(context.l10n.useMyPfx),
           ),
           if (cert != null)
             OutlinedButton.icon(
-              onPressed: () => _certAction(desktop.saveMsixCer, 'Saved the certificate'),
+              onPressed: () => _certAction(desktop.saveMsixCer, context.l10n.savedCertificate),
               icon: const Icon(Icons.save_alt),
-              label: const Text('Save .cer'),
+              label: Text(context.l10n.saveCer),
             ),
         ]),
         const SizedBox(height: 12),
         FilledButton.tonalIcon(
           onPressed: _building || cert == null ? null : _buildMsix,
           icon: const Icon(Icons.play_arrow),
-          label: Text(_building ? 'Building…' : 'Build installer'),
+          label: Text(_building ? context.l10n.building : context.l10n.buildInstaller),
         ),
       ],
     ]);
@@ -1395,12 +1471,11 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Replace the certificate?'),
-          content: Text('Apps installed from installers signed by "${current.publisherName}" update only from '
-              'installers with the same publisher name. Back up the current certificate first if you may need it.'),
+          title: Text(context.l10n.replaceCertQ),
+          content: Text(context.l10n.replaceCertBody(current.publisherName)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Replace')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(context.l10n.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(context.l10n.replace)),
           ],
         ),
       );
@@ -1410,24 +1485,25 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
   }
 
   Future<void> _createCert() async {
-    final name = await _askText('Create test certificate', 'Publisher name',
-        initial: Platform.environment['USERNAME'] ?? '',
-        help: 'Shown as the publisher when people install your apps.');
+    final l = context.l10n;
+    final name = await _askText(l.createTestCert, l.publisherName,
+        initial: Platform.environment['USERNAME'] ?? '', help: l.publisherNameHelp);
     if (name == null) return;
-    await _certAction(() => widget.controller.desktopEngine!.createMsixCertificate(name), 'Test certificate created');
+    await _certAction(() => widget.controller.desktopEngine!.createMsixCertificate(name), l.testCertCreated);
   }
 
   Future<void> _importCert() async {
+    final l = context.l10n;
     final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pfx', 'p12']);
     if (picked.isEmpty || !mounted) return;
     final tmp = Directory.systemTemp.createTempSync('pfx');
     try {
       final path = p.join(tmp.path, 'certificate.pfx');
       await picked.single.xFile.saveTo(path);
-      final password = await _askText('Use my certificate', 'Password of ${picked.single.name}', obscure: true);
+      final password = await _askText(l.useMyCertificate, l.passwordOf(picked.single.name), obscure: true);
       if (password == null) return;
       await _certAction(
-          () => widget.controller.desktopEngine!.importMsixCertificate(path, password), 'Certificate added');
+          () => widget.controller.desktopEngine!.importMsixCertificate(path, password), l.certificateAdded);
     } finally {
       tmp.deleteSync(recursive: true);
       await FilePicker.clearTemporaryFiles();
@@ -1463,8 +1539,8 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
           onSubmitted: (v) => Navigator.pop(c, v),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(c, field.text), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(context.l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(c, field.text), child: Text(context.l10n.ok)),
         ],
       ),
     ).whenComplete(field.dispose);
@@ -1475,12 +1551,12 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
       final c = widget.controller;
       final where = await (c.desktopEngine?.saveFile(path) ?? c.deviceEngine!.saveFile(path));
       if (mounted && where != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved ${p.basename(path)}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.savedFile(p.basename(path)))));
       }
     } on PlatformException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: ${e.message}')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.saveFailed('${e.message}'))));
     } on FileSystemException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: ${e.message}')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.saveFailed(e.message))));
     }
   }
 
@@ -1494,9 +1570,9 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
     final engine = widget.controller.deviceEngine!;
     try {
       if (!await engine.install(path) && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           duration: Duration(seconds: 8),
-          content: Text('Allow "Install unknown apps" for iLoveHTML in the screen that opened, then tap Install again.'),
+          content: Text(context.l10n.allowUnknownApps),
         ));
       }
     } on PlatformException catch (e) {
@@ -1525,9 +1601,9 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SegmentedButton<BuildVariant>(
-                  segments: const [
-                    ButtonSegment(value: BuildVariant.debug, label: Text('Debug'), icon: Icon(Icons.bug_report_outlined)),
-                    ButtonSegment(value: BuildVariant.release, label: Text('Release'), icon: Icon(Icons.verified_outlined)),
+                  segments: [
+                    ButtonSegment(value: BuildVariant.debug, label: Text(context.l10n.debug), icon: Icon(Icons.bug_report_outlined)),
+                    ButtonSegment(value: BuildVariant.release, label: Text(context.l10n.release), icon: Icon(Icons.verified_outlined)),
                   ],
                   selected: {_variant},
                   onSelectionChanged: (s) => setState(() => _variant = s.single),
@@ -1537,18 +1613,16 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                     style: monoStyle(context, size: 12)),
                 const SizedBox(height: 4),
                 if (_variant == BuildVariant.debug)
-                  Text('For testing. Signed with a debug key that stays on this device; '
-                      'not for publishing.',
+                  Text(context.l10n.debugHint,
                       style: t.bodySmall)
                 else ...[
-                  Text('For publishing. Signed with your release key; every later update must use the same key '
-                      'and a higher version code.',
+                  Text(context.l10n.releaseHint,
                       style: t.bodySmall),
                   const SizedBox(height: 12),
                   SegmentedButton<ArtifactFormat>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(value: ArtifactFormat.apk, label: Text('APK')),
-                      ButtonSegment(value: ArtifactFormat.aab, label: Text('App Bundle (Play)')),
+                      ButtonSegment(value: ArtifactFormat.aab, label: Text(context.l10n.appBundlePlay)),
                     ],
                     selected: {_format},
                     onSelectionChanged: (s) => setState(() => _format = s.single),
@@ -1556,8 +1630,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                   if (_format == ArtifactFormat.aab)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text('Upload the .aab to Google Play Console. It cannot be installed directly; '
-                          'use an APK to test on a phone.',
+                      child: Text(context.l10n.aabHint,
                           style: t.bodySmall),
                     ),
                   const SizedBox(height: 12),
@@ -1567,7 +1640,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                     OutlinedButton.icon(
                       onPressed: _openKeys,
                       icon: const Icon(Icons.key),
-                      label: const Text('Create or import a release key'),
+                      label: Text(context.l10n.createOrImportKey),
                     )
                   else
                     Row(children: [
@@ -1575,7 +1648,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                         child: DropdownButtonFormField<String>(
                           initialValue: _keyId,
                           isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Release key'),
+                          decoration: InputDecoration(labelText: context.l10n.releaseKey),
                           items: [
                             for (final k in _keys!)
                               DropdownMenuItem(value: k.id, child: Text('${k.alias} · ${k.shortSha256}', overflow: TextOverflow.ellipsis)),
@@ -1583,7 +1656,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                           onChanged: (v) => setState(() => _keyId = v),
                         ),
                       ),
-                      IconButton(tooltip: 'Manage keys', onPressed: _openKeys, icon: const Icon(Icons.settings_outlined)),
+                      IconButton(tooltip: context.l10n.manageKeys, onPressed: _openKeys, icon: const Icon(Icons.settings_outlined)),
                     ]),
                 ],
                 const SizedBox(height: 16),
@@ -1595,25 +1668,32 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                       : _build,
                   icon: const Icon(Icons.play_arrow),
                   label: Text(_building
-                      ? 'Building…'
+                      ? context.l10n.building
                       : _variant == BuildVariant.debug
-                          ? 'Build debug APK'
+                          ? context.l10n.buildDebugApk
                           : _format == ArtifactFormat.aab
-                              ? 'Build App Bundle'
-                              : 'Build release APK'),
+                              ? context.l10n.buildAppBundle
+                              : context.l10n.buildReleaseApk),
                 ),
                 if (widget.controller.engine == null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text('Building is not available on this platform yet.', style: t.bodySmall),
+                    child: Text(context.l10n.buildingUnavailable, style: t.bodySmall),
                   ),
                 if (widget.controller.desktopEngine?.problems case final problems? when problems.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text('Cannot build yet:\n${problems.join('\n')}',
+                    child: Text('${context.l10n.cannotBuildYet}\n${problems.join('\n')}',
                         style: t.bodySmall?.copyWith(color: scheme.error)),
                   ),
-                if (_building) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
+                if (_building)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: AsciiBuildProgress(
+                      label: context.l10n.buildingLines(_log.length),
+                      animate: animationsOn(context, widget.controller.settings),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1628,7 +1708,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
             color: scheme.errorContainer,
             child: ListTile(
               leading: Icon(Icons.error_outline, color: scheme.onErrorContainer),
-              title: Text('Build failed', style: TextStyle(color: scheme.onErrorContainer)),
+              title: Text(context.l10n.buildFailed, style: TextStyle(color: scheme.onErrorContainer)),
               subtitle: Text(_result!.message ?? '', style: TextStyle(color: scheme.onErrorContainer)),
             ),
           ),
@@ -1654,12 +1734,12 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                       FilledButton.tonalIcon(
                         onPressed: () => _save(apkPath),
                         icon: const Icon(Icons.save_alt),
-                        label: const Text('Save as…'),
+                        label: Text(context.l10n.saveAs),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => desktop.showInFolder(apkPath),
                         icon: const Icon(Icons.folder_open_outlined),
-                        label: const Text('Show in folder'),
+                        label: Text(context.l10n.showInFolder),
                       ),
                       if (!apkPath.endsWith('.aab'))
                         OutlinedButton.icon(
@@ -1669,24 +1749,24 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
                             builder: (_) => _QrInstallDialog(apkPath: apkPath),
                           ),
                           icon: const Icon(Icons.qr_code_2),
-                          label: const Text('Install on phone'),
+                          label: Text(context.l10n.installOnPhone),
                         ),
                     ] else ...[
                     if (!apkPath.endsWith('.aab'))
                       FilledButton.tonalIcon(
                         onPressed: () => _install(apkPath),
                         icon: const Icon(Icons.install_mobile),
-                        label: const Text('Install'),
+                        label: Text(context.l10n.install),
                       ),
                     OutlinedButton.icon(
                       onPressed: () => _save(apkPath),
                       icon: const Icon(Icons.save_alt),
-                      label: const Text('Save to device'),
+                      label: Text(context.l10n.saveToDevice),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => widget.controller.deviceEngine!.share(apkPath),
                       icon: const Icon(Icons.share_outlined),
-                      label: const Text('Share'),
+                      label: Text(context.l10n.share),
                     ),
                     ],
                   ]),
@@ -1697,7 +1777,7 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
         ],
         if (_log.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('Build log', style: t.titleSmall),
+          Text(context.l10n.buildLog, style: t.titleSmall),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
@@ -1707,17 +1787,15 @@ class _BuildTabState extends State<_BuildTab> with AutomaticKeepAliveClientMixin
         ],
         if (history.isNotEmpty) ...[
           const SizedBox(height: 20),
-          Text('History', style: t.titleSmall),
+          Text(context.l10n.history, style: t.titleSmall),
           for (final b in history.take(10))
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               leading: Icon(b.succeeded ? Icons.check_circle_outline : Icons.highlight_off,
                   color: b.succeeded ? scheme.primary : scheme.error),
-              title: Text('v${b.versionName ?? '?'} (${b.versionCode ?? '?'}) · ${b.variant} ${b.format.toUpperCase()} · '
-                  '${b.status} · ${b.durationMs} ms'),
-              subtitle: Text('${_fmtTime(b.time)}${b.bytes == null ? '' : ' · ${formatBytes(b.bytes!)}'}'
-                  '${b.message == null ? '' : '\n${b.message}'}'),
+              title: Text('v${b.versionName ?? '?'} (${b.versionCode ?? '?'}) · ${b.variant} ${b.format.toUpperCase()} · ${b.status} · ${b.durationMs} ms'),
+              subtitle: Text('${_fmtTime(b.time)}${b.bytes == null ? '' : ' · ${formatBytes(b.bytes!)}'}${b.message == null ? '' : '\n${b.message}'}'),
             ),
         ],
       ],
@@ -1729,4 +1807,49 @@ String _fmtTime(DateTime t) {
   final l = t.toLocal();
   String two(int v) => v.toString().padLeft(2, '0');
   return '${l.year}-${two(l.month)}-${two(l.day)} ${two(l.hour)}:${two(l.minute)}';
+}
+
+/// What changed after replacing a project's website files.
+class _ReplaceSummary extends StatelessWidget {
+  const _ReplaceSummary({required this.report});
+
+  final ReplaceReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final t = Theme.of(context).textTheme;
+    final r = report.import;
+    final missing = r.missingAssets;
+    return AlertDialog(
+      title: Text(l.websiteReplaced),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.importedFiles(r.fileCount)),
+            const SizedBox(height: 8),
+            Text(l.startPageIs(r.project.manifest.source.entry)),
+            if (report.startPageChanged) Text(l.startPageChanged(report.previousStartPage), style: t.bodySmall),
+            if (report.droppedShortcuts.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(l.shortcutsRemoved(report.droppedShortcuts.join(', ')), style: t.bodySmall),
+            ],
+            const SizedBox(height: 8),
+            if (missing.isEmpty)
+              Text(l.noMissingFiles)
+            else ...[
+              Text(l.filesMissing(missing.length), style: t.titleSmall),
+              for (final m in missing.take(8)) Text('• $m', style: monoStyle(context, size: 12)),
+              if (missing.length > 8) Text(l.andMore(missing.length - 8)),
+            ],
+            const SizedBox(height: 12),
+            Text(l.rebuildAfterReplace, style: t.bodySmall),
+          ],
+        ),
+      ),
+      actions: [FilledButton(onPressed: () => Navigator.pop(context), child: Text(l.done))],
+    );
+  }
 }

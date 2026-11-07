@@ -1,21 +1,29 @@
 name: html2apk_app
 description: "iLoveHTML: turn a website into an Android or Windows app."
 publish_to: 'none'
-version: 1.1.1+6
+version: 1.2.0+7
 
 environment:
   sdk: ^3.13.5
 
 dependencies:
+  crypto: ^3.0.8
   ffi: ^2.2.0
   file_picker: ^13.1.0
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_svg: ^2.3.0
   html2apk_core:
     path: ../packages/html2apk_core
+  intl: any
+  local_auth: ^3.0.2
+  package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.6
+  shared_preferences: ^2.5.6
+  url_launcher: ^6.3.3
   webview_flutter: ^4.14.1
   webview_flutter_android: ^4.14.1
 
@@ -28,6 +36,7 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+  generate: true
   uses-material-design: true
   fonts:
     - family: JetBrainsMono
