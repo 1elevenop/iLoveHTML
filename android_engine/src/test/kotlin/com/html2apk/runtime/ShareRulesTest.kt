@@ -48,7 +48,7 @@ class ShareRulesTest {
 
     @Test
     fun galleryFolderIsOneFolder() {
-        assertEquals("Kishor G", ShareRules.folderName("Kishor G"))
+        assertEquals("My Photos", ShareRules.folderName("My Photos"))
         assertEquals("a_b", ShareRules.folderName("a/b"))
         assertEquals("x", ShareRules.folderName("../x")?.trimStart('_'))
         assertNull(ShareRules.folderName("   "))

@@ -37,7 +37,7 @@ make every app un-updatable once the phone is lost.)
   `HTML2APK_KEY_PASSWORD`. Every build is checked with `apksigner verify`,
   and the signer's SHA-256 is recorded in build history.
 
-## Verified (Galaxy S25 Ultra, Windows 11, 2026-10-21)
+## Verified (Samsung phone, Windows 11, 2026-10-21)
 
 - Key created on the phone, backed up via the system "save" screen as
   `upload.jks`; `keytool -list` on Windows reads it (PKCS12, SHA256withRSA,

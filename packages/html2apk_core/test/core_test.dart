@@ -260,12 +260,12 @@ void main() {
       expect(WebViewSettings.fromJson(old).shareFiles, isTrue);
 
       final set = m.copyWith(
-          webView: m.webView.copyWith(shareFiles: false, galleryFolder: () => 'Kishor G', shareTarget: () => 'com.whatsapp'));
+          webView: m.webView.copyWith(shareFiles: false, galleryFolder: () => 'My Photos', shareTarget: () => 'com.whatsapp'));
       final back = WebViewSettings.fromJson(jsonDecode(jsonEncode(set.webView.toJson())) as Map<String, Object?>);
-      expect([back.shareFiles, back.galleryFolder, back.shareTarget], [false, 'Kishor G', 'com.whatsapp']);
+      expect([back.shareFiles, back.galleryFolder, back.shareTarget], [false, 'My Photos', 'com.whatsapp']);
       expect(validateManifest(set), isEmpty);
       final config = AndroidGenerator.runtimeConfig(set);
-      expect([config['shareFiles'], config['galleryFolder'], config['shareTarget']], [false, 'Kishor G', 'com.whatsapp']);
+      expect([config['shareFiles'], config['galleryFolder'], config['shareTarget']], [false, 'My Photos', 'com.whatsapp']);
       expect(set.webView.copyWith(galleryFolder: () => null).galleryFolder, isNull);
 
       for (final bad in ['a/b', r'a\b', '../x', ' x', '.hidden', 'x' * 61, 'a:b']) {

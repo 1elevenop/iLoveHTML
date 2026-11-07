@@ -39,7 +39,7 @@ void main() {
     });
 
     test('publisher display name is the CN', () {
-      expect(MsixBuilder.commonName('CN=Jaydeep'), 'Jaydeep');
+      expect(MsixBuilder.commonName('CN=Alex Example'), 'Alex Example');
       expect(MsixBuilder.commonName('CN=Acme Ltd, O=Acme, C=IN'), 'Acme Ltd');
       expect(MsixBuilder.commonName('O=Acme, CN="Acme, Inc."'), 'Acme, Inc.');
     });

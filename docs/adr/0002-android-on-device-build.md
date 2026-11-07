@@ -59,7 +59,7 @@ Template rules this depends on (enforced in `android_template/`):
 
 ## Prototype results (2026-10-21)
 
-Device: Samsung Galaxy S25 Ultra (SM-S938B), Android 17 / API 37,
+Device: Samsung phone, Android 17 / API 37,
 arm64-v8a, Android System WebView 155.
 
 | Measurement | Result |

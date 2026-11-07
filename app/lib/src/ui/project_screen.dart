@@ -675,7 +675,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               controller: _galleryFolder,
               decoration: const InputDecoration(
                 labelText: 'Gallery folder (optional)',
-                hintText: 'e.g. Kishor G',
+                hintText: 'e.g. My Photos',
                 helperText: 'Pictures/<folder> for shared and downloaded images. Empty: the app name for shares, '
                     'Downloads for downloads.',
                 helperMaxLines: 2,
