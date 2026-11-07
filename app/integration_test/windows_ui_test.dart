@@ -76,14 +76,35 @@ void main() {
       debugPrint('E2E windows: ${last?.variant} ${last?.format} ${last?.status} ${last?.message ?? ''}');
     }
 
+    // The Build tab is a lazy list: result and error cards sit below the .exe and
+    // .msix cards and are not built until scrolled to. Its list is the nearest
+    // Scrollable above the Debug/Release switch (the build log has its own).
+    // Pinned while the top of the tab is on screen, since scrolling disposes the switch.
+    Finder buildTab() {
+      final list = find.ancestor(of: find.text('Debug').first, matching: find.byType(Scrollable)).first.evaluate().first;
+      return find.byElementPredicate((e) => identical(e, list));
+    }
+
+    // Scrolls [target] into view, runs [check], then returns to the top of the tab.
+    Future<void> belowTheFold(Finder target, void Function() check) async {
+      final tab = buildTab();
+      await tester.scrollUntilVisible(target, 200, scrollable: tab);
+      check();
+      tester.state<ScrollableState>(tab).position.jumpTo(0);
+      await tester.pumpAndSettle();
+    }
+
     // Debug APK.
     await tester.tap(find.text('Build'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Build debug APK'));
     await waitForBuild();
     expect(find.text('Build failed'), findsNothing);
-    expect(find.text('Save as…'), findsOneWidget);
-    expect(find.text('Show in folder'), findsOneWidget);
+    await belowTheFold(find.text('Save as…'), () {
+      expect(find.text('Save as…'), findsOneWidget);
+      expect(find.text('Show in folder'), findsOneWidget);
+      expect(find.text('Install on phone'), findsOneWidget);
+    });
     final project = controller.projects.single;
     expect(File(project.debugApkPath).existsSync(), isTrue);
     debugPrint('E2E windows: debug ${File(project.debugApkPath).lengthSync()} bytes');
@@ -114,7 +135,7 @@ void main() {
     // Same version code as the release just built: refused before building.
     await tester.tap(find.text('Build App Bundle'));
     await tester.pumpAndSettle();
-    expect(find.text('Build failed'), findsOneWidget);
+    await belowTheFold(find.text('Build failed'), () => expect(find.text('Build failed'), findsOneWidget));
     debugPrint('E2E windows: same version refused');
     final m = controller.projects.single.manifest;
     controller.update(controller.projects.single,
@@ -130,7 +151,7 @@ void main() {
         'aab ${p.basename(aab)} ${File(aab).lengthSync()} bytes');
 
     // Windows .exe from the same project, then run it.
-    await tester.scrollUntilVisible(find.text('Build .exe'), 200, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(find.text('Build .exe'), 200, scrollable: buildTab());
     await tester.tap(find.text('Build .exe'));
     await waitForBuild();
     expect(find.text('Build failed'), findsNothing);
