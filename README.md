@@ -1,12 +1,49 @@
 # iLoveHTML — local HTML-to-Android app builder
 
-Converts a website (ZIP of HTML/CSS/JS/assets, later folders and URLs) into
-an Android WebView app, built entirely on the local machine.
+Turn HTML files, a website ZIP or a live https website into an Android app
+(APK or Play Store App Bundle) or a Windows app (.exe or .msix installer).
+Everything is built on your own phone or PC: no account, no upload, no cloud.
 
-**Status: Android app and Windows app working; websites build into APK, AAB and Windows .exe.**
+**Latest release: [iLoveHTML 1.1.1](https://github.com/1elevenop/iLoveHTML/releases/latest)**
+— Android APK and Windows ZIP, with SHA-256 checksums.
 
-**Android versions:** iLoveHTML for Android and every app it builds need
+## Quick start
+
+**On Android** (Android 10 or newer)
+
+1. Download `iLoveHTML-<version>.apk` from the
+   [latest release](https://github.com/1elevenop/iLoveHTML/releases/latest)
+   and open it (allow installs from your browser if Android asks).
+2. Tap **New app**, pick your HTML files, a website ZIP or a URL.
+3. Adjust the settings, open **Build** → **Build debug APK** → **Install**.
+
+**On Windows** (10 or 11, 64-bit)
+
+1. Download `iLoveHTML-<version>-windows-x64.zip`, unzip it anywhere and
+   run `iLoveHTML.exe` (Windows may say "Windows protected your PC" because
+   it isn't code-signed yet: choose More info → Run anyway).
+2. For Android builds, install [Android Studio](https://developer.android.com/studio)
+   once (it brings the JDK and Android SDK). Windows .exe apps need nothing extra.
+3. **New app** → pick your site → **Build**. After an APK build, **Install on
+   phone** shows a QR code to install it on a phone on the same Wi-Fi.
+
+**Supported versions:** iLoveHTML for Android and every app it builds need
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
+Version 1.0.3 was the last for Android 7–9.
+
+## What's new in 1.1.1
+
+- Apps you build: light/dark/follow-phone theme, fullscreen, keep screen
+  on, back-button choices, app shortcuts, app lock (fingerprint, face or
+  screen lock), web notifications, Android TV and tablet support, and
+  smaller builds with "Optimize files when building".
+- iLoveHTML: install on a phone by QR code from Windows, and project backup
+  and restore (`.ilovehtml` files).
+- Android 10 is now the minimum.
+
+Full notes: [release 1.1.1](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.1.1).
+
+## Features
 
 - **Android app (`app/`, Flutter):** project list; new apps from one or
   more HTML files (CSS/JS/images picked alongside are moved into the
@@ -97,6 +134,10 @@ Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 - Not built yet: camera/location and other native features, push
   notifications, SQLite index, templates.
 
+---
+
+# For developers
+
 ## Layout
 
 | Path | What |
@@ -119,7 +160,7 @@ Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 - Internet on the first build only (Gradle, AGP, AndroidX go into `~/.gradle`)
 - For the Windows app: Visual Studio 2022 (Build Tools is enough) with
   "Desktop development with C++", Windows **Developer Mode** on, and the
-  repo on an NTFS drive (this repo lives at D:\iLoveHTML).
+  repo on an NTFS drive.
   Flutter links plugins with symlinks, which need Developer Mode and
   which exFAT drives cannot hold.
 
