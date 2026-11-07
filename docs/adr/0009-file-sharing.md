@@ -1,6 +1,8 @@
 # ADR 0009: Sharing images and PDFs from generated apps
 
-Status: accepted (2026-11-04)
+Status: accepted (2026-11-04). The Android 7–9 FileProvider path below was
+removed on 2026-11-07 ([ADR 0010](0010-android-10-minimum.md)): files are
+always shared through MediaStore now.
 
 ## Context
 

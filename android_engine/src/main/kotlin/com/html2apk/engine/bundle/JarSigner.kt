@@ -17,9 +17,9 @@ import java.util.zip.ZipOutputStream
  * entry, META-INF/<NAME>.SF with digests of the manifest, and a detached
  * PKCS#7 signature of the .SF in META-INF/<NAME>.RSA (or .EC).
  *
- * Self-contained (no java.util.Base64, which needs Android 8.0) so bundles
- * can also be built on Android 7.x. Signature files are written first, as
- * jarsigner does, so streaming readers see them.
+ * Self-contained (it once had to run on Android 7, which lacks
+ * java.util.Base64). Signature files are written first, as jarsigner does,
+ * so streaming readers see them.
  */
 object JarSigner {
     private const val SIGNER = "UPLOAD"

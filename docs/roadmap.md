@@ -31,8 +31,10 @@ Here's what's needed to make it a polished **standalone desktop product**:
 | Web notifications | `Notification` API while the app is open (adds `POST_NOTIFICATIONS`) |
 | Android TV and tablets | TV banner and remote focus; free rotation and desktop layout on tablets |
 
-Still to check on real devices: app lock on Android 7–9 and 10+, notifications
-on Android 13+, the TV remote, and QR install from a Windows PC.
+Checked on a real Galaxy S25 Ultra (Android 17, 2026-11-07): app lock with
+fingerprint and face, notifications, follow-phone and dark theme, and QR
+install from a Windows PC. Still to check on real hardware: the TV remote,
+and an Android 10 phone.
 
 ---
 

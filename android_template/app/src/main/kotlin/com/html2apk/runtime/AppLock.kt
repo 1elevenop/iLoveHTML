@@ -80,12 +80,6 @@ class AppLock(
         cancel?.cancel()
     }
 
-    /** Result of the Android 7-9 confirm-credential screen. */
-    fun onUnlockResult(resultCode: Int) {
-        prompting = false
-        if (resultCode == Activity.RESULT_OK) unlock()
-    }
-
     private fun lock() {
         locked = true
         autoPrompted = false
@@ -108,39 +102,27 @@ class AppLock(
             return
         }
         prompting = true
-        if (Build.VERSION.SDK_INT >= 29) {
-            val builder = BiometricPrompt.Builder(activity).setTitle(label).setSubtitle("Unlock to continue")
-            if (Build.VERSION.SDK_INT >= 30) {
-                builder.setAllowedAuthenticators(
-                    BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                builder.setDeviceCredentialAllowed(true)
-            }
-            val signal = CancellationSignal().also { cancel = it }
-            builder.build().authenticate(signal, activity.mainExecutor, object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    prompting = false
-                    unlock()
-                }
-
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    // Cancelled or too many tries: stay locked; the Unlock button tries again.
-                    prompting = false
-                }
-            })
+        val builder = BiometricPrompt.Builder(activity).setTitle(label).setSubtitle("Unlock to continue")
+        if (Build.VERSION.SDK_INT >= 30) {
+            builder.setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
         } else {
             @Suppress("DEPRECATION")
-            val intent = keyguard.createConfirmDeviceCredentialIntent(label, "Unlock to continue")
-            if (intent == null) {
+            builder.setDeviceCredentialAllowed(true)
+        }
+        val signal = CancellationSignal().also { cancel = it }
+        builder.build().authenticate(signal, activity.mainExecutor, object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 prompting = false
                 unlock()
-                return
             }
-            @Suppress("DEPRECATION")
-            activity.startActivityForResult(intent, REQUEST_UNLOCK)
-        }
+
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                // Cancelled or too many tries: stay locked; the Unlock button tries again.
+                prompting = false
+            }
+        })
     }
 
     private fun createCover(): View {
@@ -174,7 +156,6 @@ class AppLock(
     private fun now() = SystemClock.elapsedRealtime()
 
     companion object {
-        const val REQUEST_UNLOCK = 4202
         const val RELOCK_MS = 30_000L
         private const val KEY_UNLOCKED_AT = "html2apk.unlockedAt"
     }

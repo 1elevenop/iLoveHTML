@@ -38,13 +38,6 @@ class ProtoManifest(bytes: ByteArray) {
         editChild(app, "activity") { activity -> editAttribute(activity, ANDROID_NS, "screenOrientation") { setIntValue(it, value) } }
     }
 
-    /** Sets the FileProvider's authority, when the base manifest declares one. */
-    fun setProviderAuthority(value: String) = editChild("application") { app ->
-        if (hasChild(app, "provider")) {
-            editChild(app, "provider") { provider -> editAttribute(provider, ANDROID_NS, "authorities") { setStringValue(it, value) } }
-        }
-    }
-
     /** Inserts `<uses-permission android:name="…"/>` as the first children of `<manifest>`. */
     fun addPermissions(permissions: List<String>) {
         val newChildren = permissions.map { perm ->
@@ -116,10 +109,6 @@ class ProtoManifest(bytes: ByteArray) {
         val attr = ProtoMessage.parse(field.value as ByteArray)
         edit(attr)
         field.value = attr.encode()
-    }
-
-    private fun hasChild(parent: ProtoMessage, name: String) = parent.all(EL_CHILD).any {
-        ProtoMessage.parse(it.value as ByteArray).message(NODE_ELEMENT)?.string(EL_NAME) == name
     }
 
     private fun editChild(name: String, edit: (ProtoMessage) -> Unit) = editChild(manifest, name, edit)

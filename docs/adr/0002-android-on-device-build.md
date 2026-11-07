@@ -105,6 +105,6 @@ Verification of the device-built APK:
 - `ApkSigner.SignerConfig.Builder(name, key, certs)` is deprecated in
   apksig 9.4.1. Move to the replacement when this code leaves the prototype.
 
-Estimated minimum requirements (to confirm on more devices): Android 7.0
-(API 24), any ABI (no native code), about 50 MB free storage per build,
+Estimated minimum requirements (to confirm on more devices): Android 10
+(API 29; Android 7.0 until ADR 0010), any ABI (no native code), about 50 MB free storage per build,
 2 GB RAM.

@@ -390,7 +390,7 @@ class ProjectManifest {
   /// checked against it.
   final String? releaseCertSha256;
 
-  /// Long-press menu on the app icon (Android 7.1+).
+  /// Long-press menu on the app icon.
   final List<AppShortcut> shortcuts;
 
   /// Make CSS, JSON and images smaller in the built app (the project files stay as they are).

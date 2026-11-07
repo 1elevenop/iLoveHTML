@@ -28,12 +28,11 @@ Emulators on this PC (WHPX acceleration), started headless:
 ```bash
 "%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -avd html2apk_test  -port 5554 -no-window -no-audio
 "%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -avd html2apk_api29 -port 5556 -no-window -no-audio
-"%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -avd html2apk_api24 -port 5558 -no-window -no-audio -gpu host
 ```
 
-Use `-gpu host` for Android 7.0: with the software renderer its old
-WebView (Chrome 53) draws some images as black boxes, which is an
-emulator artefact, not an app bug.
+Android 10 (`html2apk_api29`) is the oldest supported version (ADR 0010).
+Its stock WebView is 74, older than real Android 10 phones get from Play:
+pages there have no `Notification` and no `prefers-color-scheme`.
 
 ## Results (2026-10-22)
 

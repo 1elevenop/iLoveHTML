@@ -8,7 +8,7 @@ Status: accepted (2026-10-21)
 | Android Gradle Plugin | 9.4.1 | `android_template/build.gradle.kts` |
 | Kotlin | AGP 9 built-in Kotlin (no separate plugin) | — |
 | compileSdk / targetSdk | 36 / 36 | `android_template/app/build.gradle.kts` |
-| minSdk | 24 (Android 7.0) | same |
+| minSdk | 29 (Android 10; was 24 until 2026-11-07, ADR 0010) | same |
 | androidx.webkit | 1.17.1 | same |
 | JDK | 17+ required; verified with JetBrains Runtime 25.0.3 (Android Studio) | discovered at runtime |
 | Build-tools | 36.0.0 (apksigner/aapt2 for verification) | discovered at runtime |

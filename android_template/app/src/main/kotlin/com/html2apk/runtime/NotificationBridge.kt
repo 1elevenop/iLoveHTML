@@ -60,11 +60,7 @@ class NotificationBridge(
             !WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ||
             !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
         ) return
-        if (Build.VERSION.SDK_INT >= 26) {
-            manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Notifications", NotificationManager.IMPORTANCE_DEFAULT)
-            )
-        }
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, "Notifications", NotificationManager.IMPORTANCE_DEFAULT))
         WebViewCompat.addWebMessageListener(webView, JS_OBJECT, origins) { _, message, _, _, reply ->
             onMessage(message, reply)
         }

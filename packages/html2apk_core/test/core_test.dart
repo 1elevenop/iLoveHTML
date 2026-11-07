@@ -277,12 +277,10 @@ void main() {
         expect(issues.map((i) => i.field), contains('webView.shareTarget'), reason: bad);
       }
     });
-    test('manifest declares the FileProvider for file shares', () {
+    test('manifest has no FileProvider (Android 10+ shares through MediaStore)', () {
       final xml = AndroidGenerator.buildAndroidManifest(manifest());
-      expect(xml, contains('android:name="androidx.core.content.FileProvider"'));
-      expect(xml, contains(r'android:authorities="${applicationId}.html2apk.files"'));
-      expect(xml, contains('android:exported="false"'));
-      expect(xml, contains('@xml/html2apk_file_paths'));
+      expect(xml, isNot(contains('<provider')));
+      expect(xml, isNot(contains('html2apk_file_paths')));
     });
     test('generates a project from the template', () async {
       final template = p.normalize(p.join(Directory.current.path, '..', '..', 'android_template'));

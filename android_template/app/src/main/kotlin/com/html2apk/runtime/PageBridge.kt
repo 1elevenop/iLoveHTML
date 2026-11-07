@@ -8,7 +8,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
 import android.provider.MediaStore
@@ -19,14 +18,11 @@ import android.webkit.MimeTypeMap
 import android.webkit.URLUtil
 import android.webkit.WebView
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.core.content.FileProvider
 import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
-import java.io.File
 import java.net.URLDecoder
 import java.util.concurrent.Executors
 
@@ -36,9 +32,8 @@ import java.util.concurrent.Executors
  * The only page-to-native channel is a WebMessageListener limited to the
  * app's own origins ([origins]); there is no addJavascriptInterface. Text
  * shares send text/plain through the system chooser. File shares accept only
- * images and PDFs: on Android 10+ they are saved to the gallery
- * (`Pictures/<folder>`, PDFs to `Download/<folder>`) and shared from there;
- * on Android 7-9 they are shared from the cache through a FileProvider.
+ * images and PDFs: they are saved to the gallery (`Pictures/<folder>`, PDFs
+ * to `Download/<folder>`) and shared from there.
  * Downloads use DownloadManager for https, and are written directly for
  * data: and blob: URLs.
  */
@@ -176,22 +171,8 @@ class PageBridge(
     }
 
     /** Runs on [io]. Returns content:// URIs the receiving app may read. */
-    private fun storeForShare(files: List<SharedFile>): List<Uri> {
-        if (Build.VERSION.SDK_INT >= 29) {
-            return files.map { saveToGallery(it.name, it.mime, Base64.decode(it.base64, Base64.DEFAULT), shareFolder) }
-        }
-        val root = File(activity.cacheDir, "shared")
-        // Earlier shares: the receiving apps have had a day to read them.
-        val cutoff = System.currentTimeMillis() - SHARED_CACHE_MS
-        root.listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.deleteRecursively() }
-        val dir = File(root, System.currentTimeMillis().toString())
-        if (!dir.mkdirs() && !dir.isDirectory) throw java.io.IOException("Cannot create $dir")
-        return files.map {
-            val file = File(dir, it.name)
-            file.writeBytes(Base64.decode(it.base64, Base64.DEFAULT))
-            FileProvider.getUriForFile(activity, "${activity.packageName}$PROVIDER_SUFFIX", file)
-        }
-    }
+    private fun storeForShare(files: List<SharedFile>): List<Uri> =
+        files.map { saveToGallery(it.name, it.mime, Base64.decode(it.base64, Base64.DEFAULT), shareFolder) }
 
     /** Returns null when the target app or chooser opened, otherwise a DOMException name. */
     private fun openFileShare(uris: List<Uri>, files: List<SharedFile>, title: String, body: String): String? {
@@ -243,10 +224,8 @@ class PageBridge(
             .addRequestHeader("User-Agent", webView.settings.userAgentString)
         CookieManager.getInstance().getCookie(url)?.let { request.addRequestHeader("Cookie", it) }
         if (!mime.isNullOrBlank()) request.setMimeType(mime)
-        // Public Downloads needs no permission from Android 10; before that
-        // the file goes to the app's own Downloads folder.
-        if (Build.VERSION.SDK_INT >= 29) request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
-        else request.setDestinationInExternalFilesDir(activity, Environment.DIRECTORY_DOWNLOADS, name)
+        // Public Downloads needs no storage permission on Android 10+.
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
         try {
             (activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
             toast("Downloading $name")
@@ -280,14 +259,14 @@ class PageBridge(
             return
         }
         val mime = parsedMime.ifBlank { "application/octet-stream" }
-        // With a gallery folder set, images go there instead of Downloads (Android 10+).
-        val folder = config.galleryFolder?.takeIf { ShareRules.isImage(mime) && Build.VERSION.SDK_INT >= 29 }
+        // With a gallery folder set, images go there instead of Downloads.
+        val folder = config.galleryFolder?.takeIf { ShareRules.isImage(mime) }
         toast("Downloading $name")
         io.execute {
             val ok = try {
                 val bytes = if (isBase64) Base64.decode(payload, Base64.DEFAULT)
                 else URLDecoder.decode(payload.replace("+", "%2B"), "UTF-8").toByteArray()
-                if (folder != null && Build.VERSION.SDK_INT >= 29) {
+                if (folder != null) {
                     saveToGallery(name, mime, bytes, folder)
                     true
                 } else writeToDownloads(name, mime, bytes)
@@ -300,16 +279,7 @@ class PageBridge(
     }
 
     private fun writeToDownloads(name: String, mime: String, bytes: ByteArray): Boolean {
-        if (Build.VERSION.SDK_INT >= 29) {
-            insertMedia(MediaStore.Downloads.EXTERNAL_CONTENT_URI, null, name, mime, bytes)
-            return true
-        }
-        val dir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: return false
-        var file = File(dir, name)
-        var n = 1
-        while (file.exists()) file = File(dir, "${name.substringBeforeLast('.')} (${n++})" +
-            (name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }))
-        file.writeBytes(bytes)
+        insertMedia(MediaStore.Downloads.EXTERNAL_CONTENT_URI, null, name, mime, bytes)
         return true
     }
 
@@ -317,7 +287,6 @@ class PageBridge(
      * Images to `Pictures/<folder>`, PDFs (and images the gallery refuses,
      * such as SVG) to `Download/<folder>`. Needs no storage permission.
      */
-    @RequiresApi(29)
     private fun saveToGallery(name: String, mime: String, bytes: ByteArray, folder: String): Uri {
         if (ShareRules.isImage(mime)) {
             try {
@@ -330,7 +299,6 @@ class PageBridge(
     }
 
     /** Writes [bytes] as a new MediaStore item; null [relativePath] keeps the collection's default folder. */
-    @RequiresApi(29)
     private fun insertMedia(collection: Uri, relativePath: String?, name: String, mime: String, bytes: ByteArray): Uri {
         val resolver = activity.contentResolver
         val values = ContentValues().apply {
@@ -379,10 +347,6 @@ class PageBridge(
         private const val JS_OBJECT = "html2apkBridge"
         private const val SHARE_INTERVAL_MS = 1000L
         private const val MAX_SHARE_CHARS = 100_000
-        private const val SHARED_CACHE_MS = 24 * 60 * 60 * 1000L
-
-        /** Matches the FileProvider authority in the manifest: `<applicationId>.html2apk.files`. */
-        private const val PROVIDER_SUFFIX = ".html2apk.files"
 
         /** A safe display name: no path separators or control characters. */
         fun fileName(suggested: String?, url: String, disposition: String?, mime: String?): String {

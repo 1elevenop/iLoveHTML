@@ -5,6 +5,9 @@ an Android WebView app, built entirely on the local machine.
 
 **Status: Android app and Windows app working; websites build into APK, AAB and Windows .exe.**
 
+**Android versions:** iLoveHTML for Android and every app it builds need
+Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
+
 - **Android app (`app/`, Flutter):** project list; new apps from one or
   more HTML files (CSS/JS/images picked alongside are moved into the
   folders the pages link to), a website ZIP, or a live https URL (checked first: redirects followed hop by hop,
@@ -23,8 +26,8 @@ an Android WebView app, built entirely on the local machine.
   file picker, light/dark/follow-phone theme (sets `prefers-color-scheme`),
   fullscreen, keep screen on, and a choice of back-button behaviour
   (press twice to exit, ask before exit, or go to the start page).
-- **App shortcuts**: up to four pages in the icon's long-press menu
-  (Android 7.1+). Only listed pages open, so other apps cannot use the
+- **App shortcuts**: up to four pages in the icon's long-press menu.
+  Only listed pages open, so other apps cannot use the
   shortcut to load anything else.
 - **Smaller apps**: "Optimize files when building" makes CSS, JSON, PNG
   (lossless) and large JPEG files (85% quality) smaller in the build only;
@@ -87,7 +90,7 @@ an Android WebView app, built entirely on the local machine.
   Downloads. Both can be switched off per project.
 - **Share images and PDFs** ([ADR 0009](docs/adr/0009-file-sharing.md)):
   `navigator.share({files})` sends images and PDFs to WhatsApp, Gmail and
-  other apps. On Android 10+ shared images are also saved to
+  other apps. Shared images are also saved to
   `Pictures/<gallery folder>`. A project can name the gallery folder and
   an app to open directly (e.g. `com.whatsapp`). Test page:
   `samples/feature-site/share.html`.
@@ -201,10 +204,13 @@ this PC with WHPX acceleration:
 Drop `-no-window` to see it. The debug build of `app/` includes x86_64,
 so `adb -s emulator-5554 install app\build\app\outputs\flutter-apk\app-debug.apk`
 works. Physical-device checks are still done at the end of each milestone.
-Android 10 (`html2apk_api29`) and 7.0 (`html2apk_api24`) emulators are
-set up too; see [docs/testing.md](docs/testing.md) for all test layers.
+An Android 10 (`html2apk_api29`) emulator, the oldest supported version,
+is set up too; see [docs/testing.md](docs/testing.md) for all test layers.
 
 ## Milestone 6: hardening and testing (2026-10-22)
+
+Android 7.0 was supported then; since 2026-11-07 the minimum is Android 10
+([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 
 | Check | Android 7.0 (API 24) | Android 10 (API 29) | Android 16 (API 36) |
 |---|---|---|---|
@@ -233,9 +239,6 @@ images):
 |---|---|---|---|---|
 | Windows (Gradle) | — | 51 s | 44 MB | — |
 | Android 16 emulator (in-app engine) | ~6 s | ~3.2 s engine time | 44 MB, runs | 603 MB peak RSS vs 487 MB before (debug build of the app) |
-
-On the Android 7.0 emulator use `-gpu host`: with the software renderer
-its WebView 53 draws some images as black boxes (an emulator artefact).
 
 ## Signing tests (desktop JVM)
 

@@ -12,9 +12,6 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-/** FileProvider authority of a generated app; must match the runtime's PageBridge. */
-fun providerAuthority(applicationId: String) = "$applicationId.html2apk.files"
-
 /** What changes between the prebuilt base APK and a user's app. */
 data class AppSpec(
     val applicationId: String,
@@ -110,11 +107,6 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
             "Base manifest must declare android:screenOrientation"
         }, spec.screenOrientation)
 
-        // Each app needs its own FileProvider authority, or a second app fails to install.
-        doc.elements("provider").singleOrNull()?.let { provider ->
-            doc.setString(requireNotNull(doc.attribute(provider, AxmlDocument.ATTR_AUTHORITIES)), providerAuthority(spec.applicationId))
-        }
-
         val manifestIndex = doc.nodes.indexOf(manifest)
         if (spec.androidTv) {
             doc.insertChild(manifestIndex, "uses-feature", LEANBACK_FEATURE, required = false)
@@ -167,7 +159,7 @@ class ApkAssembler(private val base: File, private val baseInfo: BaseInfo) {
     companion object {
         const val LEANBACK_FEATURE = "android.software.leanback"
         const val LEANBACK_LAUNCHER = "android.intent.category.LEANBACK_LAUNCHER"
-        const val MIN_SDK = 24
+        const val MIN_SDK = 29
 
         /** Must match AndroidGenerator.splashAssetPath on the Dart side. */
         const val SPLASH_ASSET = "branding/splash.png"

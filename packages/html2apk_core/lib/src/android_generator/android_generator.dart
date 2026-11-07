@@ -212,16 +212,6 @@ class AndroidGenerator {
     b
       ..writeln('            </intent-filter>')
       ..writeln('        </activity>')
-      // Shares files on Android 7-9; the on-device engine rewrites the authority.
-      ..writeln('        <provider')
-      ..writeln('            android:name="androidx.core.content.FileProvider"')
-      ..writeln('            android:authorities="\${applicationId}.html2apk.files"')
-      ..writeln('            android:exported="false"')
-      ..writeln('            android:grantUriPermissions="true">')
-      ..writeln('            <meta-data')
-      ..writeln('                android:name="android.support.FILE_PROVIDER_PATHS"')
-      ..writeln('                android:resource="@xml/html2apk_file_paths" />')
-      ..writeln('        </provider>')
       ..writeln('    </application>')
       ..writeln('</manifest>');
     return b.toString();

@@ -269,7 +269,7 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
 
     /** Returns "started", or "needsPermission" after opening the settings page for the user. */
     private fun install(apk: File): String {
-        if (Build.VERSION.SDK_INT >= 26 && !activity.packageManager.canRequestPackageInstalls()) {
+        if (!activity.packageManager.canRequestPackageInstalls()) {
             activity.startActivity(
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${activity.packageName}"))
             )

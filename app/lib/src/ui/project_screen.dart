@@ -446,7 +446,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
               onSelectionChanged: (s) => _change(_m.copyWith(orientation: s.single)),
             ),
             const _Section('Shortcuts'),
-            Text('Long-press the app icon to see these pages (Android 7.1 and later).',
+            Text('Long-press the app icon to see these pages.',
                 style: Theme.of(context).textTheme.bodySmall),
             for (final (i, s) in _m.shortcuts.indexed)
               ListTile(
