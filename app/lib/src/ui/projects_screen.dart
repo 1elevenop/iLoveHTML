@@ -42,7 +42,7 @@ class ProjectsScreen extends StatelessWidget {
         label: const Text('New app'),
       ),
       body: projects.isEmpty && controller.brokenProjects.isEmpty
-          ? const _EmptyState()
+          ? _EmptyState(buildsWindowsApps: controller.desktopEngine != null)
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
@@ -107,7 +107,10 @@ extension on ProjectsScreen {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.buildsWindowsApps});
+
+  /// On Windows, projects also build Windows apps (.exe and .msix).
+  final bool buildsWindowsApps;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +127,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Turn HTML files, a website ZIP, or a live https website '
-              'into an Android app. Builds happen on this device.',
+              'into ${buildsWindowsApps ? 'an Android or Windows app' : 'an Android app'}. '
+              'Builds happen on this device.',
               textAlign: TextAlign.center,
               style: t.bodyMedium,
             ),

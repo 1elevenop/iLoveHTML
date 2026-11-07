@@ -1,5 +1,5 @@
 name: html2apk_core
-description: Platform-independent project model, importer, Android generator and build orchestration for the HTML-to-Android converter.
+description: Platform-independent project model, importer, Android generator and build orchestration for iLoveHTML.
 version: 0.1.0
 publish_to: none
 

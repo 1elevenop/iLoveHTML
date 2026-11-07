@@ -1,4 +1,4 @@
-# iLoveHTML — local HTML-to-Android app builder
+# iLoveHTML — turn any website into an Android or Windows app
 
 Turn HTML files, a website ZIP or a live https website into an Android app
 (APK or Play Store App Bundle) or a Windows app (.exe or .msix installer).

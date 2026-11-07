@@ -1,4 +1,4 @@
-/// Shared, platform-independent core of the HTML-to-Android converter.
+/// Shared, platform-independent core of iLoveHTML, the website-to-app builder.
 library;
 
 export 'src/android_generator/android_generator.dart';
