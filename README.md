@@ -29,7 +29,7 @@ Everything is built on your own phone or PC: no account, no upload, no cloud.
 
 **Supported versions:** iLoveHTML for Android and every app it builds need
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
-Version 1.0.3 was the last for Android 7–9.
+Older versions (for Android 7–9) are no longer offered.
 
 ## What's new in 1.1.1
 

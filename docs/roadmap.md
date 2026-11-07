@@ -16,7 +16,7 @@ Here's what's needed to make it a polished **standalone desktop product**:
 
 ---
 
-## ✅ Done after 1.0.3 (2026-11-06)
+## ✅ Done in 1.1.1 (2026-11-06)
 
 | Feature | Notes |
 |---|---|
