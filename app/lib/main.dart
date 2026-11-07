@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'l10n/gen/app_localizations.dart';
 import 'src/app_controller.dart';
 import 'src/app_lock.dart';
 import 'src/app_settings.dart';
+import 'src/update_check.dart';
 import 'package:html2apk_core/html2apk_core.dart';
 
 import 'src/engine/desktop_engine.dart';
@@ -25,10 +27,12 @@ Future<void> main() async {
   final workspace = p.join(support.path, 'workspace');
   final settings = await AppSettings.load();
   final lock = await AppLock.load();
+  final updates = await UpdateChecker.load();
   final controller = AppController(
     workspaceDir: workspace,
     settings: settings,
     lock: lock,
+    updates: updates,
     engine: Platform.isAndroid
         ? OnDeviceBuildEngine()
         : Platform.isWindows
@@ -41,6 +45,8 @@ Future<void> main() async {
             : null,
   );
   runApp(Html2ApkApp(controller: controller, showSplash: true));
+  // In the background; at most every 12 hours, and only if the user allows it.
+  if (settings.checkUpdates) unawaited(updates.checkIfDue());
 }
 
 class Html2ApkApp extends StatelessWidget {

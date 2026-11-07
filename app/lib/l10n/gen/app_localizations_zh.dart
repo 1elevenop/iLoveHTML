@@ -1211,7 +1211,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'iLoveHTML 设计为在你的设备上运行。本政策说明这对你的数据意味着什么。\n\n## 我们收集的数据\n\n没有。本应用没有账户、没有分析、没有广告,也没有跟踪。作者不会收到任何关于你或你的项目的数据。\n\n## 保存在你设备上的数据\n\n你的项目、网站文件、图标、构建产物和设置保存在本应用在你设备上的私有存储中。发布密钥也保存在你的设备上:在 Android 上由 Android Keystore 加密,在 Windows 上其密码针对你的 Windows 账户加密。卸载本应用会删除这些数据,请做好备份。\n\n## 网络使用\n\n本应用只在你要求时连接互联网:检查或预览你输入的网站网址、在浏览器中打开 Buy Me a Coffee 等链接,以及在 Windows 上由 Gradle 下载构建工具时。\"安装到手机\"功能仅在其窗口打开期间,在你的本地网络上提供文件 10 分钟。\n\n## 你构建的应用\n\n使用 iLoveHTML 制作的应用不包含来自 iLoveHTML 的跟踪。它们收集什么取决于你放入的网站,你需对其隐私政策负责。\n\n## 儿童\n\n本应用不会有意收集任何人的数据,包括儿童。\n\n## 变更与联系方式\n\n本政策可能随本应用的新版本更新;上方日期为最后一次更改。如有疑问:请在 1elevenop 的 iLoveHTML GitHub 项目中提交 issue。';
+      'iLoveHTML 设计为在你的设备上运行。本政策说明这对你的数据意味着什么。\n\n## 我们收集的数据\n\n没有。本应用没有账户、没有分析、没有广告,也没有跟踪。作者不会收到任何关于你或你的项目的数据。\n\n## 保存在你设备上的数据\n\n你的项目、网站文件、图标、构建产物和设置保存在本应用在你设备上的私有存储中。发布密钥也保存在你的设备上:在 Android 上由 Android Keystore 加密,在 Windows 上其密码针对你的 Windows 账户加密。卸载本应用会删除这些数据,请做好备份。\n\n## 网络使用\n\n本应用只在你要求时连接互联网:检查或预览你输入的网站网址、在浏览器中打开 Buy Me a Coffee 等链接,以及在 Windows 上由 Gradle 下载构建工具时。\"安装到手机\"功能仅在其窗口打开期间,在你的本地网络上提供文件 10 分钟。\n\n## 检查更新\n\n如果开启了\"检查更新\"(默认开启),iLoveHTML 大约每天两次向 GitHub(api.github.com)查询最新的 iLoveHTML 版本,以便在有新版本时通知你。该请求不包含账户、标识符或任何项目信息;和访问任何网站一样,GitHub 能看到你的 IP 地址。可在 设置 → 关于 中关闭。\n\n## 你构建的应用\n\n使用 iLoveHTML 制作的应用不包含来自 iLoveHTML 的跟踪。它们收集什么取决于你放入的网站,你需对其隐私政策负责。\n\n## 儿童\n\n本应用不会有意收集任何人的数据,包括儿童。\n\n## 变更与联系方式\n\n本政策可能随本应用的新版本更新;上方日期为最后一次更改。如有疑问:请在 1elevenop 的 iLoveHTML GitHub 项目中提交 issue。';
 
   @override
   String get replaceWebsite => '替换网站文件';
@@ -1469,4 +1469,57 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get turnOffLock => '关闭锁';
+
+  @override
+  String get newUpdate => '新版本更新';
+
+  @override
+  String updateAvailable(String version) {
+    return 'iLoveHTML $version 已发布';
+  }
+
+  @override
+  String updateTitle(String version) {
+    return '更新到 $version';
+  }
+
+  @override
+  String youHaveVersion(String version) {
+    return '你当前的版本是 $version。';
+  }
+
+  @override
+  String get updateAndroidHint => 'APK 会在浏览器中下载。打开它即可覆盖安装当前版本;你的项目、密钥和设置都会保留。';
+
+  @override
+  String get updateWindowsHint =>
+      'ZIP 会在浏览器中下载。关闭 iLoveHTML,解压后替换原来的 iLoveHTML 文件夹;你的项目、密钥和设置都会保留。';
+
+  @override
+  String get whatsNew => '新功能';
+
+  @override
+  String get releasePage => '发布页面';
+
+  @override
+  String get downloadUpdate => '下载';
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkForUpdatesHint =>
+      '大约每天两次向 GitHub 查询是否有更新的 iLoveHTML。不会发送任何关于你或你的项目的信息。';
+
+  @override
+  String get checkNow => '立即检查';
+
+  @override
+  String get checkingUpdates => '正在检查…';
+
+  @override
+  String get upToDate => '已是最新版本。';
+
+  @override
+  String get updateCheckFailed => '无法检查。是否已联网?';
 }

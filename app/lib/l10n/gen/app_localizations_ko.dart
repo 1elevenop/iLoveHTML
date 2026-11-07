@@ -1226,7 +1226,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'iLoveHTML은 사용자의 기기에서 작동하도록 만들어졌습니다. 이 방침은 그것이 사용자의 데이터에 어떤 의미인지 설명합니다.\n\n## 수집하는 데이터\n\n없습니다. 앱에는 계정, 분석, 광고, 추적이 없습니다. 작성자는 사용자나 사용자의 프로젝트에 관한 어떤 데이터도 받지 않습니다.\n\n## 기기에 저장되는 데이터\n\n프로젝트, 웹사이트 파일, 아이콘, 빌드 결과, 설정은 기기 안의 앱 전용 저장소에 저장됩니다. 릴리스 키도 기기에 보관됩니다. Android에서는 Android Keystore로 암호화되고, Windows에서는 비밀번호가 Windows 계정용으로 암호화됩니다. 앱을 삭제하면 이 데이터도 지워지니 백업하세요.\n\n## 네트워크 사용\n\n앱은 사용자가 요청할 때만 인터넷에 연결합니다: 입력한 웹사이트 URL을 확인하거나 미리 볼 때, Buy Me a Coffee 같은 링크를 브라우저에서 열 때, 그리고 Windows에서 Gradle이 빌드 도구를 다운로드할 때입니다. 휴대폰에 설치 기능은 그 창이 열려 있는 동안에만 로컬 네트워크에서 10분간 파일을 제공합니다.\n\n## 사용자가 만드는 앱\n\niLoveHTML로 만든 앱에는 iLoveHTML의 추적 기능이 없습니다. 앱이 무엇을 수집하는지는 넣은 웹사이트에 달려 있으며, 그 개인정보 처리방침은 사용자가 책임집니다.\n\n## 아동\n\n앱은 아동을 포함해 누구의 데이터도 의도적으로 수집하지 않습니다.\n\n## 변경 및 문의\n\n이 방침은 앱의 새 버전과 함께 바뀔 수 있으며, 위의 날짜가 마지막 변경일입니다. 문의 사항은 1elevenop의 iLoveHTML GitHub 프로젝트에 이슈를 등록해 주세요.';
+      'iLoveHTML은 사용자의 기기에서 작동하도록 만들어졌습니다. 이 방침은 그것이 사용자의 데이터에 어떤 의미인지 설명합니다.\n\n## 수집하는 데이터\n\n없습니다. 앱에는 계정, 분석, 광고, 추적이 없습니다. 작성자는 사용자나 사용자의 프로젝트에 관한 어떤 데이터도 받지 않습니다.\n\n## 기기에 저장되는 데이터\n\n프로젝트, 웹사이트 파일, 아이콘, 빌드 결과, 설정은 기기 안의 앱 전용 저장소에 저장됩니다. 릴리스 키도 기기에 보관됩니다. Android에서는 Android Keystore로 암호화되고, Windows에서는 비밀번호가 Windows 계정용으로 암호화됩니다. 앱을 삭제하면 이 데이터도 지워지니 백업하세요.\n\n## 네트워크 사용\n\n앱은 사용자가 요청할 때만 인터넷에 연결합니다: 입력한 웹사이트 URL을 확인하거나 미리 볼 때, Buy Me a Coffee 같은 링크를 브라우저에서 열 때, 그리고 Windows에서 Gradle이 빌드 도구를 다운로드할 때입니다. 휴대폰에 설치 기능은 그 창이 열려 있는 동안에만 로컬 네트워크에서 10분간 파일을 제공합니다.\n\n## 업데이트 확인\n\n\"업데이트 확인\"이 켜져 있으면(기본값) 새 버전이 나왔을 때 알려 주기 위해 iLoveHTML이 하루 두 번 정도 GitHub(api.github.com)에 최신 iLoveHTML 릴리스를 물어봅니다. 이 요청에는 계정, 식별자, 프로젝트 정보가 들어 있지 않습니다. 다른 웹사이트와 마찬가지로 GitHub는 IP 주소를 볼 수 있습니다. 설정 → 정보에서 끌 수 있습니다.\n\n## 사용자가 만드는 앱\n\niLoveHTML로 만든 앱에는 iLoveHTML의 추적 기능이 없습니다. 앱이 무엇을 수집하는지는 넣은 웹사이트에 달려 있으며, 그 개인정보 처리방침은 사용자가 책임집니다.\n\n## 아동\n\n앱은 아동을 포함해 누구의 데이터도 의도적으로 수집하지 않습니다.\n\n## 변경 및 문의\n\n이 방침은 앱의 새 버전과 함께 바뀔 수 있으며, 위의 날짜가 마지막 변경일입니다. 문의 사항은 1elevenop의 iLoveHTML GitHub 프로젝트에 이슈를 등록해 주세요.';
 
   @override
   String get replaceWebsite => '웹사이트 파일 바꾸기';
@@ -1487,4 +1487,58 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get turnOffLock => '잠금 끄기';
+
+  @override
+  String get newUpdate => '새 업데이트';
+
+  @override
+  String updateAvailable(String version) {
+    return 'iLoveHTML $version 사용 가능';
+  }
+
+  @override
+  String updateTitle(String version) {
+    return '$version(으)로 업데이트';
+  }
+
+  @override
+  String youHaveVersion(String version) {
+    return '현재 버전은 $version입니다.';
+  }
+
+  @override
+  String get updateAndroidHint =>
+      'APK는 브라우저에서 다운로드됩니다. 열면 이 버전 위에 설치되며 프로젝트, 키, 설정은 그대로 유지됩니다.';
+
+  @override
+  String get updateWindowsHint =>
+      'ZIP은 브라우저에서 다운로드됩니다. iLoveHTML을 닫고 압축을 풀어 기존 iLoveHTML 폴더를 바꾸세요. 프로젝트, 키, 설정은 그대로 유지됩니다.';
+
+  @override
+  String get whatsNew => '새로운 기능';
+
+  @override
+  String get releasePage => '릴리스 페이지';
+
+  @override
+  String get downloadUpdate => '다운로드';
+
+  @override
+  String get checkForUpdates => '업데이트 확인';
+
+  @override
+  String get checkForUpdatesHint =>
+      '하루 두 번 정도 GitHub에 새 iLoveHTML이 나왔는지 확인합니다. 사용자나 프로젝트에 관한 정보는 보내지 않습니다.';
+
+  @override
+  String get checkNow => '지금 확인';
+
+  @override
+  String get checkingUpdates => '확인 중…';
+
+  @override
+  String get upToDate => '최신 버전입니다.';
+
+  @override
+  String get updateCheckFailed => '확인할 수 없습니다. 인터넷에 연결되어 있나요?';
 }

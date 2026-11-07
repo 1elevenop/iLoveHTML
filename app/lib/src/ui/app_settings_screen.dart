@@ -7,6 +7,7 @@ import '../app_controller.dart';
 import '../app_settings.dart';
 import 'about_screens.dart';
 import 'lock_screens.dart';
+import 'update_ui.dart';
 import 'l10n.dart';
 import 'signing_keys_screen.dart';
 import 'theme.dart';
@@ -35,10 +36,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
       body: ListenableBuilder(
-        listenable: Listenable.merge([c, s]),
+        listenable: Listenable.merge([c, s, c.updates]),
         builder: (context, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            NewUpdateTile(updates: c.updates, settings: s),
             Text(l.sectionAppearance, style: t.titleSmall),
             const SizedBox(height: 8),
             SegmentedButton<ThemeMode>(
@@ -171,6 +173,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 );
               },
             ),
+            UpdateSettings(updates: c.updates, settings: s),
             const SizedBox(height: 8),
             const CreditCard(),
           ],

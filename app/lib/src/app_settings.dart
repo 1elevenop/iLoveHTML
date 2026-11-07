@@ -10,7 +10,8 @@ class AppSettings extends ChangeNotifier {
         _themeMode = ThemeMode.values.firstWhere((m) => m.name == _prefs?.getString(_kTheme),
             orElse: () => ThemeMode.dark),
         _accent = AccentPreset.byName(_prefs?.getString(_kAccent)),
-        _animations = _prefs?.getBool(_kAnimations) ?? true;
+        _animations = _prefs?.getBool(_kAnimations) ?? true,
+        _checkUpdates = _prefs?.getBool(_kUpdates) ?? true;
 
   /// Settings that are not saved, for tests and platforms without storage.
   AppSettings.memory({Locale? language, ThemeMode mode = ThemeMode.dark, bool animate = true})
@@ -18,7 +19,8 @@ class AppSettings extends ChangeNotifier {
         _locale = language,
         _themeMode = mode,
         _accent = AccentPreset.orange,
-        _animations = animate;
+        _animations = animate,
+        _checkUpdates = false;
 
   static Future<AppSettings> load() async {
     try {
@@ -29,7 +31,7 @@ class AppSettings extends ChangeNotifier {
     }
   }
 
-  static const _kLocale = 'locale', _kTheme = 'themeMode', _kAccent = 'accent', _kAnimations = 'animations';
+  static const _kLocale = 'locale', _kTheme = 'themeMode', _kAccent = 'accent', _kAnimations = 'animations', _kUpdates = 'checkUpdates';
 
   /// The UI languages, besides following the system.
   static const supportedLocales = [
@@ -60,12 +62,22 @@ class AppSettings extends ChangeNotifier {
   ThemeMode _themeMode;
   AccentPreset _accent;
   bool _animations;
+  bool _checkUpdates;
 
   /// Null follows the system language.
   Locale? get locale => _locale;
   ThemeMode get themeMode => _themeMode;
   AccentPreset get accent => _accent;
   bool get animations => _animations;
+
+  /// Ask GitHub now and then whether a newer iLoveHTML was released.
+  bool get checkUpdates => _checkUpdates;
+
+  set checkUpdates(bool value) {
+    _checkUpdates = value;
+    _prefs?.setBool(_kUpdates, value);
+    notifyListeners();
+  }
 
   set locale(Locale? value) {
     _locale = value;

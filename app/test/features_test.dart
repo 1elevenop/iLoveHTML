@@ -126,6 +126,7 @@ void main() {
     expect(find.textContaining('no analytics'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('How to use'), -200);
     await tester.tap(find.text('How to use'));
     await tester.pumpAndSettle();
     expect(find.text('Create a project'), findsOneWidget);

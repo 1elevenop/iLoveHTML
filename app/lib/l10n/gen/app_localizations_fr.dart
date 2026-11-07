@@ -1264,7 +1264,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'iLoveHTML est conçu pour fonctionner sur votre appareil. Cette politique explique ce que cela implique pour vos données.\n\n## Données collectées\n\nAucune. L\'app n\'a ni comptes, ni statistiques, ni publicité, ni pistage. L\'auteur ne reçoit aucune donnée sur vous ou vos projets.\n\n## Données stockées sur votre appareil\n\nVos projets, fichiers web, icônes, compilations et réglages sont stockés dans l\'espace privé de l\'app sur votre appareil. Les clés de publication restent aussi sur votre appareil : sous Android elles sont chiffrées avec Android Keystore, et sous Windows leurs mots de passe sont chiffrés pour votre compte Windows. Désinstaller l\'app supprime ces données : faites des sauvegardes.\n\n## Utilisation du réseau\n\nL\'app se connecte à internet uniquement quand vous le demandez : pour vérifier ou prévisualiser une URL que vous avez saisie, pour ouvrir des liens comme Buy Me a Coffee dans votre navigateur et, sous Windows, quand Gradle télécharge des outils de compilation. La fonction Installer sur le téléphone sert le fichier sur votre réseau local pendant 10 minutes, seulement tant que sa fenêtre est ouverte.\n\n## Apps que vous créez\n\nLes apps créées avec iLoveHTML ne contiennent aucun pistage d\'iLoveHTML. Ce qu\'elles collectent dépend du site que vous y mettez, et vous êtes responsable de leur politique de confidentialité.\n\n## Enfants\n\nL\'app ne collecte sciemment aucune donnée, ni d\'enfants ni de quiconque.\n\n## Modifications et contact\n\nCette politique peut évoluer avec les nouvelles versions de l\'app ; la date ci-dessus indique la dernière modification. Questions : ouvrez un ticket sur le projet GitHub iLoveHTML de 1elevenop.';
+      'iLoveHTML est conçu pour fonctionner sur votre appareil. Cette politique explique ce que cela implique pour vos données.\n\n## Données collectées\n\nAucune. L\'app n\'a ni comptes, ni statistiques, ni publicité, ni pistage. L\'auteur ne reçoit aucune donnée sur vous ou vos projets.\n\n## Données stockées sur votre appareil\n\nVos projets, fichiers web, icônes, compilations et réglages sont stockés dans l\'espace privé de l\'app sur votre appareil. Les clés de publication restent aussi sur votre appareil : sous Android elles sont chiffrées avec Android Keystore, et sous Windows leurs mots de passe sont chiffrés pour votre compte Windows. Désinstaller l\'app supprime ces données : faites des sauvegardes.\n\n## Utilisation du réseau\n\nL\'app se connecte à internet uniquement quand vous le demandez : pour vérifier ou prévisualiser une URL que vous avez saisie, pour ouvrir des liens comme Buy Me a Coffee dans votre navigateur et, sous Windows, quand Gradle télécharge des outils de compilation. La fonction Installer sur le téléphone sert le fichier sur votre réseau local pendant 10 minutes, seulement tant que sa fenêtre est ouverte.\n\n## Recherche de mises à jour\n\nSi « Rechercher les mises à jour » est activé (c\'est le cas par défaut), environ deux fois par jour iLoveHTML demande à GitHub (api.github.com) la dernière version d\'iLoveHTML, pour vous prévenir quand une nouvelle sort. La requête ne contient ni compte, ni identifiant, ni rien sur vos projets ; comme tout site web, GitHub voit votre adresse IP. Désactivez-la dans Réglages → À propos.\n\n## Apps que vous créez\n\nLes apps créées avec iLoveHTML ne contiennent aucun pistage d\'iLoveHTML. Ce qu\'elles collectent dépend du site que vous y mettez, et vous êtes responsable de leur politique de confidentialité.\n\n## Enfants\n\nL\'app ne collecte sciemment aucune donnée, ni d\'enfants ni de quiconque.\n\n## Modifications et contact\n\nCette politique peut évoluer avec les nouvelles versions de l\'app ; la date ci-dessus indique la dernière modification. Questions : ouvrez un ticket sur le projet GitHub iLoveHTML de 1elevenop.';
 
   @override
   String get replaceWebsite => 'Remplacer les fichiers du site';
@@ -1535,4 +1535,59 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get turnOffLock => 'Désactiver le verrou';
+
+  @override
+  String get newUpdate => 'NOUVELLE MISE À JOUR';
+
+  @override
+  String updateAvailable(String version) {
+    return 'iLoveHTML $version est disponible';
+  }
+
+  @override
+  String updateTitle(String version) {
+    return 'Mettre à jour vers $version';
+  }
+
+  @override
+  String youHaveVersion(String version) {
+    return 'Vous avez la $version.';
+  }
+
+  @override
+  String get updateAndroidHint =>
+      'L\'APK se télécharge dans votre navigateur. Ouvrez-le pour l\'installer par-dessus cette version ; vos projets, clés et réglages sont conservés.';
+
+  @override
+  String get updateWindowsHint =>
+      'Le ZIP se télécharge dans votre navigateur. Fermez iLoveHTML, décompressez-le et remplacez votre dossier iLoveHTML ; vos projets, clés et réglages sont conservés.';
+
+  @override
+  String get whatsNew => 'Nouveautés';
+
+  @override
+  String get releasePage => 'Page de la version';
+
+  @override
+  String get downloadUpdate => 'Télécharger';
+
+  @override
+  String get checkForUpdates => 'Rechercher les mises à jour';
+
+  @override
+  String get checkForUpdatesHint =>
+      'Environ deux fois par jour, demande à GitHub si un iLoveHTML plus récent est sorti. Rien sur vous ou vos projets n\'est envoyé.';
+
+  @override
+  String get checkNow => 'Vérifier maintenant';
+
+  @override
+  String get checkingUpdates => 'Vérification…';
+
+  @override
+  String get upToDate => 'Vous avez la dernière version.';
+
+  @override
+  String get updateCheckFailed =>
+      'Vérification impossible. Êtes-vous en ligne ?';
 }

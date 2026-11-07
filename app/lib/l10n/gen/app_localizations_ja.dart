@@ -1224,7 +1224,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'iLoveHTML は、あなたの端末上で動作するように作られています。本ポリシーでは、それがあなたのデータにとって何を意味するかを説明します。\n\n## 収集するデータ\n\nありません。本アプリにはアカウント、分析、広告、トラッキングは一切ありません。作者があなたやあなたのプロジェクトに関するデータを受け取ることはありません。\n\n## 端末に保存されるデータ\n\nプロジェクト、ウェブサイトファイル、アイコン、ビルド結果、設定は、端末内の本アプリ専用の領域に保存されます。リリース鍵も端末内に保存されます。Android では Android Keystore で暗号化され、Windows ではパスワードが Windows アカウント用に暗号化されます。本アプリをアンインストールするとこれらのデータは削除されるため、バックアップを取ってください。\n\n## ネットワークの利用\n\n本アプリがインターネットに接続するのは、あなたが求めたときだけです: 入力したウェブサイト URL の確認やプレビュー、Buy Me a Coffee などのリンクをブラウザーで開くとき、そして Windows では Gradle がビルドツールをダウンロードするときです。「スマホにインストール」機能は、そのウィンドウが開いている間だけ、ローカルネットワーク上でファイルを 10 分間配信します。\n\n## あなたが作るアプリ\n\niLoveHTML で作ったアプリには、iLoveHTML によるトラッキングは含まれません。アプリが何を収集するかは組み込んだウェブサイト次第であり、そのプライバシーポリシーについてはあなたが責任を負います。\n\n## お子さま\n\n本アプリは、お子さまを含め、誰からも意図的にデータを収集しません。\n\n## 変更とお問い合わせ\n\n本ポリシーは本アプリの新しいバージョンとともに更新されることがあります。上の日付が最終更新日です。ご質問は、1elevenop の iLoveHTML GitHub プロジェクトで Issue を作成してください。';
+      'iLoveHTML は、あなたの端末上で動作するように作られています。本ポリシーでは、それがあなたのデータにとって何を意味するかを説明します。\n\n## 収集するデータ\n\nありません。本アプリにはアカウント、分析、広告、トラッキングは一切ありません。作者があなたやあなたのプロジェクトに関するデータを受け取ることはありません。\n\n## 端末に保存されるデータ\n\nプロジェクト、ウェブサイトファイル、アイコン、ビルド結果、設定は、端末内の本アプリ専用の領域に保存されます。リリース鍵も端末内に保存されます。Android では Android Keystore で暗号化され、Windows ではパスワードが Windows アカウント用に暗号化されます。本アプリをアンインストールするとこれらのデータは削除されるため、バックアップを取ってください。\n\n## ネットワークの利用\n\n本アプリがインターネットに接続するのは、あなたが求めたときだけです: 入力したウェブサイト URL の確認やプレビュー、Buy Me a Coffee などのリンクをブラウザーで開くとき、そして Windows では Gradle がビルドツールをダウンロードするときです。「スマホにインストール」機能は、そのウィンドウが開いている間だけ、ローカルネットワーク上でファイルを 10 分間配信します。\n\n## アップデートの確認\n\n「アップデートを確認」がオン (既定) の場合、新しいバージョンが出たら知らせるため、iLoveHTML は 1 日に 2 回ほど GitHub (api.github.com) に最新の iLoveHTML リリースを問い合わせます。この通信にはアカウント、識別子、プロジェクトの情報は含まれません。一般的なウェブサイトと同様に、GitHub には IP アドレスが見えます。設定 → このアプリについて でオフにできます。\n\n## あなたが作るアプリ\n\niLoveHTML で作ったアプリには、iLoveHTML によるトラッキングは含まれません。アプリが何を収集するかは組み込んだウェブサイト次第であり、そのプライバシーポリシーについてはあなたが責任を負います。\n\n## お子さま\n\n本アプリは、お子さまを含め、誰からも意図的にデータを収集しません。\n\n## 変更とお問い合わせ\n\n本ポリシーは本アプリの新しいバージョンとともに更新されることがあります。上の日付が最終更新日です。ご質問は、1elevenop の iLoveHTML GitHub プロジェクトで Issue を作成してください。';
 
   @override
   String get replaceWebsite => 'ウェブサイトのファイルを置き換え';
@@ -1485,4 +1485,58 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get turnOffLock => 'ロックをオフ';
+
+  @override
+  String get newUpdate => '新しいアップデート';
+
+  @override
+  String updateAvailable(String version) {
+    return 'iLoveHTML $version が利用できます';
+  }
+
+  @override
+  String updateTitle(String version) {
+    return '$version にアップデート';
+  }
+
+  @override
+  String youHaveVersion(String version) {
+    return '現在のバージョンは $version です。';
+  }
+
+  @override
+  String get updateAndroidHint =>
+      'APK はブラウザーでダウンロードされます。開くとこのバージョンに上書きインストールされ、プロジェクト・鍵・設定はそのまま残ります。';
+
+  @override
+  String get updateWindowsHint =>
+      'ZIP はブラウザーでダウンロードされます。iLoveHTML を閉じて展開し、iLoveHTML のフォルダーを置き換えてください。プロジェクト・鍵・設定はそのまま残ります。';
+
+  @override
+  String get whatsNew => '新機能';
+
+  @override
+  String get releasePage => 'リリースページ';
+
+  @override
+  String get downloadUpdate => 'ダウンロード';
+
+  @override
+  String get checkForUpdates => 'アップデートを確認';
+
+  @override
+  String get checkForUpdatesHint =>
+      '1 日に 2 回ほど、新しい iLoveHTML が出ていないか GitHub に確認します。あなたやプロジェクトの情報は送信されません。';
+
+  @override
+  String get checkNow => '今すぐ確認';
+
+  @override
+  String get checkingUpdates => '確認中…';
+
+  @override
+  String get upToDate => '最新バージョンです。';
+
+  @override
+  String get updateCheckFailed => '確認できませんでした。オンラインですか?';
 }

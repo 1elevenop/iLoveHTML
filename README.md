@@ -31,6 +31,16 @@ Everything is built on your own phone or PC: no account, no upload, no cloud.
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
 Older versions (for Android 7–9) are no longer offered.
 
+## What's new in 1.2.1
+
+- **Update notice:** when a new iLoveHTML is released, Settings shows a
+  glowing **NEW UPDATE** (and a dot on the Settings button) with the
+  release notes and a direct download for your device. iLoveHTML asks
+  GitHub about twice a day; turn it off in Settings → About → Check for
+  updates. The Privacy Policy explains what this sends.
+
+Full notes: [release 1.2.1](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.1).
+
 ## What's new in 1.2.0
 
 - **8 languages:** English, Español, Français, Deutsch, Português, 日本語,

@@ -6,16 +6,18 @@ import 'package:path/path.dart' as p;
 
 import 'app_lock.dart';
 import 'app_settings.dart';
+import 'update_check.dart';
 import 'engine/desktop_engine.dart';
 import 'engine/on_device_engine.dart';
 
 /// App-wide state: the workspace, the project list and the build engine.
 /// Screens listen to it and call its methods.
 class AppController extends ChangeNotifier {
-  AppController({required this.workspaceDir, this.engine, AppSettings? settings, AppLock? lock})
+  AppController({required this.workspaceDir, this.engine, AppSettings? settings, AppLock? lock, UpdateChecker? updates})
       : store = ProjectStore(workspaceDir),
         settings = settings ?? AppSettings.memory(),
-        lock = lock ?? AppLock(MemoryLockStorage()) {
+        lock = lock ?? AppLock(MemoryLockStorage()),
+        updates = updates ?? UpdateChecker.disabled() {
     refresh();
   }
 
@@ -26,6 +28,9 @@ class AppController extends ChangeNotifier {
 
   /// PIN, password or fingerprint lock in front of the whole app.
   final AppLock lock;
+
+  /// Finds newer iLoveHTML releases on GitHub.
+  final UpdateChecker updates;
   final ProjectStore store;
 
   /// Null on platforms without a local build engine wired up yet.

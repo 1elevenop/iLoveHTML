@@ -12,6 +12,7 @@ import 'app_settings_screen.dart';
 import 'project_screen.dart';
 import 'l10n.dart';
 import 'theme.dart';
+import 'update_ui.dart';
 import 'url_import_dialog.dart';
 
 class ProjectsScreen extends StatelessWidget {
@@ -31,11 +32,15 @@ class ProjectsScreen extends StatelessWidget {
             icon: const Icon(Icons.settings_backup_restore),
             onPressed: () => restoreBackup(context, controller),
           ),
-          IconButton(
-            tooltip: context.l10n.settings,
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => AppSettingsScreen(controller: controller))),
+          UpdateDot(
+            updates: controller.updates,
+            settings: controller.settings,
+            child: IconButton(
+              tooltip: context.l10n.settings,
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => AppSettingsScreen(controller: controller))),
+            ),
           ),
         ],
       ),

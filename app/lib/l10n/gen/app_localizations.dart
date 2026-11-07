@@ -2207,7 +2207,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyBody.
   ///
   /// In en, this message translates to:
-  /// **'iLoveHTML is built to work on your device. This policy explains what that means for your data.\n\n## Data we collect\n\nNone. The app has no accounts, no analytics, no advertising and no tracking. The author receives no data about you or your projects.\n\n## Data stored on your device\n\nYour projects, website files, icons, build outputs and settings are stored in the app\'s private storage on your device. Release keys stay on your device too: on Android they are encrypted with the Android Keystore, and on Windows their passwords are encrypted for your Windows account. Uninstalling the app deletes this data, so keep backups.\n\n## Network use\n\nThe app connects to the internet only when you ask it to: to check or preview a website URL you entered, to open links such as Buy Me a Coffee in your browser, and, on Windows, when Gradle downloads build tools. The Install on phone feature serves the file on your local network for 10 minutes, only while its window is open.\n\n## Apps you build\n\nApps made with iLoveHTML contain no tracking from iLoveHTML. What they collect depends on the website you put in them, and you are responsible for their privacy policy.\n\n## Children\n\nThe app does not knowingly collect any data, from children or anyone else.\n\n## Changes and contact\n\nThis policy may be updated with new versions of the app; the date above shows the latest change. Questions: open an issue on the iLoveHTML GitHub project by 1elevenop.'**
+  /// **'iLoveHTML is built to work on your device. This policy explains what that means for your data.\n\n## Data we collect\n\nNone. The app has no accounts, no analytics, no advertising and no tracking. The author receives no data about you or your projects.\n\n## Data stored on your device\n\nYour projects, website files, icons, build outputs and settings are stored in the app\'s private storage on your device. Release keys stay on your device too: on Android they are encrypted with the Android Keystore, and on Windows their passwords are encrypted for your Windows account. Uninstalling the app deletes this data, so keep backups.\n\n## Network use\n\nThe app connects to the internet only when you ask it to: to check or preview a website URL you entered, to open links such as Buy Me a Coffee in your browser, and, on Windows, when Gradle downloads build tools. The Install on phone feature serves the file on your local network for 10 minutes, only while its window is open.\n\n## Update check\n\nIf \"Check for updates\" is on (it is by default), about twice a day iLoveHTML asks GitHub (api.github.com) for the latest iLoveHTML release, to tell you when a new version is out. The request contains no account, no identifiers and nothing about your projects; like any website, GitHub sees your IP address. Turn it off in Settings → About.\n\n## Apps you build\n\nApps made with iLoveHTML contain no tracking from iLoveHTML. What they collect depends on the website you put in them, and you are responsible for their privacy policy.\n\n## Children\n\nThe app does not knowingly collect any data, from children or anyone else.\n\n## Changes and contact\n\nThis policy may be updated with new versions of the app; the date above shows the latest change. Questions: open an issue on the iLoveHTML GitHub project by 1elevenop.'**
   String get privacyBody;
 
   /// No description provided for @replaceWebsite.
@@ -2635,6 +2635,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn off lock'**
   String get turnOffLock;
+
+  /// No description provided for @newUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW UPDATE'**
+  String get newUpdate;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'iLoveHTML {version} is available'**
+  String updateAvailable(String version);
+
+  /// No description provided for @updateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update to {version}'**
+  String updateTitle(String version);
+
+  /// No description provided for @youHaveVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {version}.'**
+  String youHaveVersion(String version);
+
+  /// No description provided for @updateAndroidHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The APK downloads in your browser. Open it to install over this version; your projects, keys and settings stay.'**
+  String get updateAndroidHint;
+
+  /// No description provided for @updateWindowsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The ZIP downloads in your browser. Close iLoveHTML, unzip it and replace your iLoveHTML folder; your projects, keys and settings stay.'**
+  String get updateWindowsHint;
+
+  /// No description provided for @whatsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new'**
+  String get whatsNew;
+
+  /// No description provided for @releasePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Release page'**
+  String get releasePage;
+
+  /// No description provided for @downloadUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get downloadUpdate;
+
+  /// No description provided for @checkForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkForUpdates;
+
+  /// No description provided for @checkForUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'About twice a day, ask GitHub if a newer iLoveHTML was released. Nothing about you or your projects is sent.'**
+  String get checkForUpdatesHint;
+
+  /// No description provided for @checkNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check now'**
+  String get checkNow;
+
+  /// No description provided for @checkingUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get checkingUpdates;
+
+  /// No description provided for @upToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You have the latest version.'**
+  String get upToDate;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check. Are you online?'**
+  String get updateCheckFailed;
 }
 
 class _AppLocalizationsDelegate
