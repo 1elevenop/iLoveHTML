@@ -274,3 +274,5 @@ served from `https://appassets.androidplatform.net` through
 `WebViewAssetLoader`, mixed content blocked, cleartext traffic disabled,
 `INTERNET` permission only for URL projects or when explicitly enabled,
 off-site links handed to the browser, WebView debugging only in debug builds.
+`USE_BIOMETRIC` only when app lock is on, `POST_NOTIFICATIONS` only when
+notifications are on; the notification bridge answers only the app's own origins.

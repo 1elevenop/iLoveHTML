@@ -16,6 +16,26 @@ Here's what's needed to make it a polished **standalone desktop product**:
 
 ---
 
+## ✅ Done after 1.0.3 (2026-11-06)
+
+| Feature | Notes |
+|---|---|
+| Theme (light / dark / follow phone) | Sets the page's `prefers-color-scheme` |
+| Fullscreen and keep screen on | Immersive mode, swipe to show the bars |
+| Back-button modes | History then exit, press twice, ask, or go to start page |
+| App shortcuts | Up to 4 pages on the icon's long-press menu |
+| Asset optimizer + size report | CSS, JSON, PNG, JPEG; project files never change |
+| Install by QR code (Windows) | One secret URL, private network only, 10-minute limit |
+| Project backup and restore | `.ilovehtml` ZIP, without builds or signing keys |
+| App lock | Biometric or screen lock (adds `USE_BIOMETRIC`) |
+| Web notifications | `Notification` API while the app is open (adds `POST_NOTIFICATIONS`) |
+| Android TV and tablets | TV banner and remote focus; free rotation and desktop layout on tablets |
+
+Still to check on real devices: app lock on Android 7–9 and 10+, notifications
+on Android 13+, the TV remote, and QR install from a Windows PC.
+
+---
+
 ## 🚀 Feature Ideas — Ranked by Impact
 
 ### 🔥 High Impact (Build These First)
@@ -53,6 +73,7 @@ Here's what's needed to make it a polished **standalone desktop product**:
 **7. Custom JavaScript Bridge (Native APIs)**
 - Inject a `window.iLoveHTML` JS object exposing native features: camera, GPS, notifications, contacts, biometrics
 - The #1 feature gap vs Capacitor / Cordova
+- ✅ Started: web notifications and app lock (biometrics) are done; camera, GPS and contacts are open
 
 **8. Multi-page / Deep Linking Support**
 - Generate Android App Links so `https://yoursite.com/page` opens directly in the app
@@ -99,7 +120,8 @@ Here's what's needed to make it a polished **standalone desktop product**:
 - [ ] Mac/Linux build from phone
 
 ### Milestone 9: Native API Bridge
-- [ ] JS ↔ native bridge (camera, GPS, notifications)
+- [x] Web notifications (no push)
+- [ ] JS ↔ native bridge (camera, GPS, contacts)
 - [ ] PWA manifest auto-import
 - [ ] Android App Links / deep linking
 
