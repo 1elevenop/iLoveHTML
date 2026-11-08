@@ -4,7 +4,7 @@ Turn HTML files, a website ZIP or a live https website into an Android app
 (APK or Play Store App Bundle) or a Windows app (.exe or .msix installer).
 Everything is built on your own phone or PC: no account, no upload, no cloud.
 
-**Latest release: [iLoveHTML 1.1.1](https://github.com/1elevenop/iLoveHTML/releases/latest)**
+**Latest release: [iLoveHTML 1.2.2](https://github.com/1elevenop/iLoveHTML/releases/latest)**
 — Android APK and Windows ZIP, with SHA-256 checksums.
 
 ## Quick start
@@ -364,3 +364,7 @@ served from `https://appassets.androidplatform.net` through
 off-site links handed to the browser, WebView debugging only in debug builds.
 `USE_BIOMETRIC` only when app lock is on, `POST_NOTIFICATIONS` only when
 notifications are on; the notification bridge answers only the app's own origins.
+
+## License
+
+iLoveHTML is released under the [MIT License](LICENSE).
