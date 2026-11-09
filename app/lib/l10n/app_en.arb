@@ -511,6 +511,16 @@
   "loadedLive": "Loaded live; the app needs an internet connection.",
   "otherSites": "Other sites that open inside the app (optional)",
   "otherSitesHelp": "Comma-separated. Links to any other site open in the browser.",
+  "bridgeSites": "Sites that can also share, save files and notify (optional)",
+  "bridgeSitesHelp": "Comma-separated, from the list above. Your own site always can. Leave login and payment sites out.",
+  "bridgeSiteNotListed": "\"{host}\" is not in the list above",
+  "@bridgeSiteNotListed": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "orientation": "Orientation",
   "orientationAuto": "Auto",
   "portrait": "Portrait",

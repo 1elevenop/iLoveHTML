@@ -602,6 +602,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Séparés par des virgules. Les liens vers tout autre site s\'ouvrent dans le navigateur.';
 
   @override
+  String get bridgeSites =>
+      'Sites qui peuvent aussi partager, enregistrer des fichiers et notifier (facultatif)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'Séparés par des virgules, parmi la liste ci-dessus. Votre propre site le peut toujours. N\'ajoutez pas les sites de connexion ou de paiement.';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '« $host » n\'est pas dans la liste ci-dessus';
+  }
+
+  @override
   String get orientation => 'Orientation';
 
   @override

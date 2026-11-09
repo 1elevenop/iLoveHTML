@@ -363,4 +363,9 @@ served from `https://appassets.androidplatform.net` through
 `INTERNET` permission only for URL projects or when explicitly enabled,
 off-site links handed to the browser, WebView debugging only in debug builds.
 `USE_BIOMETRIC` only when app lock is on, `POST_NOTIFICATIONS` only when
-notifications are on; the notification bridge answers only the app's own origins.
+notifications are on. Share, saving files and notifications answer only the
+app's own site, plus the hosts a URL project lists under "Sites that can
+also share, save files and notify"; other sites that open inside the app do
+not get them. App data is excluded from backups and device transfers.
+Windows apps follow the same Downloads, File uploads and Local storage
+switches. To report a security problem see [SECURITY.md](SECURITY.md).

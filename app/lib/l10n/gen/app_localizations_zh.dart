@@ -588,6 +588,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get otherSitesHelp => '用逗号分隔。指向其他网站的链接会在浏览器中打开。';
 
   @override
+  String get bridgeSites => '还可以分享、保存文件和发送通知的网站(可选)';
+
+  @override
+  String get bridgeSitesHelp => '用逗号分隔,从上面的列表中选择。你自己的网站始终可以。不要填写登录或支付网站。';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '\"$host\"不在上面的列表中';
+  }
+
+  @override
   String get orientation => '屏幕方向';
 
   @override

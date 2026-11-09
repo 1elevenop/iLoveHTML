@@ -598,6 +598,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Comma-separated. Links to any other site open in the browser.';
 
   @override
+  String get bridgeSites =>
+      'Sites that can also share, save files and notify (optional)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'Comma-separated, from the list above. Your own site always can. Leave login and payment sites out.';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '\"$host\" is not in the list above';
+  }
+
+  @override
   String get orientation => 'Orientation';
 
   @override

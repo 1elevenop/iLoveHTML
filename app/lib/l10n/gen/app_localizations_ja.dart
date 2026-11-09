@@ -592,6 +592,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get otherSitesHelp => 'カンマ区切り。それ以外のサイトへのリンクはブラウザーで開きます。';
 
   @override
+  String get bridgeSites => '共有、ファイルの保存、通知もできるサイト (任意)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'カンマ区切りで、上のリストから選びます。自分のサイトは常に使えます。ログインや支払いのサイトは入れないでください。';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '「$host」は上のリストにありません';
+  }
+
+  @override
   String get orientation => '画面の向き';
 
   @override

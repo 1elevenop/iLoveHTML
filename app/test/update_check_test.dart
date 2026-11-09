@@ -119,6 +119,24 @@ void main() {
     await expectLater(downloadUpdate(evil, dir.path), throwsA(isA<UpdateDownloadException>()));
   });
 
+  test('refuses update file names that could leave the updates folder', () async {
+    final dir = Directory.systemTemp.createTempSync('upd');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    for (final name in ['..%5Cx.apk', '..%2Fx.apk', '.hidden.apk', 'a%20b.apk']) {
+      final info = UpdateInfo(
+        version: '9.9.9',
+        pageUrl: 'https://github.com/1elevenop/iLoveHTML/releases/tag/v9.9.9',
+        downloadUrl: 'https://github.com/1elevenop/iLoveHTML/releases/download/v9.9.9/$name',
+        notes: '',
+      );
+      await expectLater(
+        downloadUpdate(info, dir.path),
+        throwsA(isA<UpdateDownloadException>().having((e) => e.message, 'message', contains('file name'))),
+        reason: name,
+      );
+    }
+  });
+
   test('downloads and checks the published v1.2.1 APK (set ILOVEHTML_NETWORK_TESTS=1)', () async {
     final dir = Directory.systemTemp.createTempSync('upd');
     addTearDown(() => dir.deleteSync(recursive: true));

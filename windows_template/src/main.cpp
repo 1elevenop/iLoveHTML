@@ -157,6 +157,8 @@ class App {
     return it == config_.end() ? fallback : it->second;
   }
   bool Flag(const char* key) const { return Get(key) == L"1"; }
+  // For switches that are on unless the project turned them off.
+  bool On(const char* key) const { return Get(key, L"1") == L"1"; }
   int Int(const char* key, int fallback) const {
     std::wstring v = Get(key);
     return v.empty() ? fallback : _wtoi(v.c_str());
@@ -306,7 +308,7 @@ void SetUpWebView() {
   ComPtr<ICoreWebView2Settings> settings;
   g_webview->get_Settings(&settings);
   bool devtools = g_app.Flag("devtools");
-  settings->put_IsScriptEnabled(g_app.Get("javaScript", L"1") == L"1");
+  settings->put_IsScriptEnabled(g_app.On("javaScript"));
   settings->put_IsWebMessageEnabled(FALSE);
   settings->put_AreHostObjectsAllowed(FALSE);
   settings->put_AreDevToolsEnabled(devtools);
@@ -392,6 +394,35 @@ void SetUpWebView() {
           .Get(),
       nullptr);
 
+  // Downloads follow the project's switch and the Android wrapper's rules:
+  // https, and blob:/data: files the page made itself.
+  ComPtr<ICoreWebView2_4> webview4;
+  if (SUCCEEDED(g_webview.As(&webview4))) {
+    webview4->add_DownloadStarting(
+        Callback<ICoreWebView2DownloadStartingEventHandler>(
+            [](ICoreWebView2*, ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
+              ComPtr<ICoreWebView2DownloadOperation> download;
+              args->get_DownloadOperation(&download);
+              LPWSTR raw = nullptr;
+              if (download) download->get_Uri(&raw);
+              std::wstring uri = Take(raw);
+              std::wstring scheme = App::SchemeOf(uri);
+              if (!g_app.On("downloads") || (scheme != L"https" && scheme != L"blob" && scheme != L"data")) {
+                args->put_Cancel(TRUE);
+                Log(L"BLOCKED DOWNLOAD " + uri.substr(0, 200));
+              }
+              return S_OK;
+            })
+            .Get(),
+        nullptr);
+  }
+
+  // With file uploads off the file picker never opens: the request goes to
+  // the DevTools protocol instead, where nothing answers it.
+  if (!g_app.On("fileUploads")) {
+    g_webview->CallDevToolsProtocolMethod(L"Page.setInterceptFileChooserDialog", L"{\"enabled\":true}", nullptr);
+  }
+
   g_webview->add_NavigationCompleted(
       Callback<ICoreWebView2NavigationCompletedEventHandler>(
           [](ICoreWebView2* sender, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
@@ -435,7 +466,19 @@ void SetUpWebView() {
         nullptr);
   }
 
-  g_webview->Navigate(g_app.StartUrl().c_str());
+  if (g_app.On("domStorage")) {
+    g_webview->Navigate(g_app.StartUrl().c_str());
+    return;
+  }
+  // WebView2 has no switch for DOM storage, so pages see what Android's
+  // WebView shows when it is off: null. The first page loads only once the
+  // script is registered, so it cannot run without it.
+  g_webview->AddScriptToExecuteOnDocumentCreated(
+      L"for (const k of ['localStorage', 'sessionStorage']) "
+      L"Object.defineProperty(window, k, { get() { return null; }, configurable: false });",
+      Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+          [](HRESULT, LPCWSTR) -> HRESULT { return g_webview->Navigate(g_app.StartUrl().c_str()); })
+          .Get());
 }
 
 std::wstring UserDataFolder() {

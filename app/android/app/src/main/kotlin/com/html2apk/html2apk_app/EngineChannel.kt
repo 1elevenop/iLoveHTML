@@ -294,8 +294,18 @@ class EngineChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         activity.startActivity(Intent.createChooser(send, apk.name))
     }
 
-    private fun uriFor(file: File): Uri =
-        FileProvider.getUriForFile(activity, "${activity.packageName}.files", file)
+    /**
+     * The FileProvider's paths cover whole project folders (XML paths cannot
+     * say "<any project>/exports"), so the rule is enforced here: only built
+     * files and iLoveHTML's own update are ever handed to another app.
+     */
+    private fun uriFor(file: File): Uri {
+        val dir = file.canonicalFile.parentFile
+        require(dir != null && (dir.name == "exports" || dir == File(workspace, "updates"))) {
+            "Only built apps and updates can be opened by other apps"
+        }
+        return FileProvider.getUriForFile(activity, "${activity.packageName}.files", file)
+    }
 
     private fun insideWorkspace(path: String): File {
         val f = File(path).canonicalFile

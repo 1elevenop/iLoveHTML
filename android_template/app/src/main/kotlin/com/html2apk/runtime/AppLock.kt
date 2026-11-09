@@ -13,6 +13,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -49,8 +50,10 @@ class AppLock(
 
     /** Call in onCreate after setContentView. */
     fun start(saved: Bundle?) {
-        // Android 13+: the recent-apps screen shows a blank card instead of the page.
+        // The recent-apps screen must not show the page. Android 13+ can blank
+        // just that card; older versions need FLAG_SECURE, which also stops screenshots.
         if (Build.VERSION.SDK_INT >= 33) activity.setRecentsScreenshotEnabled(false)
+        else activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         // A theme change recreates the activity; do not ask again right after an unlock.
         val unlockedAt = saved?.getLong(KEY_UNLOCKED_AT, 0L) ?: 0L
         if (unlockedAt == 0L || now() - unlockedAt >= RELOCK_MS) lock()

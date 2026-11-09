@@ -601,6 +601,19 @@ class AppLocalizationsEs extends AppLocalizations {
       'Separados por comas. Los enlaces a cualquier otro sitio se abren en el navegador.';
 
   @override
+  String get bridgeSites =>
+      'Sitios que también pueden compartir, guardar archivos y notificar (opcional)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'Separados por comas, de la lista de arriba. Tu propio sitio siempre puede. No incluyas sitios de inicio de sesión ni de pago.';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '\"$host\" no está en la lista de arriba';
+  }
+
+  @override
   String get orientation => 'Orientación';
 
   @override

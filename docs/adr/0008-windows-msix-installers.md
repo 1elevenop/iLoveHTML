@@ -42,18 +42,29 @@ Microsoft Store takes.
     `CN=<publisher name>` with the Code Signing EKU, valid 5 years.
     A test certificate's `.cer` is copied next to every installer.
   - Certificates are read with .NET's `X509Certificate2` through
-    PowerShell with `EphemeralKeySet`: no certificate store is touched.
-    Passwords reach keytool and PowerShell through the environment.
+    PowerShell with `EphemeralKeySet`: creating, importing and inspecting
+    a certificate touches no certificate store (signing does, briefly:
+    see Trade-offs). Passwords reach keytool and PowerShell through the
+    environment.
 - **Replacing the certificate warns** that installed apps only update from
   installers with the same publisher.
 
 ## Trade-offs
 
-- `signtool` accepts the `.pfx` password only on its command line. Other
-  processes of the same Windows user can read command lines, but they can
-  already decrypt the DPAPI-protected password, so this exposes nothing
-  new; other users cannot read it without admin rights. The password is
-  never logged.
+- `signtool` accepts a `.pfx` password only on its command line. Until
+  2026-11-10 iLoveHTML passed it there, reasoning that other processes of
+  the same user can already decrypt the DPAPI-protected password. That
+  holds for live processes, but command lines are also written to
+  process-creation logs (Windows auditing, Sysmon, endpoint security
+  tools), which are kept and often leave the PC. So signing now runs
+  through PowerShell: the certificate is imported into the user's
+  certificate store (`CurrentUser\My`, key not exportable, password
+  through the environment), `signtool sign /s My /sha1 <thumbprint>` picks
+  it, and whatever was added is removed again. A certificate that was
+  already in the store is used as it is and left alone. The cost: for the
+  seconds signing takes the key is in the store, and if iLoveHTML is
+  killed in that window it stays there until removed by hand
+  (`certmgr.msc` → Personal).
 - A test certificate is not trusted anywhere. People must import the
   `.cer` into Local Machine → Trusted People once (admin), or Windows
   refuses the installer. Only a certificate from a certificate authority

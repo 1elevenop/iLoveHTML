@@ -602,6 +602,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Durch Kommas getrennt. Links zu allen anderen Websites öffnen im Browser.';
 
   @override
+  String get bridgeSites =>
+      'Websites, die auch teilen, Dateien speichern und benachrichtigen dürfen (optional)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'Durch Kommas getrennt, aus der Liste oben. Die eigene Website darf das immer. Anmelde- und Zahlungsseiten weglassen.';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '„$host“ steht nicht in der Liste oben';
+  }
+
+  @override
   String get orientation => 'Ausrichtung';
 
   @override

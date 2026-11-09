@@ -161,6 +161,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
   late final _shareTarget = TextEditingController(text: _m.webView.shareTarget ?? '');
   late final _siteUrl = TextEditingController(text: _m.source.type == SourceType.url ? _m.source.entry : '');
   late final _hosts = TextEditingController(text: _m.webView.allowedHosts.join(', '));
+  late final _bridgeHosts = TextEditingController(text: _m.webView.bridgeHosts.join(', '));
   late final _statusColor = TextEditingController(text: _m.appearance.statusBarColor);
   late final _navColor = TextEditingController(text: _m.appearance.navigationBarColor);
   late final _splashColor = TextEditingController(text: _m.appearance.splashBackgroundColor);
@@ -172,7 +173,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
 
   @override
   void dispose() {
-    for (final c in [_name, _id, _versionName, _versionCode, _ua, _galleryFolder, _shareTarget, _siteUrl, _hosts, _statusColor,
+    for (final c in [_name, _id, _versionName, _versionCode, _ua, _galleryFolder, _shareTarget, _siteUrl, _hosts, _bridgeHosts, _statusColor,
       _navColor, _splashColor]) {
       c.dispose();
     }
@@ -202,6 +203,7 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
         galleryFolder: () => folder.isEmpty ? null : folder,
         shareTarget: () => target.isEmpty ? null : target,
         allowedHosts: _parseHosts(_hosts.text),
+        bridgeHosts: _parseHosts(_bridgeHosts.text),
       ),
       // Set by release builds, not by this form: always keep the stored value.
       releaseCertSha256: () => _current.manifest.releaseCertSha256,
@@ -524,6 +526,24 @@ class _SettingsTabState extends State<_SettingsTab> with AutomaticKeepAliveClien
                 validator: (v) {
                   for (final h in _parseHosts(v ?? '')) {
                     if (validateRemoteUrl('https://$h/') != null || h.contains('/')) return context.l10n.invalidHost(h);
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _bridgeHosts,
+                decoration: InputDecoration(
+                  labelText: context.l10n.bridgeSites,
+                  hintText: 'shop.example.com',
+                  helperText: context.l10n.bridgeSitesHelp,
+                  helperMaxLines: 3,
+                ),
+                autocorrect: false,
+                validator: (v) {
+                  final inApp = _parseHosts(_hosts.text);
+                  for (final h in _parseHosts(v ?? '')) {
+                    if (!inApp.contains(h)) return context.l10n.bridgeSiteNotListed(h);
                   }
                   return null;
                 },
