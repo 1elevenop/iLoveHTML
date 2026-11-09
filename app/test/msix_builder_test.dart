@@ -52,6 +52,10 @@ void main() {
       expect(run.arguments.join(' '), isNot(contains('hunter2-secret')));
       expect(run.environment['H2A_PW'], 'hunter2-secret');
       expect(run.environment['H2A_THUMB'], 'AB12');
+      // Started from PowerShell 7, Windows PowerShell inherits its module
+      // path and then has no Cert: drive; signing must not depend on that.
+      expect(run.environment['PSModulePath'], endsWith(r'\System32\WindowsPowerShell\v1.0\Modules'));
+      expect(run.environment['PSModulePath'], isNot(contains(';')));
     });
 
     test('manifest escapes the app name and publisher', () {
