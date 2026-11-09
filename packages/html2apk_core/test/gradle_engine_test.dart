@@ -36,7 +36,8 @@ void main() {
     ).buildProject(project, outputPath: p.join(tmp.path, 'My Apps', 'spaces-debug.apk'), log: log.add);
 
     expect(result.status, BuildStatus.succeeded, reason: '${result.message}\n${log.join('\n')}');
-    expect(result.signerSha256, matches(RegExp(r'^([0-9A-F]{2}:){31}[0-9A-F]{2}$')));
+    expect(result.signerSha256, matches(RegExp(r'^([0-9A-F]{2}:){31}[0-9A-F]{2}$')),
+        reason: log.where((l) => l.contains('apksigner')).join('\n'));
     expect(log, isNot(contains('apksigner not found; signature not verified')));
   }, skip: report.ok && report.toolchain!.buildToolsDir != null ? false : 'No JDK/Android SDK build-tools',
       timeout: const Timeout(Duration(minutes: 10)));

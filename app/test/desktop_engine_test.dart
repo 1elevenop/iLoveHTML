@@ -121,7 +121,8 @@ void main() {
         variant: BuildVariant.release,
         signing: DeviceKeySigning(key));
     expect(release.status, BuildStatus.succeeded, reason: log.join('\n'));
-    expect(release.signerSha256?.toUpperCase(), key.sha256.toUpperCase());
+    expect(release.signerSha256?.toUpperCase(), key.sha256.toUpperCase(),
+        reason: log.where((l) => l.contains('apksigner')).join('\n'));
     expect(log.join('\n'), isNot(contains('secret-pw-2')));
   }, skip: report.ok ? false : 'No JDK/Android SDK', timeout: const Timeout(Duration(minutes: 10)));
 }

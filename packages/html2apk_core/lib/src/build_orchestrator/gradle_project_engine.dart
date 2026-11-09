@@ -86,7 +86,13 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
             message: 'APK signature verification failed: ${verify.stderr}'.trim(), duration: sw.elapsed);
       }
       signer = parseSignerSha256('${verify.stdout}');
-      if (signer != null) log('Signed by certificate SHA-256 $signer');
+      if (signer != null) {
+        log('Signed by certificate SHA-256 $signer');
+      } else {
+        // A different apksigner version may word its output differently.
+        final out = '${verify.stdout}${verify.stderr}'.trim();
+        log('apksigner printed no signer certificate: ${out.length > 600 ? out.substring(0, 600) : out}');
+      }
     } else {
       log('apksigner not found; signature not verified');
     }
