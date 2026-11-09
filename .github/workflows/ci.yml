@@ -27,6 +27,14 @@ jobs:
           flutter-version: 3.47.7
       - run: dart pub get
       - run: dart analyze
+      # The build tests verify APKs with the newest installed build-tools.
+      - name: Show Android build-tools
+        shell: pwsh
+        run: |
+          Get-ChildItem "$env:ANDROID_HOME/build-tools" | ForEach-Object {
+            $_.Name
+            Get-ChildItem $_.FullName -Recurse -Filter 'apksigner*' | ForEach-Object { '  ' + $_.FullName.Substring($_.FullName.IndexOf('build-tools')) }
+          }
       - run: dart test
 
   app:
@@ -56,6 +64,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # android_engine compiles with a Java 25 toolchain (jvmToolchain(25)).
+          java-version: 25
       - run: .\gradlew.bat test --no-daemon --console=plain
         working-directory: android_engine
