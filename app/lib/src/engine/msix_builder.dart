@@ -169,6 +169,11 @@ class MsixBuilder {
           'H2A_PW': signing.password,
           'H2A_THUMB': signing.thumbprint,
           'H2A_FILE': file,
+          // When iLoveHTML is started from PowerShell 7, Windows PowerShell
+          // inherits PowerShell 7's module path, loads the wrong security
+          // module and has no Cert: drive. Give it its own modules only.
+          'PSModulePath':
+              '${Platform.environment['SystemRoot'] ?? r'C:\Windows'}\\System32\\WindowsPowerShell\\v1.0\\Modules',
         },
       );
 
