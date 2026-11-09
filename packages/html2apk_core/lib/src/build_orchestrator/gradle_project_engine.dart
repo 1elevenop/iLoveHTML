@@ -101,10 +101,12 @@ class GradleProjectBuildEngine implements ProjectBuildEngine {
   }
 }
 
-/// Reads `Signer #1 certificate SHA-256 digest: ab12…` from `apksigner verify --print-certs`
-/// and formats it like Android's fingerprints: `AB:12:…`.
+/// Reads the first signer's `… certificate SHA-256 digest: ab12…` from
+/// `apksigner verify --print-certs` and formats it like Android's
+/// fingerprints: `AB:12:…`. Up to build-tools 36 the line starts with
+/// `Signer #1`; build-tools 37 names the signature scheme (`V2 Signer:`).
 String? parseSignerSha256(String output) {
-  final m = RegExp(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]{64})').firstMatch(output);
+  final m = RegExp(r'(?:Signer #1|V[0-9.]+ Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})').firstMatch(output);
   if (m == null) return null;
   final hex = m.group(1)!.toUpperCase();
   return [for (var i = 0; i < hex.length; i += 2) hex.substring(i, i + 2)].join(':');

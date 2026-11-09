@@ -83,6 +83,12 @@ void main() {
     expect(parseSignerSha256(out), startsWith('0A:1B:2C:3D'));
     expect(parseSignerSha256(out)!.split(':'), hasLength(32));
     expect(parseSignerSha256('nothing here'), isNull);
+    // build-tools 37 names the signature scheme instead of numbering signers.
+    const v37 = 'V2 Signer: certificate DN: CN=Desk\n'
+        'V2 Signer: certificate SHA-256 digest: b5afdadac4cd31239da34542114488ea96c9d6feb86dcc8c72546cd5f49abae8\n'
+        'V2 Signer: certificate SHA-1 digest: 0ad9f0fae5740f7e113f7335ce9d3484ee7ca145\n';
+    expect(parseSignerSha256(v37), startsWith('B5:AF:DA:DA'));
+    expect(parseSignerSha256(v37)!.split(':'), hasLength(32));
   });
 
   test('Gradle engine refuses release builds without a keystore', () async {
