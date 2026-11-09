@@ -89,6 +89,7 @@ class WebViewSettings {
     this.domStorageEnabled = true,
     this.externalLinks = ExternalLinkPolicy.browser,
     this.allowedHosts = const [],
+    this.bridgeHosts = const [],
     this.userAgentSuffix,
     this.pullToRefresh = false,
     this.fileUploads = true,
@@ -107,6 +108,11 @@ class WebViewSettings {
 
   /// Extra https hosts allowed to load inside the WebView.
   final List<String> allowedHosts;
+
+  /// The [allowedHosts] whose pages may also use the native bridge (share,
+  /// saving files, notifications). The app's own site always can; a login
+  /// or payment site that only needs to open inside the app should not.
+  final List<String> bridgeHosts;
   final String? userAgentSuffix;
 
   /// Swipe down at the top of a page to reload it (or retry after an error).
@@ -144,6 +150,7 @@ class WebViewSettings {
         'domStorageEnabled': domStorageEnabled,
         'externalLinks': externalLinks.name,
         'allowedHosts': allowedHosts,
+        'bridgeHosts': bridgeHosts,
         'userAgentSuffix': userAgentSuffix,
         'pullToRefresh': pullToRefresh,
         'fileUploads': fileUploads,
@@ -161,6 +168,7 @@ class WebViewSettings {
     bool? domStorageEnabled,
     ExternalLinkPolicy? externalLinks,
     List<String>? allowedHosts,
+    List<String>? bridgeHosts,
     String? Function()? userAgentSuffix,
     bool? pullToRefresh,
     bool? fileUploads,
@@ -177,6 +185,7 @@ class WebViewSettings {
         domStorageEnabled: domStorageEnabled ?? this.domStorageEnabled,
         externalLinks: externalLinks ?? this.externalLinks,
         allowedHosts: allowedHosts ?? this.allowedHosts,
+        bridgeHosts: bridgeHosts ?? this.bridgeHosts,
         userAgentSuffix: userAgentSuffix != null ? userAgentSuffix() : this.userAgentSuffix,
         pullToRefresh: pullToRefresh ?? this.pullToRefresh,
         fileUploads: fileUploads ?? this.fileUploads,
@@ -194,6 +203,8 @@ class WebViewSettings {
         domStorageEnabled: json['domStorageEnabled'] as bool? ?? true,
         externalLinks: ExternalLinkPolicy.values.byName(json['externalLinks'] as String? ?? 'browser'),
         allowedHosts: [...?(json['allowedHosts'] as List?)?.cast<String>()],
+        // Projects saved before this list existed gave the bridge to every allowed host.
+        bridgeHosts: [...?((json['bridgeHosts'] ?? json['allowedHosts']) as List?)?.cast<String>()],
         userAgentSuffix: json['userAgentSuffix'] as String?,
         pullToRefresh: json['pullToRefresh'] as bool? ?? false,
         fileUploads: json['fileUploads'] as bool? ?? true,

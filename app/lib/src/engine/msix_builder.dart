@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:html2apk_core/html2apk_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -46,12 +48,43 @@ class WindowsSdkTools {
 /// The certificate that signs a package. [subject] must be the
 /// certificate's subject exactly as Windows prints it (`CN=…`).
 class MsixSigning {
-  const MsixSigning({required this.pfxPath, required this.password, required this.subject});
+  const MsixSigning({required this.pfxPath, required this.password, required this.subject, required this.thumbprint});
 
   final String pfxPath;
   final String password;
   final String subject;
+
+  /// SHA-1 thumbprint of the certificate, as Windows prints it.
+  final String thumbprint;
 }
+
+/// signtool accepts a .pfx password only on its command line, where every
+/// process on the PC can read it. So the certificate is put in the user's
+/// certificate store for the length of the signing (password through the
+/// environment, key not exportable), signtool picks it by thumbprint, and
+/// whatever was added is removed again. A certificate that was already in
+/// the store is used as it is and left alone.
+const _signScript = r'''
+$ErrorActionPreference = 'Stop'
+$my = 'Cert:\CurrentUser\My'
+$added = @()
+$code = 1
+try {
+  $had = @(Get-ChildItem $my | ForEach-Object { $_.Thumbprint })
+  if (-not (Get-ChildItem $my | Where-Object { $_.Thumbprint -eq $env:H2A_THUMB -and $_.HasPrivateKey })) {
+    $inPfx = New-Object Security.Cryptography.X509Certificates.X509Certificate2Collection
+    $inPfx.Import($env:H2A_PFX, $env:H2A_PW, [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
+    $added = @($inPfx | ForEach-Object { $_.Thumbprint } | Where-Object { $had -notcontains $_ })
+    Import-PfxCertificate -FilePath $env:H2A_PFX -CertStoreLocation $my `
+      -Password (ConvertTo-SecureString $env:H2A_PW -AsPlainText -Force) | Out-Null
+  }
+  & $env:H2A_SIGNTOOL sign /fd SHA256 /s My /sha1 $env:H2A_THUMB $env:H2A_FILE
+  $code = $LASTEXITCODE
+} finally {
+  foreach ($t in $added) { Remove-Item -LiteralPath "$my\$t" -DeleteKey -ErrorAction SilentlyContinue }
+}
+exit $code
+''';
 
 /// Builds a signed .msix installer for a project: the .exe from
 /// [ExeBuilder], tile images and an AppxManifest, packed with makeappx and
@@ -105,8 +138,9 @@ class MsixBuilder {
       if (pack.exitCode != 0) return fail('makeappx failed:\n${_tail(pack)}');
       log('Packed ${p.basename(outputPath)}');
 
-      final sign =
-          await Process.run(tools.signTool, ['sign', '/fd', 'SHA256', '/f', signing.pfxPath, '/p', signing.password, tmp]);
+      final run = signInvocation(tmp, signing);
+      final sign = await Process.run(run.executable, run.arguments,
+          environment: run.environment, stdoutEncoding: utf8, stderrEncoding: utf8);
       if (sign.exitCode != 0) return fail('signtool failed:\n${_tail(sign).replaceAll(signing.password, '***')}');
       log('Signed with ${signing.subject}');
 
@@ -121,6 +155,22 @@ class MsixBuilder {
       stage.deleteSync(recursive: true);
     }
   }
+
+  /// The process that signs [file]. Secrets travel only in the environment.
+  @visibleForTesting
+  ({String executable, List<String> arguments, Map<String, String> environment}) signInvocation(
+          String file, MsixSigning signing) =>
+      (
+        executable: 'powershell.exe',
+        arguments: ['-NoProfile', '-NonInteractive', '-Command', _signScript],
+        environment: {
+          'H2A_SIGNTOOL': tools.signTool,
+          'H2A_PFX': signing.pfxPath,
+          'H2A_PW': signing.password,
+          'H2A_THUMB': signing.thumbprint,
+          'H2A_FILE': file,
+        },
+      );
 
   static const _logos = [('StoreLogo.png', 50), ('Square44x44Logo.png', 44), ('Square150x150Logo.png', 150)];
 

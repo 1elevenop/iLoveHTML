@@ -101,6 +101,11 @@ List<ValidationIssue> validateManifest(ProjectManifest m) {
       issues.add(ValidationIssue('webView.allowedHosts', 'Invalid host "$host"'));
     }
   }
+  for (final host in m.webView.bridgeHosts) {
+    if (!m.webView.allowedHosts.contains(host)) {
+      issues.add(ValidationIssue('webView.bridgeHosts', '"$host" is not one of the sites that open inside the app'));
+    }
+  }
   for (final perm in m.permissions) {
     if (!supportedPermissions.contains(perm)) {
       issues.add(ValidationIssue('permissions', '"$perm" is not a permission iLoveHTML apps can request'));

@@ -111,6 +111,7 @@ class AndroidGenerator {
         'domStorageEnabled': m.webView.domStorageEnabled,
         'externalLinks': m.webView.externalLinks.name,
         'allowedHosts': m.webView.allowedHosts,
+        'bridgeHosts': m.webView.bridgeHosts,
         'userAgentSuffix': m.webView.userAgentSuffix,
         'pullToRefresh': m.webView.pullToRefresh,
         'fileUploads': m.webView.fileUploads,
@@ -193,6 +194,8 @@ class AndroidGenerator {
     b
       ..writeln('    <application')
       ..writeln('        android:allowBackup="false"')
+      // Android 12+: without rules some phones still copy app data to a new device.
+      ..writeln('        android:dataExtractionRules="@xml/data_extraction_rules"')
       ..writeln('        android:banner="@drawable/app_banner"')
       ..writeln('        android:icon="@drawable/app_icon"')
       ..writeln('        android:label="@string/app_name"')

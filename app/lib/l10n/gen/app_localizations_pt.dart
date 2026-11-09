@@ -599,6 +599,19 @@ class AppLocalizationsPt extends AppLocalizations {
       'Separados por vírgula. Links para qualquer outro site abrem no navegador.';
 
   @override
+  String get bridgeSites =>
+      'Sites que também podem compartilhar, salvar arquivos e notificar (opcional)';
+
+  @override
+  String get bridgeSitesHelp =>
+      'Separados por vírgula, da lista acima. Seu próprio site sempre pode. Deixe de fora sites de login e de pagamento.';
+
+  @override
+  String bridgeSiteNotListed(String host) {
+    return '\"$host\" não está na lista acima';
+  }
+
+  @override
   String get orientation => 'Orientação';
 
   @override

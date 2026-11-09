@@ -1040,6 +1040,24 @@ abstract class AppLocalizations {
   /// **'Comma-separated. Links to any other site open in the browser.'**
   String get otherSitesHelp;
 
+  /// No description provided for @bridgeSites.
+  ///
+  /// In en, this message translates to:
+  /// **'Sites that can also share, save files and notify (optional)'**
+  String get bridgeSites;
+
+  /// No description provided for @bridgeSitesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma-separated, from the list above. Your own site always can. Leave login and payment sites out.'**
+  String get bridgeSitesHelp;
+
+  /// No description provided for @bridgeSiteNotListed.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{host}\" is not in the list above'**
+  String bridgeSiteNotListed(String host);
+
   /// No description provided for @orientation.
   ///
   /// In en, this message translates to:

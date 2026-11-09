@@ -300,7 +300,12 @@ Future<String> downloadUpdate(
   if (!isTrustedUrl(info.downloadUrl) || info.downloadUrl == info.pageUrl) {
     throw const UpdateDownloadException('No download for this device in this release');
   }
+  // pathSegments are percent-decoded, so "..%5Cx.apk" would name a file
+  // outside [dir]. Release files only ever use these characters.
   final fileName = url.pathSegments.last;
+  if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]*$').hasMatch(fileName)) {
+    throw const UpdateDownloadException('Unexpected update file name');
+  }
   final sumsUrl = url.replace(pathSegments: [...url.pathSegments.take(url.pathSegments.length - 1), 'SHA256SUMS.txt']);
   final client = (clientFactory ?? HttpClient.new)()
     ..connectionTimeout = const Duration(seconds: 15)

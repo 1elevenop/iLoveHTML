@@ -36,6 +36,36 @@ covers the item; "Device" means verified on an emulator or phone.
 | FileProvider | Done: not exported; grants are per-URI and per-intent; paths limited to `workspace/projects/` | `file_paths.xml` |
 | Parsers of untrusted bytes | JKS, DER, protobuf readers are bounds-checked and covered by malformed-input tests | engine JVM tests |
 
+## Review of 2026-11-10
+
+Scope: the code added since milestone 6 (MSIX installers, iLoveHTML's app
+lock, the update check and in-app update, QR install, app lock and
+notifications in generated apps) and a second read of both wrappers.
+Findings come from reading the code; "Test" names what now covers the fix.
+
+### Fixed
+
+| # | Finding | Fix | Test |
+|---|---|---|---|
+| 1 | `signtool` got the `.pfx` password on its command line, which process-creation logs record (ADR 0008 had accepted this for live processes of the same user). | Signing goes through PowerShell: certificate imported into `CurrentUser\My` for the length of the signing (password through the environment), `signtool /sha1`, then removed. | `msix_builder_test`: no password in the arguments; a real signed build leaves nothing in the store |
+| 2 | Windows apps ignored the project's Downloads, File uploads and Local storage switches; any file type could be downloaded. | `exeConfig` passes the switches. Downloads: cancelled in `DownloadStarting` when off, and only https/`blob:`/`data:` when on. Uploads off: the file picker is intercepted (`Page.setInterceptFileChooserDialog`). Local storage off: `localStorage`/`sessionStorage` are `null`, set before the first page loads. | `exe_builder_test`: config lines; a real .exe blocks a download and shows `null` storage. The upload switch has no automated test (a file picker needs a real click). |
+| 3 | Every host in "Other sites that open inside the app" also got the native bridge (share, saving files, notifications). A login or payment site listed there could save files to the gallery or post notifications as the app. | New `webView.bridgeHosts` (a subset of `allowedHosts`, checked by `validateManifest` and again in `AppConfig`). New projects: empty. Projects saved earlier keep their behaviour and show the hosts in the new field. TV navigation still runs on every in-app site. | `bridge_hosts_test`, `AppOriginsTest` |
+| 4 | The update file's name came from the URL's last segment, percent-decoded, so `..%5Cx.apk` named a file outside the updates folder. Reachable only through GitHub's answer or saved preferences. | Names must match `[A-Za-z0-9][A-Za-z0-9._-]*`. | `update_check_test` |
+| 5 | Generated apps had no `onRenderProcessGone`: a page that crashes or runs out of memory killed the app. | The activity starts over with a new WebView on the start page; a second crash within 10 s closes the app instead of looping. | Device: Android 10 emulator, renderer killed with `kill -9` (app survives and reloads; a second kill 2 s later closes it) |
+| 6 | With app lock on, Android 10–12 showed the page in the recent-apps screen (`setRecentsScreenshotEnabled` is API 33+). | `FLAG_SECURE` below API 33 (this also stops screenshots there). | Device: Android 10 emulator, `dumpsys window` shows `SECURE` on the app's window |
+| 7 | `allowBackup="false"` alone: on Android 12+ some device-to-device transfers still copy app data. | `dataExtractionRules` excluding everything, in iLoveHTML and every generated app. | Both build with it; `tools/e2e_windows.ps1` passes on the Android 10 emulator. The transfer itself was not tried. |
+| 8 | The FileProvider's paths cover whole project folders, not only built files. | `EngineChannel.uriFor` refuses anything outside `<project>/exports/` and `workspace/updates/`. | Not run on a device yet |
+| 9 | No CI, no dependency updates, no way to report a problem privately. | `.github/workflows/ci.yml` (tests, analysis, Gradle wrapper validation), `.github/dependabot.yml`, `SECURITY.md`. | Runs on the first push |
+
+### Open
+
+| Finding | Why it is open | Planned fix |
+|---|---|---|
+| Updates are checked against `SHA256SUMS.txt` from the same release, which proves the download is intact, not who published it. Android still refuses an APK signed with another key; the Windows ZIP has no such check. | Needs a signing key kept outside GitHub and a release-process change. | Sign `SHA256SUMS.txt` (Ed25519), embed the public key, verify before installing. |
+| iLoveHTML's app lock hides the app but does not protect release keys: the PIN hash is in SharedPreferences (a plain file on Windows), a 4-digit PIN can be tried offline, and the retry wait trusts the clock. | Changes how keys are stored (ADR 0004 lists it as future work). | Android: Keystore key that requires user authentication. Windows: wrap the DPAPI blob with a key derived from the PIN. |
+| QR install is plain HTTP: someone who can intercept the Wi-Fi can swap the APK. | Phones cannot verify a download from a browser. | Show the APK's SHA-256 and signer next to the QR; stop serving after one download. |
+| The Windows wrapper checks hosts with `InternetCrackUrlW` while the page runs in Chromium. No bypass was found (WebView2 hands over normalized URLs). | Hardening, not a known hole. | Parse with `CreateUri`. |
+
 ## Known limitations (accepted for now)
 
 - DNS rebinding after the URL check (see above).

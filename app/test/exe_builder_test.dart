@@ -170,6 +170,44 @@ setTimeout(function () { report('after-navigation', 'still on page'); }, 2500);
     expect(result.message, contains('Offline page "gone.html" is missing'));
   }, skip: skip != false);
 
+  test('the project\'s safety switches reach the Windows app', () {
+    final project = store.createFromUrl(url: 'https://example.com/', name: 'X', applicationId: 'com.example.sw');
+    List<String> config(ProjectManifest m) => ExeBuilder.exeConfig(m, debug: false).trim().split('\n');
+    expect(config(project.manifest), containsAll(['downloads\t1', 'fileUploads\t1', 'domStorage\t1']));
+    final off = project.manifest.copyWith(
+        webView: project.manifest.webView.copyWith(downloads: false, fileUploads: false, domStorageEnabled: false));
+    expect(config(off), containsAll(['downloads\t0', 'fileUploads\t0', 'domStorage\t0']));
+  });
+
+  testWidgets('downloads and storage that are switched off stay off in the exe', (tester) async {
+    await tester.runAsync(() async {
+      final site = Directory(p.join(tmp.path, 'site'))..createSync();
+      File(p.join(site.path, 'index.html')).writeAsStringSync(r'''
+<!doctype html><meta charset="utf-8"><h1>Switches</h1><script>
+console.log('PROBE storage: ' + String(window.localStorage) + '/' + String(window.sessionStorage));
+var a = document.createElement('a');
+a.href = URL.createObjectURL(new Blob(['x'], { type: 'text/plain' }));
+a.download = 'h2a-switch-test.txt';
+document.body.appendChild(a);
+a.click();
+setTimeout(function () { console.log('PROBE done: yes'); }, 2000);
+</script>''');
+      final imported = (await store.importFiles(
+              paths: [p.join(site.path, 'index.html')], name: 'Switches', applicationId: 'com.html2apk.switches'))
+          .project;
+      final project = imported.withManifest(imported.manifest
+          .copyWith(webView: imported.manifest.webView.copyWith(downloads: false, domStorageEnabled: false)));
+      final out = project.windowsExePath();
+      final log = <String>[];
+      final result = await ExeBuilder(wrapper).build(project, outputPath: out, log: log.add);
+      expect(result.status, BuildStatus.succeeded, reason: log.join('\n'));
+
+      final lines = await run(out, (l) => l.any((x) => x.contains('PROBE done')));
+      expect(lines.any((l) => l.startsWith('BLOCKED DOWNLOAD blob:')), isTrue, reason: lines.join('\n'));
+      expect(lines.any((l) => l.contains('PROBE storage: null/null')), isTrue, reason: lines.join('\n'));
+    });
+  }, skip: skip != false);
+
   test('config lines cannot be broken by tabs or newlines in values', () {
     final project = store.createFromUrl(url: 'https://example.com/', name: 'X', applicationId: 'com.example.evil');
     final m = project.manifest.copyWith(name: 'Evil\tName\nentry\thttps://x');

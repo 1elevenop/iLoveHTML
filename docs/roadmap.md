@@ -108,6 +108,28 @@ and an Android 10 phone.
 
 ---
 
+## 🤖 For people who build with AI (added 2026-11-10)
+
+Most new users arrive with HTML an AI wrote for them. What gets in their way:
+
+| Problem today | Feature |
+|---|---|
+| AI gives code in a chat, not files; import takes only files, a ZIP or a URL | **Paste HTML → app**, and "Open with iLoveHTML" for `.html`/`.zip` from the share sheet |
+| AI code loads Tailwind, React, Chart.js and fonts from CDNs; local apps have no internet permission, so the page is blank | **Make it work offline**: find CDN links at import, download them into the project, rewrite the links, record their hashes |
+| Fixing is manual: read the console, retype the error for the AI, import again | **Copy errors as an AI prompt** from the preview console, **Copy builder prompt** (what works inside iLoveHTML), **Update from clipboard** with snapshots and rollback |
+| An API key pasted into the JavaScript ships inside the APK, where anyone can read it | **Secret scanner** that warns at build time, and a **key vault**: the person using the app enters their own key once, it is stored in Android Keystore / DPAPI and added natively to requests for the hosts the project lists |
+| Nobody can see what an AI-written app talks to | **"What does this app talk to?" report**, then an allowlist enforced in the app |
+| AI-made trackers and notes apps lose their data on reinstall; a phone-built APK cannot update a PC-built one (different keys) | **Export / import app data** as one file |
+| Voice and camera are denied; WebView has no speech recognition | **Microphone, camera and speech-to-text** as opt-in permissions; on phones that have it, an **on-device AI bridge** (Gemini Nano) for apps that need no key and no network |
+| "Send this article to my summarizer" is impossible | **Share into the app** (Web Share Target) |
+| Reminders only fire while the app is open | **Scheduled notifications** |
+| Coding agents cannot drive iLoveHTML | **MCP server on the CLI**: an agent creates the project, builds it and shows the install QR |
+
+Security work still open is listed in [security-review.md](security-review.md)
+(signed updates, release keys behind the app lock, QR install fingerprint).
+
+---
+
 ## 🗺️ Suggested Milestones
 
 ### Milestone 7: Polish & Distribution

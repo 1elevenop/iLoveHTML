@@ -29,6 +29,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -68,6 +69,8 @@ class MainActivity : Activity() {
     private var darkThemeApplied = false
     private var appLock: AppLock? = null
     private var notifications: NotificationBridge? = null
+    /** Set when the page's process died; this WebView cannot be used or saved any more. */
+    private var rendererGone = false
     /** True when TV navigation could not be added at document start and runs after each load instead. */
     private var tvScriptAfterLoad = false
 
@@ -117,7 +120,7 @@ class MainActivity : Activity() {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
         }
         if (config.androidTv && isTv) {
-            tvScriptAfterLoad = !TvNavigation.install(webView, bridgeOrigins())
+            tvScriptAfterLoad = !TvNavigation.install(webView, pageOrigins())
             webView.isFocusable = true
             webView.requestFocus()
         }
@@ -343,15 +346,18 @@ class MainActivity : Activity() {
             host in config.allowedHosts || host == ASSET_HOST
     }
 
-    /** Origin rules for the page bridge: the same sites [isInternal] keeps in the app. */
-    private fun bridgeOrigins(): Set<String> = buildSet {
-        add("https://$ASSET_HOST")
-        if (config.sourceType == AppConfig.SourceType.REMOTE) {
-            add("https://$startHost")
-            add(if (startHost.startsWith("www.")) "https://${startHost.removePrefix("www.")}" else "https://www.$startHost")
-        }
-        config.allowedHosts.forEach { add("https://$it") }
-    }
+    /** Pages that get the app's own scripts (TV navigation): the same sites [isInternal] keeps in the app. */
+    private fun pageOrigins() = origins(config.allowedHosts)
+
+    /**
+     * Pages that may call the native bridge (share, saving files,
+     * notifications): the app's own site and the hosts the project chose,
+     * not every site that merely opens inside the app.
+     */
+    private fun bridgeOrigins() = origins(config.bridgeHosts)
+
+    private fun origins(extraHosts: Set<String>) =
+        AppOrigins.of(ASSET_HOST, startHost.takeIf { config.sourceType == AppConfig.SourceType.REMOTE }, extraHosts)
 
     private fun openExternally(uri: Uri) {
         if (config.externalLinks == AppConfig.ExternalLinks.BLOCK) return
@@ -498,7 +504,8 @@ class MainActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        webView.saveState(outState)
+        // After a page crash the new activity opens the start page, not the page that crashed.
+        if (!rendererGone) webView.saveState(outState)
         appLock?.save(outState)
     }
 
@@ -544,6 +551,19 @@ class MainActivity : Activity() {
             }
             refresh?.isRefreshing = false
             hideSplash()
+        }
+
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            // Returning false (the default) kills the whole app. This WebView
+            // is dead either way, so the activity starts over with a new one;
+            // a page that crashes again straight away closes the app instead.
+            Log.w(TAG, "Page process gone (crashed: ${detail.didCrash()})")
+            rendererGone = true
+            val now = SystemClock.elapsedRealtime()
+            val again = rendererGoneAt != 0L && now - rendererGoneAt < CRASH_LOOP_MS
+            rendererGoneAt = now
+            if (again) finish() else recreate()
+            return true
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -606,6 +626,9 @@ class MainActivity : Activity() {
         private const val SPLASH_MIN_MS = 600L
         private const val SPLASH_MAX_MS = 8000L
         private const val EXIT_WINDOW_MS = 2000L
+        private const val CRASH_LOOP_MS = 10_000L
+        /** When the page's process last died; kept for the life of the app's process. */
+        private var rendererGoneAt = 0L
         private const val ACTION_SHORTCUT = "com.html2apk.runtime.OPEN_SHORTCUT"
         private const val EXTRA_PAGE = "page"
         @Suppress("DEPRECATION")

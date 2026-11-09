@@ -119,7 +119,10 @@ class DesktopBuildEngine implements ProjectBuildEngine, KeyManager {
         outputPath: outputPath,
         log: log,
         signing: MsixSigning(
-            pfxPath: _msixPfx, password: unprotectString(entry['password']! as String), subject: cert.subject));
+            pfxPath: _msixPfx,
+            password: unprotectString(entry['password']! as String),
+            subject: cert.subject,
+            thumbprint: cert.thumbprint));
     if (result.status == BuildStatus.succeeded && cert.isTest) {
       // People who install it must trust this test certificate first.
       final cer = p.setExtension(outputPath, '.cer');

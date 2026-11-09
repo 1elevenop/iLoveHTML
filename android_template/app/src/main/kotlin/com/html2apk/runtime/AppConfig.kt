@@ -14,6 +14,8 @@ data class AppConfig(
     val externalLinks: ExternalLinks,
     /** Extra hosts (besides the start host) allowed to load inside the WebView. */
     val allowedHosts: Set<String>,
+    /** The [allowedHosts] whose pages may also use the native bridge. */
+    val bridgeHosts: Set<String>,
     val userAgentSuffix: String?,
     val pullToRefresh: Boolean,
     val fileUploads: Boolean,
@@ -87,7 +89,7 @@ data class AppConfig(
             } else {
                 require(entry.startsWith("https://")) { "Remote entry must use https" }
             }
-            val hosts = json.optJSONArray("allowedHosts")
+            val allowedHosts = hostSet(json.optJSONArray("allowedHosts"))
             val ua = optString(json, "userAgentSuffix")
             val offline = optString(json, "offlinePage")
             require(offline == null || isSafeRelativePath(offline)) { "Invalid offline page path" }
@@ -100,9 +102,9 @@ data class AppConfig(
                 javaScriptEnabled = json.optBoolean("javaScriptEnabled", false),
                 domStorageEnabled = json.optBoolean("domStorageEnabled", false),
                 externalLinks = if (json.optString("externalLinks") == "block") ExternalLinks.BLOCK else ExternalLinks.BROWSER,
-                allowedHosts = buildSet {
-                    if (hosts != null) for (i in 0 until hosts.length()) add(hosts.getString(i).lowercase())
-                },
+                allowedHosts = allowedHosts,
+                // Never wider than the sites that open inside the app.
+                bridgeHosts = hostSet(json.optJSONArray("bridgeHosts")) intersect allowedHosts,
                 userAgentSuffix = ua?.takeIf { it.isNotBlank() },
                 pullToRefresh = json.optBoolean("pullToRefresh", false),
                 fileUploads = json.optBoolean("fileUploads", false),
@@ -147,6 +149,10 @@ data class AppConfig(
                 rotateOnTablets = json.optBoolean("rotateOnTablets", false),
                 desktopSiteOnLargeScreens = json.optBoolean("desktopSiteOnLargeScreens", false),
             )
+        }
+
+        private fun hostSet(hosts: org.json.JSONArray?): Set<String> = buildSet {
+            if (hosts != null) for (i in 0 until hosts.length()) add(hosts.getString(i).lowercase())
         }
 
         private fun optString(json: JSONObject, key: String): String? =

@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html2apk_app/src/engine/desktop_engine.dart';
+import 'package:html2apk_app/src/engine/exe_builder.dart';
 import 'package:html2apk_app/src/engine/msix_builder.dart';
 import 'package:html2apk_app/src/engine/signing_keys.dart';
 import 'package:html2apk_core/html2apk_core.dart';
@@ -42,6 +43,15 @@ void main() {
       expect(MsixBuilder.commonName('CN=Alex Example'), 'Alex Example');
       expect(MsixBuilder.commonName('CN=Acme Ltd, O=Acme, C=IN'), 'Acme Ltd');
       expect(MsixBuilder.commonName('O=Acme, CN="Acme, Inc."'), 'Acme, Inc.');
+    });
+
+    test('the certificate password never reaches a command line', () {
+      final builder = MsixBuilder(ExeBuilder('wrapper.exe'), const WindowsSdkTools(makeAppx: 'm.exe', signTool: 's.exe'));
+      final run = builder.signInvocation(
+          'app.msix', const MsixSigning(pfxPath: 'c.pfx', password: 'hunter2-secret', subject: 'CN=X', thumbprint: 'AB12'));
+      expect(run.arguments.join(' '), isNot(contains('hunter2-secret')));
+      expect(run.environment['H2A_PW'], 'hunter2-secret');
+      expect(run.environment['H2A_THUMB'], 'AB12');
     });
 
     test('manifest escapes the app name and publisher', () {
@@ -103,6 +113,13 @@ void main() {
       expect(File(out).existsSync(), isTrue);
       expect(File(p.setExtension(out, '.cer')).existsSync(), isTrue);
       expect(log.join('\n'), isNot(contains(RegExp('[0-9a-f]{48}'))), reason: 'no password in the log');
+      // Signing borrows the user's certificate store; nothing may stay behind.
+      final left = await Process.run('powershell.exe', [
+        '-NoProfile',
+        '-Command',
+        r'@(Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $env:H2A_THUMB }).Count',
+      ], environment: {'H2A_THUMB': cert.thumbprint});
+      expect((left.stdout as String).trim(), '0', reason: 'certificate left in the store');
 
       final unpacked = p.join(tmp.path, 'unpacked');
       final un = await Process.run(sdk!.makeAppx, ['unpack', '/p', out, '/d', unpacked, '/o']);

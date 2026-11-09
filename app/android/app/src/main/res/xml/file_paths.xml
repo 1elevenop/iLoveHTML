@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Projects live in files/workspace/projects/<id>/; APKs in their exports/ folder. -->
+    <!-- Projects live in files/workspace/projects/<id>/; APKs in their exports/ folder.
+         Paths here cannot name "<id>/exports", so EngineChannel.uriFor refuses anything else. -->
     <files-path name="workspace" path="workspace/projects/" />
     <!-- iLoveHTML's own update APK, downloaded in the app (Settings -> NEW UPDATE). -->
     <files-path name="updates" path="workspace/updates/" />
