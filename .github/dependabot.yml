@@ -27,6 +27,11 @@ updates:
     groups:
       android-toolchain:
         patterns: ["*"]
+    # androidx.core 1.19+ needs compileSdk 37; the projects pin 36 (ADR 0003).
+    # Remove this when moving to compileSdk 37. See PRs #16 and #21.
+    ignore:
+      - dependency-name: "androidx.core:*"
+        versions: [">= 1.18.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
