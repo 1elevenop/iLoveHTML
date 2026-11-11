@@ -55,6 +55,6 @@ android {
 dependencies {
     implementation("androidx.webkit:webkit:1.17.1")
     // NotificationCompat (the version webkit already brings).
-    implementation("androidx.core:core:1.1.0")
+    implementation("androidx.core:core:1.19.1")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
 }

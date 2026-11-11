@@ -80,5 +80,5 @@ android {
 dependencies {
     // Google's pure-Java APK signer/verifier; runs on ART.
     implementation("com.android.tools.build:apksig:9.4.1")
-    implementation("androidx.core:core:1.17.0")
+    implementation("androidx.core:core:1.19.1")
 }
