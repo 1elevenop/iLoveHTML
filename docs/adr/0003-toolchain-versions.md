@@ -29,4 +29,4 @@ Notes:
 
 | Date | Change | Checked by |
 |---|---|---|
-| 2026-11-11 | Gradle 9.8.2 → 9.9.0 (SHA-256 checked against services.gradle.org), AGP 9.4.1 → 9.5.1 | Base APK rebuilt with `tools/build_ondevice_base.ps1`; prototype and `flutter build apk` build. **On-device end-to-end test still to do.** androidx.core 1.19.1 for `app/android` left out: it needs compileSdk 37 |
+| 2026-11-11 | Gradle 9.8.2 → 9.9.0 (SHA-256 checked against services.gradle.org), AGP 9.4.1 → 9.5.1 | Base APK rebuilt with `tools/build_ondevice_base.ps1`; prototype and `flutter build apk` build; on a Galaxy S25 Ultra (Android 17) the prototype built an app from the new base (3.13 MB, `apksigner verify` passes), which installed, opened and ran its JavaScript with no crash. androidx.core 1.19.1 for `app/android` left out: it needs compileSdk 37 |
