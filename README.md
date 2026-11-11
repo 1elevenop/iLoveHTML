@@ -1,11 +1,17 @@
-# iLoveHTML — turn any website into an Android or Windows app
+# iLoveHTML
 
-Turn HTML files, a website ZIP or a live https website into an Android app
-(APK or Play Store App Bundle) or a Windows app (.exe or .msix installer).
-Everything is built on your own phone or PC: no account, no upload, no cloud.
+**Turn HTML files, a website ZIP or a live https site into an Android app
+(APK or App Bundle) or a Windows app (.exe or .msix).**
+Built on your own phone or PC: no account, no upload, no cloud.
 
-**Latest release: [iLoveHTML 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/latest)**
-— Android APK and Windows ZIP, with SHA-256 checksums.
+[![Latest release](https://img.shields.io/github/v/release/1elevenop/iLoveHTML)](https://github.com/1elevenop/iLoveHTML/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml/badge.svg)](https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml)
+
+<p align="center"><img src="docs/demo.gif" alt="One AI-written HTML file becomes an installed Android app, built on the phone" width="320"></p>
+
+**Download: [iLoveHTML 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/latest)**
+— Android APK (Android 10+) and Windows ZIP (10/11, 64-bit), with SHA-256 checksums.
 
 ## Quick start
 
@@ -54,61 +60,7 @@ A security release ([what was reviewed](docs/security-review.md)).
 
 Full notes: [release 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.3).
 
-## What's new in 1.2.2
-
-- **Updates install from inside the app (Android):** NEW UPDATE → Download
-  now fetches the APK in iLoveHTML with a progress bar, checks it against
-  the release's `SHA256SUMS.txt`, and opens Android's installer. Browsers
-  hold APK downloads behind a "File might be harmful" prompt, which made
-  downloads look stuck at 100%.
-
-Full notes: [release 1.2.2](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.2).
-
-## What's new in 1.2.1
-
-- **Update notice:** when a new iLoveHTML is released, Settings shows a
-  glowing **NEW UPDATE** (and a dot on the Settings button) with the
-  release notes and a direct download for your device. iLoveHTML asks
-  GitHub about twice a day; turn it off in Settings → About → Check for
-  updates. The Privacy Policy explains what this sends.
-
-Full notes: [release 1.2.1](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.1).
-
-## What's new in 1.2.0
-
-- **8 languages:** English, Español, Français, Deutsch, Português, 日本語,
-  中文 and 한국어. iLoveHTML follows the system language, or pick one in
-  Settings → Language.
-- **Themes:** dark (the original New ELEVEN look), light or follow the
-  system, with five accent colours (orange, terminal green, cyan, violet,
-  pink) in Settings → Appearance.
-- **Animation and ASCII art:** an ASCII logo typed out at launch, ASCII art
-  on the empty project list, an ASCII progress bar while building, and page
-  transitions. Turn them off in Settings → Animations (the system's
-  reduce-motion setting is respected too).
-- **About** in Settings: How to use, Terms of Use, Privacy Policy, app
-  version and credit, with a link to
-  [Buy Me a Coffee](https://buymeacoffee.com/1elevenop).
-- **App lock for iLoveHTML:** a PIN, password and/or fingerprint/face before
-  the app opens, with an optional hint and "Forgot PIN?" (verify with the
-  device's own lock or a one-time recovery code). Settings → Security.
-- **Replace website files:** swap a project's HTML files or ZIP for new
-  ones; name, package ID, icon, settings, release key and history stay.
-  Project → Settings → Content.
-
-Full notes: [release 1.2.0](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.0).
-
-## What's new in 1.1.1
-
-- Apps you build: light/dark/follow-phone theme, fullscreen, keep screen
-  on, back-button choices, app shortcuts, app lock (fingerprint, face or
-  screen lock), web notifications, Android TV and tablet support, and
-  smaller builds with "Optimize files when building".
-- iLoveHTML: install on a phone by QR code from Windows, and project backup
-  and restore (`.ilovehtml` files).
-- Android 10 is now the minimum.
-
-Full notes: [release 1.1.1](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.1.1).
+Older release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
@@ -392,3 +344,11 @@ also share, save files and notify"; other sites that open inside the app do
 not get them. App data is excluded from backups and device transfers.
 Windows apps follow the same Downloads, File uploads and Local storage
 switches. To report a security problem see [SECURITY.md](SECURITY.md).
+
+## License
+
+iLoveHTML is released under the [MIT License](LICENSE).
+Windows apps it builds link Microsoft's WebView2 loader, which has its own
+BSD-style licence from Microsoft.
+
+[Privacy Policy](docs/privacy.md) · [Code signing policy](docs/code-signing-policy.md) · [Security](SECURITY.md)
