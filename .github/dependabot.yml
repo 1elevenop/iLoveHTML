@@ -4,10 +4,18 @@ updates:
     directory: /app
     schedule:
       interval: weekly
+    groups:
+      app-pub:
+        patterns: ["*"]
   - package-ecosystem: pub
     directory: /packages/html2apk_core
     schedule:
       interval: weekly
+    groups:
+      core-pub:
+        patterns: ["*"]
+  # One weekly PR for all four Gradle projects. Toolchain bumps here must
+  # follow ADR 0003: rebuild the base APK and run the on-device test first.
   - package-ecosystem: gradle
     directories:
       - /android_template
@@ -16,7 +24,13 @@ updates:
       - /app/android
     schedule:
       interval: weekly
+    groups:
+      android-toolchain:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
