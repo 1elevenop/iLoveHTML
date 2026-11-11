@@ -67,3 +67,25 @@ jobs:
           .\gradlew.bat assembleRelease bundleRelease --no-daemon --console=plain -q
       - run: .\gradlew.bat test --no-daemon --console=plain
         working-directory: android_engine
+
+  android-app:
+    name: Android app (APK)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+      # The app embeds the base APK (not in Git), so build it first, as
+      # README "Run the Android app" does. This also catches dependency
+      # bumps that need a newer compileSdk (see PR #16).
+      - name: Build the base APK and App Bundle
+        run: .\tools\build_ondevice_base.ps1
+      - name: Build the app's debug APK
+        working-directory: app
+        run: flutter build apk --debug
