@@ -9,12 +9,12 @@ environment:
 dependencies:
   crypto: ^3.0.8
   ffi: ^2.2.0
-  file_picker: ^13.3.2
+  file_picker: ^13.3.3
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_svg: ^2.3.0
+  flutter_svg: ^2.4.0
   html2apk_core:
     path: ../packages/html2apk_core
   intl: any
