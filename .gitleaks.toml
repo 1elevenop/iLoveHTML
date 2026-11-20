@@ -1,0 +1,13 @@
+# gitleaks configuration: the default rules, minus test fixtures and UI labels.
+# Test code uses throwaway passwords on purpose (e.g. 'hunter2-secret'), and the
+# generated localization code contains the words "password"/"Passwort".
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and generated localizations"
+paths = [
+  '''(^|/)test/''',
+  '''(^|/)integration_test/''',
+  '''app/lib/l10n/''',
+]

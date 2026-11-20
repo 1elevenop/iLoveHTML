@@ -6,8 +6,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// iLoveHTML's own release key (never committed). Without android/key.properties,
-// release builds fall back to the debug key so the project still builds anywhere.
+// iLoveHTML's own release key (never committed). Without android/key.properties a
+// release build fails, unless allowDebugSigning is set (see the check at the end).
+// Opt-out for local experiments: -PallowDebugSigning=true, or the environment
+// variable HTML2APK_ALLOW_DEBUG_SIGNING=true (works through `flutter build`).
+val allowDebugSigning = providers.gradleProperty("allowDebugSigning").orNull == "true" ||
+    providers.environmentVariable("HTML2APK_ALLOW_DEBUG_SIGNING").orNull == "true"
+
 val releaseKey = Properties().apply {
     val f = rootProject.file("key.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -51,9 +56,26 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug").also {
-                logger.warn("android/key.properties not found: signing the release build with the debug key")
+            val release = signingConfigs.findByName("release")
+            if (release != null) {
+                signingConfig = release
+            } else if (allowDebugSigning) {
+                logger.warn("android/key.properties not found: signing the release build with the debug key (allowDebugSigning)")
+                signingConfig = signingConfigs.getByName("debug")
             }
+        }
+    }
+}
+
+// A release build without android/key.properties must not quietly ship with the
+// debug key (see allowDebugSigning above).
+if (!releaseKey.containsKey("storeFile") && !allowDebugSigning) {
+    tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+        doFirst {
+            throw GradleException(
+                "android/key.properties is missing, so the release build cannot be signed. " +
+                    "Add it, or set HTML2APK_ALLOW_DEBUG_SIGNING=true to sign with the debug key for local testing."
+            )
         }
     }
 }

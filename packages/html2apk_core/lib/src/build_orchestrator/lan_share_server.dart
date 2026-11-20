@@ -12,6 +12,13 @@ bool isPrivateIPv4(InternetAddress a) {
   return b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168);
 }
 
+/// True when [a] and [b] are IPv4 addresses in the same /24 network.
+bool sameSubnet24(InternetAddress a, InternetAddress b) {
+  if (a.type != InternetAddressType.IPv4 || b.type != InternetAddressType.IPv4) return false;
+  final x = a.rawAddress, y = b.rawAddress;
+  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2];
+}
+
 /// This computer's Wi-Fi/Ethernet addresses that a phone on the same network can reach.
 Future<List<InternetAddress>> lanAddresses() async => [
       for (final nic in await NetworkInterface.list(type: InternetAddressType.IPv4))
@@ -24,12 +31,15 @@ Future<List<InternetAddress>> lanAddresses() async => [
 ///
 /// * Only `GET`/`HEAD` of one secret path (128-bit random token) works;
 ///   everything else is 404.
-/// * Only devices with a private address (same home or office network) are served.
+/// * Only devices in the same /24 network as [address] are served.
+/// * Each device may make [requestsPerMinute] requests a minute (then 429), and
+///   the file is served at most [maxDownloads] times in total (then 410).
 /// * It stops by itself after [lifetime].
 ///
 /// The link is plain HTTP, so use it only on a network you trust.
 class LanFileServer {
-  LanFileServer._(this._server, this.filePath, this._path, this.address, Duration lifetime, this._allowLoopback) {
+  LanFileServer._(this._server, this.filePath, this._path, this.address, Duration lifetime, this._allowLoopback,
+      this.requestsPerMinute, this.maxDownloads) {
     url; // Read the port while the server is open.
     _timer = Timer(lifetime, stop);
     _server.listen(_handle, onDone: _finish);
@@ -39,6 +49,8 @@ class LanFileServer {
     String filePath, {
     required InternetAddress address,
     Duration lifetime = const Duration(minutes: 10),
+    int requestsPerMinute = 10,
+    int maxDownloads = 20,
     // Tests only: machines without a network card have no private address.
     bool allowLoopbackForTests = false,
   }) async {
@@ -50,7 +62,8 @@ class LanFileServer {
     final r = Random.secure();
     final token = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
     final name = _safeName(p.basename(filePath));
-    return LanFileServer._(server, filePath, '/$token/$name', address, lifetime, allowLoopbackForTests);
+    return LanFileServer._(
+        server, filePath, '/$token/$name', address, lifetime, allowLoopbackForTests, requestsPerMinute, maxDownloads);
   }
 
   final HttpServer _server;
@@ -58,6 +71,10 @@ class LanFileServer {
   final String _path;
   final InternetAddress address;
   final bool _allowLoopback;
+  final int requestsPerMinute;
+  final int maxDownloads;
+  final _buckets = <String, ({double tokens, DateTime at})>{};
+  var _started = 0;
   late final Timer _timer;
   final _done = Completer<void>();
   final _downloads = StreamController<int>.broadcast();
@@ -91,15 +108,28 @@ class LanFileServer {
     final res = req.response;
     res.headers
       ..set(HttpHeaders.cacheControlHeader, 'no-store')
-      ..set('X-Content-Type-Options', 'nosniff');
+      ..set('X-Content-Type-Options', 'nosniff')
+      ..set('Content-Security-Policy', "default-src 'none'")
+      ..set('Referrer-Policy', 'no-referrer')
+      ..set('X-Frame-Options', 'DENY')
+      ..set('Cross-Origin-Resource-Policy', 'same-origin');
     try {
       final remote = req.connectionInfo?.remoteAddress;
-      if (remote == null || !(isPrivateIPv4(remote) || (_allowLoopback && remote.isLoopback))) {
+      if (remote == null || !(sameSubnet24(remote, address) || (_allowLoopback && remote.isLoopback))) {
         res.statusCode = HttpStatus.forbidden;
+        return;
+      }
+      if (!_take(remote.address)) {
+        res.statusCode = HttpStatus.tooManyRequests;
+        res.headers.set(HttpHeaders.retryAfterHeader, '60');
         return;
       }
       if ((req.method != 'GET' && req.method != 'HEAD') || req.uri.path != _path) {
         res.statusCode = HttpStatus.notFound;
+        return;
+      }
+      if (req.method == 'GET' && _started >= maxDownloads) {
+        res.statusCode = HttpStatus.gone;
         return;
       }
       final file = File(filePath);
@@ -109,6 +139,7 @@ class LanFileServer {
         ..contentLength = length
         ..set('Content-Disposition', 'attachment; filename="${p.basename(_path)}"');
       if (req.method == 'GET') {
+        _started++;
         await res.addStream(file.openRead());
         _count++;
         if (!_downloads.isClosed) _downloads.add(_count);
@@ -122,6 +153,21 @@ class LanFileServer {
         // Already closed by the other side.
       }
     }
+  }
+
+  /// Token bucket per client address: [requestsPerMinute] tokens, refilled evenly over a minute.
+  bool _take(String ip) {
+    final now = DateTime.now();
+    final b = _buckets[ip];
+    final max = requestsPerMinute.toDouble();
+    final refill = b == null ? max : b.tokens + now.difference(b.at).inMicroseconds / 60e6 * max;
+    final tokens = refill > max ? max : refill;
+    if (tokens < 1) {
+      _buckets[ip] = (tokens: tokens, at: now);
+      return false;
+    }
+    _buckets[ip] = (tokens: tokens - 1, at: now);
+    return true;
   }
 
   static String _mimeType(String path) => switch (p.extension(path).toLowerCase()) {

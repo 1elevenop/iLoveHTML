@@ -17,7 +17,7 @@ dependencies:
   flutter_svg: ^2.4.0
   html2apk_core:
     path: ../packages/html2apk_core
-  intl: any
+  intl: ^0.20.3  # the version flutter_localizations pins
   local_auth: ^3.0.2
   package_info_plus: ^10.2.2
   path: ^1.9.1

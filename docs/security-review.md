@@ -1,5 +1,7 @@
 # Security review (milestone 6, 2026-10-22)
 
+Latest audit: [security-audit-2026-11.md](security-audit-2026-11.md) (20-item checklist for release 1.2.5).
+
 Scope: everything in this repository as of milestone 6, checked against
 section 13 of the product brief. "Test" names the automated test that
 covers the item; "Device" means verified on an emulator or phone.
@@ -32,7 +34,7 @@ covers the item; "Device" means verified on an emulator or phone.
 | Imported scripts never run in the converter | Done: website JS runs only in WebViews (preview, generated app), never in Dart/Kotlin | — |
 | Temp cleanup | Done: picker copies and engine work dirs deleted in `finally` blocks | `projects_screen.dart`, `EngineChannel.kt` |
 | Sensitive confirmations | Done: key delete needs the alias typed; different-key releases need confirmation; installs go through the system installer; project delete confirms | UI |
-| Preview server | Done: loopback only, random port, 128-bit path token, read-only GET/HEAD, path-safe, `nosniff`, `no-store`; iLoveHTML allows cleartext only to 127.0.0.1 | `preview_server_test` |
+| Preview server | Done: loopback only, random port, 128-bit path token, read-only GET/HEAD, path-safe, `nosniff`, `no-store`, `Referrer-Policy: no-referrer`; iLoveHTML allows cleartext only to 127.0.0.1 | `preview_server_test` |
 | FileProvider | Done: not exported; grants are per-URI and per-intent; paths limited to `workspace/projects/` | `file_paths.xml` |
 | Parsers of untrusted bytes | JKS, DER, protobuf readers are bounds-checked and covered by malformed-input tests | engine JVM tests |
 
