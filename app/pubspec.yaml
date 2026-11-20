@@ -43,6 +43,7 @@ flutter:
   assets:
     - assets/fonts/OFL.txt
     - assets/fonts/SpaceGrotesk-OFL.txt
+    - assets/brand/
   fonts:
     - family: SpaceGrotesk
       fonts:

@@ -305,6 +305,8 @@ class Wordmark extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          BrandMark(size: size * 1.5),
+          SizedBox(width: size * 0.35),
           Text('iLove', style: style.copyWith(color: e.fg)),
           const SizedBox(width: 3),
           Container(
@@ -321,4 +323,22 @@ class Wordmark extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The iLoveHTML mark (heart with </> on a yellow tile). Dark mode uses the
+/// variant with a white outline and shadow so the tile stays visible.
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, this.size = 32});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    Theme.of(context).brightness == Brightness.dark ? 'assets/brand/mark-on-dark.png' : 'assets/brand/mark.png',
+    width: size,
+    height: size,
+    fit: BoxFit.contain,
+    filterQuality: FilterQuality.medium,
+    excludeFromSemantics: true,
+  );
 }
