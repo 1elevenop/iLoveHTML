@@ -311,7 +311,7 @@
   "accentPurple": "Morado",
   "accentPink": "Rosa",
   "animations": "Animaciones",
-  "animationsHint": "Inicio ASCII, animación de compilación y transiciones de página",
+  "animationsHint": "Logo de inicio, animación de compilación y transiciones de página",
   "language": "Idioma",
   "languageSystem": "Predeterminado del sistema",
   "signing": "Firma",

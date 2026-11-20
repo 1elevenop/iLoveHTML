@@ -1122,7 +1122,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get animationsHint =>
-      'Inicio ASCII, animación de compilación y transiciones de página';
+      'Logo de inicio, animación de compilación y transiciones de página';
 
   @override
   String get language => 'Idioma';

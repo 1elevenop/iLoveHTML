@@ -1979,7 +1979,7 @@ abstract class AppLocalizations {
   /// No description provided for @animationsHint.
   ///
   /// In en, this message translates to:
-  /// **'ASCII splash, build animation and page transitions'**
+  /// **'Splash logo, build animation and page transitions'**
   String get animationsHint;
 
   /// No description provided for @language.

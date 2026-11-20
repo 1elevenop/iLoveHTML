@@ -1125,7 +1125,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get animationsHint =>
-      'ASCII-Startbild, Build-Animation und Seitenübergänge';
+      'Start-Logo, Build-Animation und Seitenübergänge';
 
   @override
   String get language => 'Sprache';

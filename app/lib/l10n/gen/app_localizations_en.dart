@@ -1118,7 +1118,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get animationsHint =>
-      'ASCII splash, build animation and page transitions';
+      'Splash logo, build animation and page transitions';
 
   @override
   String get language => 'Language';

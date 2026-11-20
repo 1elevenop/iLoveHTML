@@ -311,7 +311,7 @@
   "accentPurple": "Violet",
   "accentPink": "Rose",
   "animations": "Animations",
-  "animationsHint": "Écran d'accueil ASCII, animation de compilation et transitions de page",
+  "animationsHint": "Logo d'accueil, animation de compilation et transitions de page",
   "language": "Langue",
   "languageSystem": "Langue du système",
   "signing": "Signature",

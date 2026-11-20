@@ -1125,7 +1125,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get animationsHint =>
-      'Écran d\'accueil ASCII, animation de compilation et transitions de page';
+      'Logo d\'accueil, animation de compilation et transitions de page';
 
   @override
   String get language => 'Langue';

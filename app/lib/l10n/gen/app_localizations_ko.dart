@@ -1093,7 +1093,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get animations => '애니메이션';
 
   @override
-  String get animationsHint => 'ASCII 스플래시, 빌드 애니메이션, 페이지 전환';
+  String get animationsHint => '시작 로고, 빌드 애니메이션, 페이지 전환';
 
   @override
   String get language => '언어';

@@ -11,7 +11,8 @@ $tools = Join-Path $root '.tools'
 $sdk = Join-Path $tools "webview2-$sdkVersion"
 if (-not (Test-Path (Join-Path $sdk 'build\native\include\WebView2.h'))) {
   New-Item -ItemType Directory -Force $tools | Out-Null
-  $pkg = Join-Path $tools "microsoft.web.webview2.$sdkVersion.nupkg"
+  # A .nupkg is a ZIP; the .zip name lets Expand-Archive in Windows PowerShell 5 open it.
+  $pkg = Join-Path $tools "microsoft.web.webview2.$sdkVersion.zip"
   Invoke-WebRequest "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$sdkVersion" -OutFile $pkg
   $hash = (Get-FileHash $pkg -Algorithm SHA256).Hash
   if ($hash -ne $sdkSha256) { Remove-Item $pkg; throw "WebView2 SDK checksum mismatch: $hash" }
