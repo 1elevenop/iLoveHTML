@@ -10,6 +10,7 @@ import '../project_importer/site_analysis.dart';
 import '../project_importer/zip_importer.dart';
 import 'manifest.dart';
 import 'migration.dart';
+import 'source_files.dart' show starterSite;
 import 'validation.dart';
 
 /// A project directory on disk:
@@ -381,6 +382,17 @@ class ProjectStore {
     String? iconPng,
   }) =>
       _importInto(name, applicationId, iconPng, (source) async => (await extractWebsiteZip(zipPath, source)).files);
+
+  /// A new local project with a starter page, stylesheet and script, for
+  /// writing a site from scratch in the in-app editor.
+  Future<ImportReport> createBlank({required String name, required String applicationId}) =>
+      _importInto(name, applicationId, null, (source) async {
+        Directory(source).createSync(recursive: true);
+        for (final MapEntry(:key, :value) in starterSite(name).entries) {
+          File(p.join(source, key)).writeAsStringSync(value);
+        }
+        return listRelativeFiles(source);
+      });
 
   /// Imports individually picked files (an .html page and optionally its CSS,
   /// JavaScript, images, fonts) as a new local project. Files are moved into
