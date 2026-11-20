@@ -204,8 +204,9 @@ keys live in `%APPDATA%\com.html2apk\html2apk_app\workspace`.
    committed.
 
 Release APKs are signed with iLoveHTML's own key when `app/android/key.properties`
-exists (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`); without it they
-fall back to the debug key. The key and its `key.properties` live outside the
+exists (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`); without it the
+release build fails. For a local test build signed with the debug key, set
+`HTML2APK_ALLOW_DEBUG_SIGNING=true` first. The key and its `key.properties` live outside the
 repo; every future update must be signed with the same key, so keep a backup.
 
 ## Run the Android app

@@ -47,7 +47,8 @@ class PreviewServer {
     final res = req.response;
     res.headers
       ..set(HttpHeaders.cacheControlHeader, 'no-store')
-      ..set('X-Content-Type-Options', 'nosniff');
+      ..set('X-Content-Type-Options', 'nosniff')
+      ..set('Referrer-Policy', 'no-referrer');
     try {
       if (req.method != 'GET' && req.method != 'HEAD') {
         res.statusCode = HttpStatus.methodNotAllowed;

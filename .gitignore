@@ -17,6 +17,9 @@ out/
 *.p12
 *.pfx
 key.properties
+.env
+.env.*
+*.env
 
 # IDE
 .idea/

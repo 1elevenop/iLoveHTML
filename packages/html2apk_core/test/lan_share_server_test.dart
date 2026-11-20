@@ -14,6 +14,14 @@ void main() {
     }
   });
 
+  test('only addresses in the same /24 count as the same network', () {
+    final me = InternetAddress('192.168.1.20');
+    expect(sameSubnet24(InternetAddress('192.168.1.99'), me), isTrue);
+    for (final bad in ['192.168.2.20', '10.0.0.5', '172.16.1.1', '::1']) {
+      expect(sameSubnet24(InternetAddress(bad), me), isFalse, reason: bad);
+    }
+  });
+
   test('refuses to listen on a public or loopback address', () async {
     final tmp = Directory.systemTemp.createTempSync('lan');
     addTearDown(() => tmp.deleteSync(recursive: true));
@@ -72,6 +80,10 @@ void main() {
       final ok = await get(s.url);
       expect(ok.statusCode, 200);
       expect(ok.headers.contentType?.mimeType, 'application/vnd.android.package-archive');
+      expect(ok.headers.value('content-security-policy'), "default-src 'none'");
+      expect(ok.headers.value('referrer-policy'), 'no-referrer');
+      expect(ok.headers.value('x-frame-options'), 'DENY');
+      expect(ok.headers.value('cross-origin-resource-policy'), 'same-origin');
       expect((await ok.fold<List<int>>([], (a, b) => a..addAll(b))).length, 5000);
 
       final wrongToken = s.url.replace(path: '/${'0' * 32}/my_app.apk');
@@ -83,6 +95,30 @@ void main() {
       await post.drain<void>();
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(counts, [1]);
+    });
+
+    test('rate-limits each client with 429', () async {
+      final s = server = await LanFileServer.start(p.join(tmp.path, 'my app.apk'),
+          address: lan, allowLoopbackForTests: loopback, requestsPerMinute: 3);
+      final codes = <int>[];
+      for (var i = 0; i < 5; i++) {
+        final r = await get(s.url, method: 'HEAD');
+        codes.add(r.statusCode);
+        await r.drain<void>();
+      }
+      expect(codes, [200, 200, 200, 429, 429]);
+    });
+
+    test('stops serving after the download cap with 410', () async {
+      final s = server = await LanFileServer.start(p.join(tmp.path, 'my app.apk'),
+          address: lan, allowLoopbackForTests: loopback, maxDownloads: 2);
+      final codes = <int>[];
+      for (var i = 0; i < 3; i++) {
+        final r = await get(s.url);
+        codes.add(r.statusCode);
+        await r.drain<void>();
+      }
+      expect(codes, [200, 200, 410]);
     });
 
     test('stops by itself after its lifetime', () async {
