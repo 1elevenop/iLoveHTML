@@ -3,6 +3,29 @@
 Older release notes. The newest release is described in the [README](README.md).
 Every release: [GitHub releases](https://github.com/1elevenop/iLoveHTML/releases).
 
+## What's new in 1.2.3
+
+A security release ([what was reviewed](docs/security-review.md)).
+**Rebuild your apps with 1.2.3** to get the fixes that live inside them.
+
+- **Apps you build (Android):** a page that crashes no longer closes the
+  app; apps with app lock no longer show their page in the recent-apps
+  screen on Android 10–12 (screenshots are blocked there); app data is
+  left out of backups and phone-to-phone transfers.
+- **Apps you build (Windows):** the Downloads, File uploads and Local
+  storage switches now work in .exe and .msix apps too.
+- **URL apps:** "Other sites that open inside the app" no longer lets
+  those sites share, save files or send notifications. A new field,
+  "Sites that can also share, save files and notify", lists the ones that
+  may. Projects you already have keep working as before; check the new
+  field and remove login or payment sites.
+- **Windows installers:** the certificate password is no longer passed on
+  a command line.
+- **Fixed:** the signer fingerprint was missing after Windows builds on
+  PCs with Android build-tools 37.
+
+Full notes: [release 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.3).
+
 ## What's new in 1.2.2
 
 - **Updates install from inside the app (Android):** NEW UPDATE → Download

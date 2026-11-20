@@ -1,17 +1,46 @@
-# iLoveHTML
+<p align="center">
+  <img src="media/logo/wordmark.png" alt="iLoveHTML" width="520">
+</p>
 
-**Turn HTML files, a website ZIP or a live https site into an Android app
-(APK or App Bundle) or a Windows app (.exe or .msix).**
-Built on your own phone or PC: no account, no upload, no cloud.
+<p align="center">
+  <b>Turn HTML files, a website ZIP or a live https site into an Android app (APK or App Bundle) or a Windows app (.exe or .msix).</b><br>
+  Built on your own phone or PC: no account, no upload, no cloud.
+</p>
 
-[![Latest release](https://img.shields.io/github/v/release/1elevenop/iLoveHTML)](https://github.com/1elevenop/iLoveHTML/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml/badge.svg)](https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/1elevenop/iLoveHTML/releases/latest"><img src="https://img.shields.io/github/v/release/1elevenop/iLoveHTML?color=FFD60A&labelColor=000000" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-FF5C8A?labelColor=000000" alt="License: MIT"></a>
+  <a href="https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml"><img src="https://github.com/1elevenop/iLoveHTML/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Android-10%2B-3CCB4A?labelColor=000000" alt="Android 10+">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-00C2CB?labelColor=000000" alt="Windows 10 and 11">
+</p>
 
-<p align="center"><img src="docs/demo.gif" alt="One AI-written HTML file becomes an installed Android app, built on the phone" width="320"></p>
+<p align="center">
+  <img src="docs/demo.gif" alt="A new blank site is written in the built-in editor with a live preview, then built into an installable APK on the phone" width="320">
+</p>
 
-**Download: [iLoveHTML 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/latest)**
-— Android APK (Android 10+) and Windows ZIP (10/11, 64-bit), with SHA-256 checksums.
+<p align="center">
+  <b><a href="https://github.com/1elevenop/iLoveHTML/releases/latest">Download iLoveHTML 1.2.5</a></b><br>
+  Android APK (Android 10+) and Windows ZIP (10/11, 64-bit), with SHA-256 checksums.
+</p>
+
+## What it does
+
+| | |
+|---|---|
+| **📦 Import anything** — HTML files (with their CSS, JS and images), a website ZIP, or a live https URL. | **✍️ Write it here** — start a blank site and edit HTML, CSS and JS with highlighting, find & replace and a live preview. |
+| **⚙️ Set it up in 4 steps** — Basics → Look → Features → Security & finish, with a progress bar. | **📱 Build on the phone** — APK and App Bundle, signed on the device. No Gradle, no PC. |
+| **🖥️ Build on Windows** — APKs and App Bundles with Gradle, plus `.exe` and signed `.msix` apps. | **🔒 Safe by default** — strict WebView settings, permission allow-list, no tracking ([security](docs/security-audit-2026-11.md)). |
+
+## Screenshots
+
+| Projects | 4-step settings | Code editor + live preview | Build on the phone |
+|---|---|---|---|
+| <img src="media/screenshots/phone-projects.png" width="200" alt="Projects as folder cards"> | <img src="media/screenshots/phone-settings-features.png" width="200" alt="Features step of the project settings"> | <img src="media/screenshots/phone-editor-preview.png" width="200" alt="Code editor with a floating live preview"> | <img src="media/screenshots/phone-build.png" width="200" alt="Build tab after a debug APK build"> |
+
+| Windows | Dark mode |
+|---|---|
+| <img src="media/screenshots/windows-projects.png" width="420" alt="iLoveHTML on Windows"> | <img src="media/screenshots/windows-features-dark.png" width="420" alt="Project settings in dark mode on Windows"> |
 
 ## Quick start
 
@@ -20,8 +49,9 @@ Built on your own phone or PC: no account, no upload, no cloud.
 1. Download `iLoveHTML-<version>.apk` from the
    [latest release](https://github.com/1elevenop/iLoveHTML/releases/latest)
    and open it (allow installs from your browser if Android asks).
-2. Tap **New app**, pick your HTML files, a website ZIP or a URL.
-3. Adjust the settings, open **Build** → **Build debug APK** → **Install**.
+2. Tap **New app** and pick your HTML files, a website ZIP, a URL, or
+   **New blank site** to write one from scratch.
+3. Walk through the four setting steps, then **Build** → **Build debug APK** → **Install**.
 
 **On Windows** (10 or 11, 64-bit)
 
@@ -33,127 +63,88 @@ Built on your own phone or PC: no account, no upload, no cloud.
 3. **New app** → pick your site → **Build**. After an APK build, **Install on
    phone** shows a QR code to install it on a phone on the same Wi-Fi.
 
+**From the command line** (any OS with Dart; Gradle builds need the JDK and Android SDK):
+
+```powershell
+cd packages/html2apk_core
+dart run bin/html2apk.dart --zip ../../samples/demo-site.zip --name "iLoveHTML Demo" --id com.html2apk.demo --icon ../../samples/demo-icon.png --out ../../out
+```
+
 **Supported versions:** iLoveHTML for Android and every app it builds need
 Android 10 (API 29) or newer ([ADR 0010](docs/adr/0010-android-10-minimum.md)).
-Older versions (for Android 7–9) are no longer offered.
 
-## What's new in 1.2.3
+## What's new in 1.2.5
 
-A security release ([what was reviewed](docs/security-review.md)).
-**Rebuild your apps with 1.2.3** to get the fixes that live inside them.
-
-- **Apps you build (Android):** a page that crashes no longer closes the
-  app; apps with app lock no longer show their page in the recent-apps
-  screen on Android 10–12 (screenshots are blocked there); app data is
-  left out of backups and phone-to-phone transfers.
-- **Apps you build (Windows):** the Downloads, File uploads and Local
-  storage switches now work in .exe and .msix apps too.
-- **URL apps:** "Other sites that open inside the app" no longer lets
-  those sites share, save files or send notifications. A new field,
-  "Sites that can also share, save files and notify", lists the ones that
-  may. Projects you already have keep working as before; check the new
-  field and remove login or payment sites.
-- **Windows installers:** the certificate password is no longer passed on
-  a command line.
-- **Fixed:** the signer fingerprint was missing after Windows builds on
-  PCs with Android build-tools 37.
-
-Full notes: [release 1.2.3](https://github.com/1elevenop/iLoveHTML/releases/tag/v1.2.3).
+- **New look:** a bold, high-contrast design with thick outlines, hard shadows
+  and colour blocks, a new logo and app icon, light and dark mode, and five
+  accent colours (yellow, pink, purple, teal, green).
+- **Project settings in 4 steps:** Basics → Look → Features → Security &
+  finish, with a progress bar. Jump to any step; Save checks every step and
+  takes you to the one that needs fixing; the last step lists your unsaved changes.
+- **Code editor:** edit a project's HTML, CSS and JavaScript in the app, with
+  syntax highlighting, tabs, find & replace and a live preview (a floating
+  window on Android, your browser on Windows). **New blank site** starts you
+  off with a page, a stylesheet and a script.
+- **Security:** the "Install on phone" link only answers devices on your own
+  network segment, rate-limits requests and stops after 20 downloads; CI now
+  scans for leaked secrets and vulnerable dependencies
+  ([audit](docs/security-audit-2026-11.md)).
 
 Older release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
-- **Android app (`app/`, Flutter):** project list; new apps from one or
-  more HTML files (CSS/JS/images picked alongside are moved into the
-  folders the pages link to), a website ZIP, or a live https URL (checked first: redirects followed hop by hop,
-  private/local addresses blocked, title used as the app name); project
-  settings and icon; a preview with back/forward/reload, viewport presets,
-  JavaScript console, missing-file and blocked-link reports; and an
-  on-device Build tab that produces a debug-signed APK with Install and
-  Share. Builds run on the phone without Gradle
-  ([ADR 0002](docs/adr/0002-android-on-device-build.md)).
-- **Generated apps:** loading bar, offline error page with a "Try again"
-  that works without JavaScript (or your own offline page for URL apps),
-  `example.com`/`www.example.com` treated as one site, other sites opened
-  in the browser, status/navigation bar colours with readable icons,
-  optional splash screen (your image or the app icon), pull-to-refresh
-  (also retries after an error), file uploads through Android's
-  file picker, light/dark/follow-phone theme (sets `prefers-color-scheme`),
-  fullscreen, keep screen on, and a choice of back-button behaviour
-  (press twice to exit, ask before exit, or go to the start page).
-- **App shortcuts**: up to four pages in the icon's long-press menu.
-  Only listed pages open, so other apps cannot use the
-  shortcut to load anything else.
-- **Smaller apps**: "Optimize files when building" makes CSS, JSON, PNG
-  (lossless) and large JPEG files (85% quality) smaller in the build only;
-  HTML and JavaScript are copied unchanged. Settings → Size report shows
-  what takes space and what optimizing saves.
-- **Install by QR code (Windows)**: after a build, "Install on phone"
-  serves the APK on your Wi-Fi for 10 minutes behind a secret link and
-  shows a QR code to scan. Plain HTTP: use it on a network you trust.
-- **Project backup**: "Back up project" saves settings, site files, icon
-  and splash as one `.ilovehtml` file (no builds, no signing keys);
-  "Restore backup" on the project list opens it as a new project, with
-  the same safety checks as website ZIPs.
-- **App lock**: generated apps can ask for the fingerprint, face or screen
-  lock when they open and after 30 seconds in the background (adds
-  USE_BIOMETRIC). Phones without a screen lock open the app with a hint.
-- **Notifications**: the web `Notification` API shows Android
-  notifications while the app is open, with Android 13's permission prompt
-  and `click` events (adds POST_NOTIFICATIONS). No push or service-worker
-  notifications.
-- **Android TV and tablets**: "Android TV" lists the app on the TV home
-  screen with a 320x180 banner made from the icon and name, and the
-  remote's arrow keys move between links, buttons and fields (OK opens
-  them; pages that handle arrow keys keep them). "Rotate freely on
-  tablets" and "Desktop layout on tablets and TV" are separate options.
-  Every app now declares the touchscreen optional and carries a banner, so
-  **rebuild the base APK** (`tools/build_ondevice_base.ps1`, which also
-  records the banner in `base_info.json`).
-- **Project format:** `project.json` schema 2; schema-1 projects are
-  upgraded automatically when loaded.
-- **Windows app** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the
-  same Flutter UI (projects, import, settings, release keys) building with
-  the local JDK, Android SDK and Gradle. Debug/release APKs and App
-  Bundles, "Save as…" and "Show in folder"; release keys with passwords
-  encrypted for your Windows account (DPAPI); preview in your browser from
-  a local-only server. The CLI still works too (see below).
-- **Windows .exe apps** ([ADR 0007](docs/adr/0007-windows-exe-apps.md)):
-  on Windows, Build → "Build .exe" turns the project into one .exe that
-  opens the site in its own window with Microsoft Edge WebView2. Needs the
-  wrapper built once: `powershell -File tools/build_windows_wrapper.ps1`.
-  Not code-signed yet, so downloaded copies show a SmartScreen warning.
-- **Windows installers** ([ADR 0008](docs/adr/0008-windows-msix-installers.md)):
-  Build → "Build installer" makes a signed `.msix` (Start menu entry,
-  clean uninstall, in-place updates). Signed with your own code-signing
-  `.pfx` or a test certificate made in the app; a test certificate must be
-  trusted once on each PC. Needs the Windows SDK
-  (`winget install Microsoft.WindowsSDK.10.0.26100`).
-- **Release signing** ([ADR 0004](docs/adr/0004-release-signing.md)):
-  create or import release keys on the phone (.jks / .keystore / .p12,
-  including legacy JKS), back them up as password-protected `.jks`,
-  build release APKs. The same backup signs on Windows:
-  `--release --keystore upload.jks --alias upload` with the password in
-  `HTML2APK_KEYSTORE_PASSWORD`.
-- **App Bundles for Google Play** ([ADR 0005](docs/adr/0005-app-bundles.md)):
-  release `.aab` built on the phone (Build → Release → App Bundle, then
-  Save to device) or on Windows (`--release --aab --keystore … --alias …`).
-  Validate with `java -jar .tools/bundletool.jar validate --bundle app.aab`
-  (bundletool is downloaded to `.tools/`, not committed).
-- **Share and downloads**: `navigator.share` (text and links) opens
-  Android's share sheet; https, `data:` and `blob:` downloads are saved to
-  Downloads. Both can be switched off per project.
-- **Share images and PDFs** ([ADR 0009](docs/adr/0009-file-sharing.md)):
-  `navigator.share({files})` sends images and PDFs to WhatsApp, Gmail and
-  other apps. Shared images are also saved to
-  `Pictures/<gallery folder>`. A project can name the gallery folder and
-  an app to open directly (e.g. `com.whatsapp`). Test page:
-  `samples/feature-site/share.html`.
+- **Projects:** new apps from one or more HTML files (CSS/JS/images picked
+  alongside are moved into the folders the pages link to), a website ZIP, a
+  live https URL (checked first: redirects followed hop by hop, private and
+  local addresses blocked, title used as the app name), or a blank starter site.
+- **Code editor:** HTML, CSS, JavaScript, JSON, SVG and Markdown files with
+  highlighting, line numbers, tabs, unsaved markers, Ctrl+S, find & replace,
+  and new / rename / delete. Files stay inside the project's site folder, up to
+  2 MB each; the start page can't be deleted by accident.
+- **Preview:** back/forward/reload, viewport presets, JavaScript console,
+  missing-file and blocked-link reports.
+- **Builds on the phone** without Gradle
+  ([ADR 0002](docs/adr/0002-android-on-device-build.md)): debug and release
+  APKs and App Bundles, with Install, Share and Save to device.
+- **Generated apps:** loading bar, offline page with "Try again", other sites
+  opened in the browser, status/navigation bar colours, splash screen,
+  pull-to-refresh, file uploads, light/dark/follow-phone theme, fullscreen,
+  keep screen on, back-button choices, app shortcuts, app lock, notifications,
+  share and downloads, image/PDF sharing
+  ([ADR 0009](docs/adr/0009-file-sharing.md)), Android TV and tablets.
+- **Smaller apps:** "Optimize files when building" shrinks CSS, JSON, PNG and
+  large JPEG files in the build only; the size report shows what takes space.
+- **Windows** ([ADR 0006](docs/adr/0006-windows-desktop-app.md)): the same
+  app building with the local JDK, Android SDK and Gradle; release keys
+  encrypted for your Windows account (DPAPI); `.exe` apps with WebView2
+  ([ADR 0007](docs/adr/0007-windows-exe-apps.md)) and signed `.msix`
+  installers ([ADR 0008](docs/adr/0008-windows-msix-installers.md)).
+- **Release signing** ([ADR 0004](docs/adr/0004-release-signing.md)) and
+  **App Bundles for Google Play** ([ADR 0005](docs/adr/0005-app-bundles.md)).
+- **Install by QR code (Windows):** after a build, "Install on phone" serves
+  the APK on your Wi-Fi for 10 minutes behind a secret link. Plain HTTP: use
+  it on a network you trust.
+- **Project backup:** one `.ilovehtml` file with settings, site files, icon and
+  splash (no builds, no signing keys); "Restore backup" opens it as a new project.
 - Not built yet: camera/location and other native features, push
-  notifications, SQLite index, templates.
+  notifications, templates.
+
+## Brand and media
+
+Logo, icons, screenshots and colours are in [`media/`](media/) — see the
+[brand guide](media/brand.md).
+
+## Contributing
+
+Issues and pull requests are welcome. Read the
+[architecture notes](docs/adr/) first, run the tests listed under
+[Tests](#tests), and keep the [security defaults](#security-defaults-of-generated-apps)
+of generated apps intact. Security issues: please report privately (see
+[security review](docs/security-review.md)).
 
 ---
+
 
 # For developers
 
@@ -169,6 +160,7 @@ Older release notes: [CHANGELOG.md](CHANGELOG.md).
 | `android_ondevice_prototype/` | Minimal Android test app for the on-device engine |
 | `tools/build_ondevice_base.ps1` | Builds the base APK and `base_info.json` for the on-device engine |
 | `samples/` | Demo site, icon and ZIP for the end-to-end test |
+| `media/` | Logo, icons sources, screenshots, social preview and brand guide |
 | `docs/adr/` | Architecture decisions |
 
 ## Requirements (Windows)
