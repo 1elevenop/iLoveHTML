@@ -999,5 +999,9 @@
   "groupEngagement": "Engagement",
   "groupAdvanced": "Advanced",
   "changesTitle": "Unsaved changes",
-  "noChanges": "No changes since the last save."
+  "noChanges": "No changes since the last save.",
+  "projectCount": "{count, plural, =1{1 project} other{{count} projects}}",
+  "fileCount": "{count, plural, =1{1 file} other{{count} files}}",
+  "@projectCount": {"placeholders": {"count": {"type": "int"}}},
+  "@fileCount": {"placeholders": {"count": {"type": "int"}}}
 }

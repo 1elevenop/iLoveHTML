@@ -459,5 +459,7 @@
   "groupEngagement": "Interacción",
   "groupAdvanced": "Avanzado",
   "changesTitle": "Cambios sin guardar",
-  "noChanges": "No hay cambios desde el último guardado."
+  "noChanges": "No hay cambios desde el último guardado.",
+  "projectCount": "{count, plural, =1{1 proyecto} other{{count} proyectos}}",
+  "fileCount": "{count, plural, =1{1 archivo} other{{count} archivos}}"
 }

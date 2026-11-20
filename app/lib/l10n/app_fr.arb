@@ -459,5 +459,7 @@
   "groupEngagement": "Engagement",
   "groupAdvanced": "Avancé",
   "changesTitle": "Modifications non enregistrées",
-  "noChanges": "Aucune modification depuis le dernier enregistrement."
+  "noChanges": "Aucune modification depuis le dernier enregistrement.",
+  "projectCount": "{count, plural, =1{1 projet} other{{count} projets}}",
+  "fileCount": "{count, plural, =1{1 fichier} other{{count} fichiers}}"
 }

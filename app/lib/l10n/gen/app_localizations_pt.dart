@@ -1666,4 +1666,26 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get noChanges => 'Nenhuma alteração desde o último salvamento.';
+
+  @override
+  String projectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count projetos',
+      one: '1 projeto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count arquivos',
+      one: '1 arquivo',
+    );
+    return '$_temp0';
+  }
 }

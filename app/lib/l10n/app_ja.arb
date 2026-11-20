@@ -459,5 +459,7 @@
   "groupEngagement": "エンゲージメント",
   "groupAdvanced": "詳細設定",
   "changesTitle": "未保存の変更",
-  "noChanges": "前回の保存から変更はありません。"
+  "noChanges": "前回の保存から変更はありません。",
+  "projectCount": "{count, plural, other{{count} 件のプロジェクト}}",
+  "fileCount": "{count, plural, other{{count} ファイル}}"
 }

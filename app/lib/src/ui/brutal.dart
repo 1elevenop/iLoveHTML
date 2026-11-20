@@ -230,6 +230,7 @@ class StepProgressBar extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Eleven.radius - 2),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < labels.length; i++) ...[
                   if (i > 0) Container(width: 2, color: e.ink),
@@ -278,6 +279,46 @@ class StepProgressBar extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// The "iLoveHTML" wordmark: "iLove" in ink, "HTML" on a colour block.
+class Wordmark extends StatelessWidget {
+  const Wordmark({super.key, this.size = 22});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final e = context.eleven;
+    final style = TextStyle(
+      fontFamily: Eleven.font,
+      fontSize: size,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -size * 0.03,
+      height: 1.1,
+    );
+    return Semantics(
+      label: 'iLoveHTML',
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('iLove', style: style.copyWith(color: e.fg)),
+          const SizedBox(width: 3),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: size * 0.2, vertical: size * 0.04),
+            decoration: BoxDecoration(
+              color: e.block,
+              borderRadius: BorderRadius.circular(size * 0.18),
+              border: Border.all(color: e.ink, width: 2),
+              boxShadow: [BoxShadow(color: e.ink, offset: const Offset(2, 2))],
+            ),
+            child: Text('HTML', style: style.copyWith(color: e.onBlock)),
+          ),
+        ],
+      ),
     );
   }
 }
