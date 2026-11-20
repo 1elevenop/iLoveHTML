@@ -311,7 +311,7 @@
   "accentPurple": "パープル",
   "accentPink": "ピンク",
   "animations": "アニメーション",
-  "animationsHint": "ASCII スプラッシュ、ビルドアニメーション、画面遷移",
+  "animationsHint": "起動ロゴ、ビルドアニメーション、画面遷移",
   "language": "言語",
   "languageSystem": "システムの既定",
   "signing": "署名",

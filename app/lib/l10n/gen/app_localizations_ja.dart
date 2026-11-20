@@ -1091,7 +1091,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get animations => 'アニメーション';
 
   @override
-  String get animationsHint => 'ASCII スプラッシュ、ビルドアニメーション、画面遷移';
+  String get animationsHint => '起動ロゴ、ビルドアニメーション、画面遷移';
 
   @override
   String get language => '言語';

@@ -311,7 +311,7 @@
   "accentPurple": "紫色",
   "accentPink": "粉色",
   "animations": "动画",
-  "animationsHint": "ASCII 启动画面、构建动画和页面过渡",
+  "animationsHint": "启动徽标、构建动画和页面过渡",
   "language": "语言",
   "languageSystem": "系统默认",
   "signing": "签名",

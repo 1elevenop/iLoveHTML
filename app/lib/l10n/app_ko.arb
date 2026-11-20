@@ -311,7 +311,7 @@
   "accentPurple": "보라",
   "accentPink": "분홍",
   "animations": "애니메이션",
-  "animationsHint": "ASCII 스플래시, 빌드 애니메이션, 페이지 전환",
+  "animationsHint": "시작 로고, 빌드 애니메이션, 페이지 전환",
   "language": "언어",
   "languageSystem": "시스템 기본값",
   "signing": "서명",

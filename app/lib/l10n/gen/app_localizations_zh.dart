@@ -1078,7 +1078,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get animations => '动画';
 
   @override
-  String get animationsHint => 'ASCII 启动画面、构建动画和页面过渡';
+  String get animationsHint => '启动徽标、构建动画和页面过渡';
 
   @override
   String get language => '语言';

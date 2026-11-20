@@ -1121,7 +1121,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get animationsHint =>
-      'Abertura em ASCII, animação de compilação e transições de página';
+      'Logo de abertura, animação de compilação e transições de página';
 
   @override
   String get language => 'Idioma';
