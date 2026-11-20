@@ -39,8 +39,33 @@ void main() {
 
     await tester.tap(find.text('Shop App'));
     await tester.pumpAndSettle();
+    Finder step(int i) =>
+        find.descendant(of: find.byKey(PageStorageKey('settings-step-$i')), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('Start page'), 200, scrollable: step(0));
     expect(find.text('Start page'), findsOneWidget);
     expect(find.text('index.html'), findsOneWidget);
+
+    // Steps can be visited in any order; Next moves on.
+    await tester.tap(find.text('Features'));
+    await tester.pumpAndSettle();
+    expect(find.text('JavaScript'), findsOneWidget);
+    expect(find.text('Start page'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Next'), 300, scrollable: step(2));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('No changes since the last save.'), 300, scrollable: step(3));
+
+    // An invalid field on step 1 sends Save back there.
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.widgetWithText(TextFormField, 'Shop App'), -300, scrollable: step(0));
+    await tester.enterText(find.widgetWithText(TextFormField, 'Shop App'), '');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Look'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a name'), findsOneWidget);
 
     await tester.tap(find.text('Build'));
     await tester.pumpAndSettle();

@@ -25,7 +25,7 @@ const _emptyArt = r'''
  +------------------+''';
 
 TextStyle _asciiStyle(BuildContext context, {double size = 12, Color? color}) => TextStyle(
-      fontFamily: Eleven.font,
+      fontFamily: Eleven.mono,
       fontFamilyFallback: Eleven.fallback,
       fontSize: size,
       height: 1.15,

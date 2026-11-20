@@ -1073,16 +1073,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accentColour => 'アクセントカラー';
 
   @override
-  String get accentOrange => 'オレンジ';
+  String get accentYellow => 'イエロー';
 
   @override
-  String get accentGreen => 'ターミナルグリーン';
+  String get accentGreen => 'グリーン';
 
   @override
-  String get accentCyan => 'シアン';
+  String get accentTeal => 'ティール';
 
   @override
-  String get accentViolet => 'バイオレット';
+  String get accentPurple => 'パープル';
 
   @override
   String get accentPink => 'ピンク';
@@ -1583,4 +1583,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tryAgain => '再試行';
+
+  @override
+  String get stepBasics => '基本';
+
+  @override
+  String get stepLook => '見た目';
+
+  @override
+  String get stepFeatures => '機能';
+
+  @override
+  String get stepFinish => 'セキュリティと仕上げ';
+
+  @override
+  String get back => '戻る';
+
+  @override
+  String get next => '次へ';
+
+  @override
+  String get groupCore => '基本機能';
+
+  @override
+  String get groupNavigation => 'ナビゲーション';
+
+  @override
+  String get groupMediaFiles => 'メディアとファイル';
+
+  @override
+  String get groupEngagement => 'エンゲージメント';
+
+  @override
+  String get groupAdvanced => '詳細設定';
+
+  @override
+  String get changesTitle => '未保存の変更';
+
+  @override
+  String get noChanges => '前回の保存から変更はありません。';
 }

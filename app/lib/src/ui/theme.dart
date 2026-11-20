@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// Fixed tokens of the New ELEVEN design system. Colours live in
+/// Fixed tokens of the iLoveHTML neo-brutalist design: thick ink strokes,
+/// hard offset shadows and flat colour blocks. Colours live in
 /// [ElevenPalette], which depends on light/dark mode and the accent preset.
 abstract final class Eleven {
-  static const font = 'JetBrainsMono';
+  /// Headings and body text.
+  static const font = 'SpaceGrotesk';
 
-  /// JetBrains Mono has no CJK glyphs; these system fonts fill them in.
+  /// Code, package IDs, logs.
+  static const mono = 'JetBrainsMono';
+
+  /// Neither font has CJK glyphs; these system fonts fill them in.
   static const fallback = [
     'Microsoft YaHei UI',
     'Yu Gothic UI',
@@ -15,26 +20,38 @@ abstract final class Eleven {
     'Noto Sans CJK KR',
     'sans-serif',
   ];
+
+  static const stroke = 2.5;
+  static const radius = 8.0;
+  static const shadowOffset = Offset(4, 4);
 }
 
-/// The accent ("signal") colour; orange is the original New ELEVEN accent.
+/// The accent colour block. [block] fills buttons and tiles; [textLight] is a
+/// darker shade that stays readable as text on the cream page.
 enum AccentPreset {
-  orange(Color(0xFFFF7A1A), Color(0xFFFFB37A), Color(0xFF120600), Color(0xFFB8480A), Color(0xFFD45A12)),
-  green(Color(0xFF39FF88), Color(0xFF9DFFC4), Color(0xFF001A0A), Color(0xFF0F7A3D), Color(0xFF16994D)),
-  cyan(Color(0xFF22D3EE), Color(0xFF8BE9F7), Color(0xFF001619), Color(0xFF0E7490), Color(0xFF1592B3)),
-  violet(Color(0xFFA78BFA), Color(0xFFCFC0FD), Color(0xFF10061F), Color(0xFF6D28D9), Color(0xFF7C3AED)),
-  pink(Color(0xFFFF4FA3), Color(0xFFFF9CCB), Color(0xFF1A0010), Color(0xFFBE185D), Color(0xFFDB2777));
+  yellow(Color(0xFFFFD60A), Color(0xFF000000), Color(0xFF7A5F00)),
+  pink(Color(0xFFFF5C8A), Color(0xFF000000), Color(0xFFC2185B)),
+  purple(Color(0xFF7B61FF), Color(0xFFFFFFFF), Color(0xFF5B3FE0)),
+  teal(Color(0xFF00C2CB), Color(0xFF000000), Color(0xFF00727A)),
+  green(Color(0xFF3CCB4A), Color(0xFF000000), Color(0xFF1C7A29));
 
-  const AccentPreset(this.dark, this.darkHi, this.darkOn, this.light, this.lightHi);
+  const AccentPreset(this.block, this.onBlock, this.textLight);
 
-  final Color dark, darkHi, darkOn, light, lightHi;
+  final Color block, onBlock, textLight;
 
-  static AccentPreset byName(String? name) =>
-      AccentPreset.values.firstWhere((a) => a.name == name, orElse: () => AccentPreset.orange);
+  /// Saved names from before 1.2.5 map to the nearest new block colour.
+  static AccentPreset byName(String? name) => switch (name) {
+    'orange' => AccentPreset.yellow,
+    'cyan' => AccentPreset.teal,
+    'violet' => AccentPreset.purple,
+    _ => AccentPreset.values.firstWhere((a) => a.name == name, orElse: () => AccentPreset.yellow),
+  };
 }
 
-/// Resolved colour tokens: a terminal ground with one accent signal.
-/// Orange-style accent only marks done, score or "act now".
+/// The other block colours, for icon tiles and step chips.
+const brutalBlocks = [Color(0xFFFFD60A), Color(0xFFFF5C8A), Color(0xFF7B61FF), Color(0xFF00C2CB), Color(0xFF3CCB4A)];
+
+/// Resolved colour tokens.
 @immutable
 class ElevenPalette extends ThemeExtension<ElevenPalette> {
   const ElevenPalette({
@@ -44,44 +61,56 @@ class ElevenPalette extends ThemeExtension<ElevenPalette> {
     required this.mute,
     required this.line,
     required this.line2,
+    required this.ink,
     required this.acc,
     required this.accHi,
     required this.onAcc,
+    required this.block,
+    required this.onBlock,
   });
 
   factory ElevenPalette.of(Brightness brightness, AccentPreset accent) => brightness == Brightness.dark
       ? ElevenPalette(
-          bg: const Color(0xFF000000),
-          panel: const Color(0xFF090908),
-          fg: const Color(0xFFF2EFEA),
-          mute: const Color(0xFF8C8781),
-          line: const Color(0xFF1F1D1B),
-          line2: const Color(0xFF3A3531),
-          acc: accent.dark,
-          accHi: accent.darkHi,
-          onAcc: accent.darkOn,
+          bg: const Color(0xFF0F0F0F),
+          panel: const Color(0xFF1A1A1A),
+          fg: const Color(0xFFFFFFFF),
+          mute: const Color(0xFFB3AFA6),
+          line: const Color(0xFF333333),
+          line2: const Color(0xFFFFFFFF),
+          ink: const Color(0xFFFFFFFF),
+          acc: accent.block,
+          accHi: Color.lerp(accent.block, Colors.white, 0.3)!,
+          onAcc: accent.onBlock,
+          block: accent.block,
+          onBlock: accent.onBlock,
         )
       : ElevenPalette(
-          bg: const Color(0xFFF7F5F1),
+          bg: const Color(0xFFFFFDF5),
           panel: const Color(0xFFFFFFFF),
-          fg: const Color(0xFF141210),
-          mute: const Color(0xFF615B55),
-          line: const Color(0xFFE4E0DA),
-          line2: const Color(0xFFC4BDB4),
-          acc: accent.light,
-          accHi: accent.lightHi,
+          fg: const Color(0xFF000000),
+          mute: const Color(0xFF55514A),
+          line: const Color(0xFFE6E0CC),
+          line2: const Color(0xFF000000),
+          ink: const Color(0xFF000000),
+          acc: accent.textLight,
+          accHi: Color.lerp(accent.textLight, Colors.black, 0.2)!,
           onAcc: const Color(0xFFFFFFFF),
+          block: accent.block,
+          onBlock: accent.onBlock,
         );
 
-  final Color bg, panel, fg, mute, line, line2, acc, accHi, onAcc;
+  /// [acc] is the accent for text and icons on [bg]; [block] is the flat fill.
+  final Color bg, panel, fg, mute, line, line2, ink, acc, accHi, onAcc, block, onBlock;
 
-  Color get accSoft => acc.withAlpha(0x1F);
+  Color get accSoft => block.withAlpha(0x33);
 
-  /// The system's signature glow; on accent things only.
-  List<BoxShadow> get glow => [
-        BoxShadow(color: acc.withAlpha(0xCC), blurRadius: 6),
-        BoxShadow(color: acc.withAlpha(0x59), blurRadius: 20),
-      ];
+  /// The hard offset shadow under raised blocks.
+  List<BoxShadow> get shadow => [BoxShadow(color: ink, offset: Eleven.shadowOffset)];
+
+  /// Kept for older call sites: now the same hard shadow.
+  List<BoxShadow> get glow => shadow;
+
+  BorderSide get strokeSide => BorderSide(color: ink, width: Eleven.stroke);
 
   @override
   ElevenPalette copyWith() => this;
@@ -97,9 +126,12 @@ class ElevenPalette extends ThemeExtension<ElevenPalette> {
       mute: l(mute, other.mute),
       line: l(line, other.line),
       line2: l(line2, other.line2),
+      ink: l(ink, other.ink),
       acc: l(acc, other.acc),
       accHi: l(accHi, other.accHi),
       onAcc: l(onAcc, other.onAcc),
+      block: l(block, other.block),
+      onBlock: l(onBlock, other.onBlock),
     );
   }
 }
@@ -112,28 +144,33 @@ class _NoTransition extends PageTransitionsBuilder {
   const _NoTransition();
 
   @override
-  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation,
-          Animation<double> secondaryAnimation, Widget child) =>
-      child;
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
 }
 
 const _tabular = [FontFeature.tabularFigures()];
-const _square = RoundedRectangleBorder();
-const _sm = BorderRadius.all(Radius.circular(4));
+const _r = BorderRadius.all(Radius.circular(Eleven.radius));
 
-/// New ELEVEN in light or dark, with the chosen accent.
+/// iLoveHTML's neo-brutalist theme in light or dark, with the chosen accent.
 ThemeData buildTheme({
-  Brightness brightness = Brightness.dark,
-  AccentPreset accent = AccentPreset.orange,
+  Brightness brightness = Brightness.light,
+  AccentPreset accent = AccentPreset.yellow,
   bool animations = true,
 }) {
   final e = ElevenPalette.of(brightness, accent);
   final dark = brightness == Brightness.dark;
+  final ink = e.strokeSide;
+  final shape = RoundedRectangleBorder(borderRadius: _r, side: ink);
   final scheme = (dark ? ColorScheme.dark : ColorScheme.light)(
-    primary: e.acc,
-    onPrimary: e.onAcc,
+    primary: e.block,
+    onPrimary: e.onBlock,
     primaryContainer: e.accSoft,
-    onPrimaryContainer: e.acc,
+    onPrimaryContainer: e.fg,
     secondary: e.acc,
     onSecondary: e.onAcc,
     secondaryContainer: e.line,
@@ -153,34 +190,40 @@ ThemeData buildTheme({
     surfaceContainer: e.panel,
     surfaceContainerHigh: e.panel,
     surfaceContainerHighest: e.line,
-    outline: e.mute,
+    outline: e.ink,
     outlineVariant: e.line,
     inverseSurface: e.fg,
     onInverseSurface: e.bg,
-    inversePrimary: e.acc,
-    shadow: e.acc,
+    inversePrimary: e.block,
+    shadow: e.ink,
     surfaceTint: Colors.transparent,
   );
 
   final base = ThemeData(
-      useMaterial3: true,
-      brightness: brightness,
-      colorScheme: scheme,
-      fontFamily: Eleven.font,
-      fontFamilyFallback: Eleven.fallback);
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: scheme,
+    fontFamily: Eleven.font,
+    fontFamilyFallback: Eleven.fallback,
+  );
+  TextStyle ts(double size, FontWeight w, {double h = 1.4, double ls = 0, Color? c}) =>
+      TextStyle(fontSize: size, height: h, fontWeight: w, letterSpacing: ls, color: c ?? e.fg);
   final text = base.textTheme
-      .apply(bodyColor: e.fg, displayColor: e.fg, fontFamily: Eleven.font, fontFamilyFallback: Eleven.fallback)
+      .apply(bodyColor: e.fg, displayColor: e.fg)
       .copyWith(
-        titleLarge: TextStyle(fontSize: 15, height: 1.4, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: e.fg),
-        titleMedium: TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.w500, letterSpacing: 0, color: e.fg),
-        titleSmall: TextStyle(
-            fontSize: 12, height: 1.33, fontWeight: FontWeight.w500, letterSpacing: 1.2, color: e.mute),
-        bodyLarge: TextStyle(fontSize: 14, height: 1.5, letterSpacing: 0, color: e.fg),
-        bodyMedium: TextStyle(fontSize: 14, height: 1.5, letterSpacing: 0, color: e.fg),
-        bodySmall: TextStyle(fontSize: 12.5, height: 1.44, letterSpacing: 0, color: e.mute),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0, color: e.fg),
-        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 1.2, color: e.fg),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 1.1, color: e.fg),
+        displaySmall: ts(36, FontWeight.w700, h: 1.1, ls: -1),
+        headlineLarge: ts(32, FontWeight.w700, h: 1.1, ls: -0.8),
+        headlineMedium: ts(26, FontWeight.w700, h: 1.15, ls: -0.5),
+        headlineSmall: ts(22, FontWeight.w700, h: 1.2, ls: -0.3),
+        titleLarge: ts(19, FontWeight.w700, h: 1.3, ls: -0.2),
+        titleMedium: ts(16, FontWeight.w700, h: 1.4),
+        titleSmall: ts(13, FontWeight.w700, h: 1.3, ls: 0.8, c: e.mute),
+        bodyLarge: ts(16, FontWeight.w400, h: 1.5),
+        bodyMedium: ts(15, FontWeight.w400, h: 1.5),
+        bodySmall: ts(13, FontWeight.w400, h: 1.45, c: e.mute),
+        labelLarge: ts(15, FontWeight.w700),
+        labelMedium: ts(13, FontWeight.w700, ls: 0.4),
+        labelSmall: ts(12, FontWeight.w700, ls: 0.4),
       )
       .apply(fontFamily: Eleven.font, fontFamilyFallback: Eleven.fallback);
   final tabular = text.copyWith(
@@ -190,27 +233,31 @@ ThemeData buildTheme({
     bodySmall: text.bodySmall?.copyWith(fontFeatures: _tabular),
   );
 
-  const control = Size(40, 40);
+  const control = Size(44, 44);
+  // Focus shows as a thicker stroke, so keyboard users always see where they are.
+  WidgetStateProperty<BorderSide> sides() => WidgetStateProperty.resolveWith(
+    (s) => s.contains(WidgetState.disabled)
+        ? BorderSide(color: e.line, width: Eleven.stroke)
+        : s.contains(WidgetState.focused)
+        ? BorderSide(color: e.ink, width: Eleven.stroke + 1.5)
+        : ink,
+  );
   final outlined = OutlinedButton.styleFrom(
     foregroundColor: e.fg,
+    backgroundColor: e.panel,
     minimumSize: control,
-    padding: EdgeInsets.symmetric(horizontal: 12),
-    shape: RoundedRectangleBorder(borderRadius: _sm),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    shape: const RoundedRectangleBorder(borderRadius: _r),
     textStyle: tabular.labelLarge,
-  ).copyWith(
-    side: WidgetStateProperty.resolveWith((s) => BorderSide(
-        color: s.contains(WidgetState.disabled)
-            ? e.line
-            : s.contains(WidgetState.hovered) || s.contains(WidgetState.focused)
-                ? e.acc
-                : e.line2)),
-  );
+  ).copyWith(side: sides());
 
   return base.copyWith(
-    pageTransitionsTheme: PageTransitionsTheme(builders: {
-      for (final p in TargetPlatform.values)
-        p: animations ? const FadeForwardsPageTransitionsBuilder() : const _NoTransition(),
-    }),
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: {
+        for (final p in TargetPlatform.values)
+          p: animations ? const FadeForwardsPageTransitionsBuilder() : const _NoTransition(),
+      },
+    ),
     extensions: [e],
     scaffoldBackgroundColor: e.bg,
     canvasColor: e.bg,
@@ -230,184 +277,199 @@ ThemeData buildTheme({
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: tabular.titleLarge,
-      shape: Border(bottom: BorderSide(color: e.line)),
+      shape: Border(bottom: ink),
     ),
     cardTheme: CardThemeData(
       color: e.panel,
       elevation: 0,
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(side: BorderSide(color: e.line)),
+      shape: shape,
     ),
-    dividerTheme: DividerThemeData(color: e.line, thickness: 1, space: 1),
+    dividerTheme: DividerThemeData(color: e.line, thickness: 1.5, space: 1.5),
     listTileTheme: ListTileThemeData(
-      iconColor: e.mute,
+      iconColor: e.fg,
       textColor: e.fg,
-      minVerticalPadding: 9,
+      minVerticalPadding: 10,
+      titleTextStyle: tabular.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
       subtitleTextStyle: tabular.bodySmall,
-      shape: _square,
+      shape: const RoundedRectangleBorder(borderRadius: _r),
     ),
     iconTheme: IconThemeData(color: e.fg),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: e.acc,
-        foregroundColor: e.onAcc,
+        backgroundColor: e.block,
+        foregroundColor: e.onBlock,
         disabledBackgroundColor: e.line,
         disabledForegroundColor: e.mute,
         minimumSize: control,
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        shape: RoundedRectangleBorder(borderRadius: _sm),
-        textStyle: tabular.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-        elevation: 6,
-        shadowColor: e.acc,
-      ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled)
-            ? e.line
-            : s.contains(WidgetState.hovered)
-                ? e.accHi
-                : e.acc),
-        elevation: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? 0 : 6),
-      ),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        shape: const RoundedRectangleBorder(borderRadius: _r),
+        textStyle: tabular.labelLarge,
+        elevation: 0,
+      ).copyWith(side: sides()),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(style: outlined),
     outlinedButtonTheme: OutlinedButtonThemeData(style: outlined),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: e.acc,
+        foregroundColor: e.fg,
         minimumSize: control,
-        shape: RoundedRectangleBorder(borderRadius: _sm),
-        textStyle: tabular.labelLarge,
+        shape: const RoundedRectangleBorder(borderRadius: _r),
+        textStyle: tabular.labelLarge?.copyWith(decoration: TextDecoration.underline, decorationThickness: 2),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         foregroundColor: e.fg,
         minimumSize: control,
-        shape: RoundedRectangleBorder(borderRadius: _sm),
+        shape: const RoundedRectangleBorder(borderRadius: _r),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: e.acc,
-      foregroundColor: e.onAcc,
-      elevation: 8,
-      hoverElevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: _sm),
-      extendedTextStyle: TextStyle(fontFamily: Eleven.font, fontFamilyFallback: Eleven.fallback, fontWeight: FontWeight.w700, letterSpacing: 0.4),
+      backgroundColor: e.block,
+      foregroundColor: e.onBlock,
+      elevation: 0,
+      hoverElevation: 0,
+      focusElevation: 0,
+      highlightElevation: 0,
+      shape: shape,
+      extendedTextStyle: tabular.labelLarge,
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
-        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: _sm)),
-        side: WidgetStatePropertyAll(BorderSide(color: e.line2)),
-        backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.acc : null),
-        foregroundColor:
-            WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.onAcc : e.fg),
+        shape: const WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: _r)),
+        side: WidgetStatePropertyAll(ink),
+        backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.block : e.panel),
+        foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.onBlock : e.fg),
         textStyle: WidgetStatePropertyAll(tabular.labelLarge),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: e.bg,
+      fillColor: e.panel,
       labelStyle: tabular.bodyMedium?.copyWith(color: e.mute),
-      floatingLabelStyle: tabular.labelMedium?.copyWith(color: e.acc),
+      floatingLabelStyle: tabular.labelMedium?.copyWith(color: e.fg),
       hintStyle: tabular.bodyMedium?.copyWith(color: e.mute),
       helperStyle: tabular.bodySmall,
-      errorStyle: tabular.bodySmall?.copyWith(color: e.fg),
-      border: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.line2)),
-      enabledBorder: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.line2)),
-      focusedBorder: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.acc, width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.fg)),
-      focusedErrorBorder: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.fg, width: 2)),
-      disabledBorder: OutlineInputBorder(borderRadius: _sm, borderSide: BorderSide(color: e.line)),
+      errorStyle: tabular.bodySmall?.copyWith(color: e.fg, fontWeight: FontWeight.w700),
+      border: OutlineInputBorder(borderRadius: _r, borderSide: ink),
+      enabledBorder: OutlineInputBorder(borderRadius: _r, borderSide: ink),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: _r,
+        borderSide: ink.copyWith(width: Eleven.stroke + 1.5),
+      ),
+      errorBorder: OutlineInputBorder(borderRadius: _r, borderSide: ink),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: _r,
+        borderSide: ink.copyWith(width: Eleven.stroke + 1.5),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: _r,
+        borderSide: BorderSide(color: e.line, width: Eleven.stroke),
+      ),
     ),
     checkboxTheme: CheckboxThemeData(
-      shape: _square,
-      side: BorderSide(color: e.mute),
-      fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.acc : null),
-      checkColor: WidgetStatePropertyAll(e.onAcc),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(3))),
+      side: BorderSide(color: e.ink, width: 2),
+      fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.block : null),
+      checkColor: WidgetStatePropertyAll(e.onBlock),
     ),
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.onAcc : e.mute),
-      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.acc : e.bg),
-      trackOutlineColor:
-          WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.acc : e.mute),
+      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.ink : e.mute),
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.block : e.panel),
+      trackOutlineColor: WidgetStatePropertyAll(e.ink),
+      trackOutlineWidth: const WidgetStatePropertyAll(2),
     ),
     radioTheme: RadioThemeData(
-      fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.acc : e.mute),
+      fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? e.fg : e.mute),
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: e.acc,
+      color: dark ? e.block : e.fg,
       linearTrackColor: e.line,
       circularTrackColor: e.line,
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: e.bg,
-      selectedColor: e.acc,
-      side: BorderSide(color: e.line2),
-      shape: _square,
-      labelStyle: tabular.bodySmall,
-      secondaryLabelStyle: tabular.bodySmall?.copyWith(color: e.onAcc),
+      backgroundColor: e.panel,
+      selectedColor: e.block,
+      side: BorderSide(color: e.ink, width: 2),
+      shape: const RoundedRectangleBorder(borderRadius: _r),
+      labelStyle: tabular.bodySmall?.copyWith(color: e.fg, fontWeight: FontWeight.w500),
+      secondaryLabelStyle: tabular.bodySmall?.copyWith(color: e.onBlock),
+      checkmarkColor: e.onBlock,
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: e.panel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: RoundedRectangleBorder(side: BorderSide(color: e.line2)),
+      shape: shape,
       titleTextStyle: tabular.titleLarge,
       contentTextStyle: tabular.bodyMedium,
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: e.panel,
       surfaceTintColor: Colors.transparent,
-      shape: Border(top: BorderSide(color: e.line2)),
+      shape: Border(top: ink),
     ),
     popupMenuTheme: PopupMenuThemeData(
       color: e.panel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: RoundedRectangleBorder(side: BorderSide(color: e.line2)),
+      shape: shape,
       textStyle: tabular.bodyMedium,
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(e.panel),
-        surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-        elevation: WidgetStatePropertyAll(0),
-        shape: WidgetStatePropertyAll(RoundedRectangleBorder(side: BorderSide(color: e.line2))),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(0),
+        shape: WidgetStatePropertyAll(shape),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: e.bg,
+      backgroundColor: e.panel,
       contentTextStyle: tabular.bodyMedium,
-      actionTextColor: e.acc,
+      actionTextColor: e.fg,
       behavior: SnackBarBehavior.floating,
       elevation: 0,
-      shape: RoundedRectangleBorder(side: BorderSide(color: e.acc)),
+      shape: shape,
     ),
     tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(color: e.panel, border: Border.all(color: e.line2)),
+      decoration: BoxDecoration(
+        color: e.panel,
+        border: Border.all(color: e.ink, width: 2),
+        borderRadius: _r,
+      ),
       textStyle: tabular.bodySmall?.copyWith(color: e.fg),
     ),
     tabBarTheme: TabBarThemeData(
-      labelColor: e.acc,
-      unselectedLabelColor: e.mute,
-      indicatorColor: e.acc,
-      dividerColor: e.line,
+      labelColor: e.onBlock,
+      unselectedLabelColor: e.fg,
+      indicator: BoxDecoration(
+        color: e.block,
+        border: Border.all(color: e.ink, width: 2),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Eleven.radius)),
+      ),
+      indicatorSize: TabBarIndicatorSize.tab,
       labelStyle: tabular.labelMedium,
       unselectedLabelStyle: tabular.labelMedium,
+      dividerColor: e.ink,
+      dividerHeight: 2,
     ),
     expansionTileTheme: ExpansionTileThemeData(
-      iconColor: e.acc,
-      collapsedIconColor: e.mute,
-      shape: _square,
-      collapsedShape: _square,
+      iconColor: e.fg,
+      collapsedIconColor: e.fg,
+      shape: const RoundedRectangleBorder(borderRadius: _r),
+      collapsedShape: const RoundedRectangleBorder(borderRadius: _r),
     ),
   );
 }
 
 /// Monospace style for build logs and package IDs.
 TextStyle monoStyle(BuildContext context, {double size = 12.5}) => TextStyle(
-    fontFamily: Eleven.font,
-    fontFamilyFallback: Eleven.fallback,
-    fontSize: size,
-    fontFeatures: _tabular,
-    color: Theme.of(context).colorScheme.onSurface);
+  fontFamily: Eleven.mono,
+  fontFamilyFallback: Eleven.fallback,
+  fontSize: size,
+  fontFeatures: _tabular,
+  color: Theme.of(context).colorScheme.onSurface,
+);

@@ -1102,16 +1102,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accentColour => 'Cor de destaque';
 
   @override
-  String get accentOrange => 'Laranja';
+  String get accentYellow => 'Amarelo';
 
   @override
-  String get accentGreen => 'Verde terminal';
+  String get accentGreen => 'Verde';
 
   @override
-  String get accentCyan => 'Ciano';
+  String get accentTeal => 'Azul-petróleo';
 
   @override
-  String get accentViolet => 'Violeta';
+  String get accentPurple => 'Roxo';
 
   @override
   String get accentPink => 'Rosa';
@@ -1627,4 +1627,43 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get tryAgain => 'Tentar de novo';
+
+  @override
+  String get stepBasics => 'Básico';
+
+  @override
+  String get stepLook => 'Aparência';
+
+  @override
+  String get stepFeatures => 'Recursos';
+
+  @override
+  String get stepFinish => 'Segurança e final';
+
+  @override
+  String get back => 'Voltar';
+
+  @override
+  String get next => 'Próximo';
+
+  @override
+  String get groupCore => 'Essencial';
+
+  @override
+  String get groupNavigation => 'Navegação';
+
+  @override
+  String get groupMediaFiles => 'Mídia e arquivos';
+
+  @override
+  String get groupEngagement => 'Engajamento';
+
+  @override
+  String get groupAdvanced => 'Avançado';
+
+  @override
+  String get changesTitle => 'Alterações não salvas';
+
+  @override
+  String get noChanges => 'Nenhuma alteração desde o último salvamento.';
 }

@@ -1940,29 +1940,29 @@ abstract class AppLocalizations {
   /// **'Accent colour'**
   String get accentColour;
 
-  /// No description provided for @accentOrange.
+  /// No description provided for @accentYellow.
   ///
   /// In en, this message translates to:
-  /// **'Orange'**
-  String get accentOrange;
+  /// **'Yellow'**
+  String get accentYellow;
 
   /// No description provided for @accentGreen.
   ///
   /// In en, this message translates to:
-  /// **'Terminal green'**
+  /// **'Green'**
   String get accentGreen;
 
-  /// No description provided for @accentCyan.
+  /// No description provided for @accentTeal.
   ///
   /// In en, this message translates to:
-  /// **'Cyan'**
-  String get accentCyan;
+  /// **'Teal'**
+  String get accentTeal;
 
-  /// No description provided for @accentViolet.
+  /// No description provided for @accentPurple.
   ///
   /// In en, this message translates to:
-  /// **'Violet'**
-  String get accentViolet;
+  /// **'Purple'**
+  String get accentPurple;
 
   /// No description provided for @accentPink.
   ///
@@ -2791,6 +2791,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get tryAgain;
+
+  /// No description provided for @stepBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Basics'**
+  String get stepBasics;
+
+  /// No description provided for @stepLook.
+  ///
+  /// In en, this message translates to:
+  /// **'Look'**
+  String get stepLook;
+
+  /// No description provided for @stepFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Features'**
+  String get stepFeatures;
+
+  /// No description provided for @stepFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Security & finish'**
+  String get stepFinish;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @groupCore.
+  ///
+  /// In en, this message translates to:
+  /// **'Core'**
+  String get groupCore;
+
+  /// No description provided for @groupNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get groupNavigation;
+
+  /// No description provided for @groupMediaFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Media & files'**
+  String get groupMediaFiles;
+
+  /// No description provided for @groupEngagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Engagement'**
+  String get groupEngagement;
+
+  /// No description provided for @groupAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get groupAdvanced;
+
+  /// No description provided for @changesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved changes'**
+  String get changesTitle;
+
+  /// No description provided for @noChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes since the last save.'**
+  String get noChanges;
 }
 
 class _AppLocalizationsDelegate

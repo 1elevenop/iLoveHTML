@@ -22,7 +22,7 @@ void main() {
   test('settings are saved and loaded again', () async {
     SharedPreferences.setMockInitialValues({});
     final first = await AppSettings.load();
-    expect(first.themeMode, ThemeMode.dark);
+    expect(first.themeMode, ThemeMode.system);
     expect(first.locale, isNull);
     first
       ..locale = const Locale('ja')
@@ -42,8 +42,15 @@ void main() {
     SharedPreferences.setMockInitialValues({'locale': 'xx', 'themeMode': 'bogus', 'accent': 'nope'});
     final s = await AppSettings.load();
     expect(s.locale, isNull);
-    expect(s.themeMode, ThemeMode.dark);
-    expect(s.accent, AccentPreset.orange);
+    expect(s.themeMode, ThemeMode.system);
+    expect(s.accent, AccentPreset.yellow);
+  });
+
+  test('accent names saved before 1.2.5 map to the new blocks', () {
+    expect(AccentPreset.byName('orange'), AccentPreset.yellow);
+    expect(AccentPreset.byName('cyan'), AccentPreset.teal);
+    expect(AccentPreset.byName('violet'), AccentPreset.purple);
+    expect(AccentPreset.byName('pink'), AccentPreset.pink);
   });
 
   testWidgets('the UI follows the chosen language', (tester) async {
@@ -64,10 +71,10 @@ void main() {
     await tester.pumpWidget(Html2ApkApp(controller: controllerWith(settings)));
     await tester.pumpAndSettle();
     Color bg() => tester.widget<Material>(find.descendant(of: find.byType(Scaffold), matching: find.byType(Material)).first).color!;
-    expect(bg(), const Color(0xFF000000));
+    expect(bg(), ElevenPalette.of(Brightness.dark, AccentPreset.yellow).bg);
     settings.themeMode = ThemeMode.light;
     await tester.pumpAndSettle();
-    expect(bg(), ElevenPalette.of(Brightness.light, AccentPreset.orange).bg);
+    expect(bg(), const Color(0xFFFFFDF5));
   });
 
   testWidgets('accent presets recolour the primary colour', (tester) async {
@@ -75,11 +82,11 @@ void main() {
     late ThemeData theme;
     await tester.pumpWidget(Html2ApkApp(controller: controllerWith(settings)));
     theme = Theme.of(tester.element(find.byType(Scaffold)));
-    expect(theme.colorScheme.primary, AccentPreset.orange.dark);
-    settings.accent = AccentPreset.violet;
+    expect(theme.colorScheme.primary, AccentPreset.yellow.block);
+    settings.accent = AccentPreset.purple;
     await tester.pumpAndSettle();
     theme = Theme.of(tester.element(find.byType(Scaffold)));
-    expect(theme.colorScheme.primary, AccentPreset.violet.dark);
+    expect(theme.colorScheme.primary, AccentPreset.purple.block);
   });
 
   testWidgets('splash is skipped when animations are off', (tester) async {

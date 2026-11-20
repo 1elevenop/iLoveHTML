@@ -8,7 +8,7 @@ class AppSettings extends ChangeNotifier {
   AppSettings._(this._prefs)
       : _locale = _parseLocale(_prefs?.getString(_kLocale)),
         _themeMode = ThemeMode.values.firstWhere((m) => m.name == _prefs?.getString(_kTheme),
-            orElse: () => ThemeMode.dark),
+            orElse: () => ThemeMode.system),
         _accent = AccentPreset.byName(_prefs?.getString(_kAccent)),
         _animations = _prefs?.getBool(_kAnimations) ?? true,
         _checkUpdates = _prefs?.getBool(_kUpdates) ?? true;
@@ -18,7 +18,7 @@ class AppSettings extends ChangeNotifier {
       : _prefs = null,
         _locale = language,
         _themeMode = mode,
-        _accent = AccentPreset.orange,
+        _accent = AccentPreset.yellow,
         _animations = animate,
         _checkUpdates = false;
 
