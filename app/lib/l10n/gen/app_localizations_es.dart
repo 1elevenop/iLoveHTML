@@ -1691,4 +1691,87 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => 'Editar código';
+
+  @override
+  String get editCodeHint =>
+      'Cambia el HTML, CSS y JavaScript con vista previa en vivo.';
+
+  @override
+  String get newBlankSite => 'Nuevo sitio en blanco';
+
+  @override
+  String get newBlankSiteHint =>
+      'Empieza con una página, una hoja de estilos y un script, y escríbelo aquí.';
+
+  @override
+  String get files => 'Archivos';
+
+  @override
+  String get newFile => 'Nuevo archivo';
+
+  @override
+  String get fileName => 'Nombre del archivo';
+
+  @override
+  String get rename => 'Cambiar nombre';
+
+  @override
+  String get moreOptions => 'Más opciones';
+
+  @override
+  String get deleteFileQ => '¿Eliminar archivo?';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path se eliminará del proyecto. No se puede deshacer.';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '$path guardado';
+  }
+
+  @override
+  String get unsaved => 'sin guardar';
+
+  @override
+  String get unsavedChangesQ => '¿Descartar los cambios sin guardar?';
+
+  @override
+  String discardChangesBody(String files) {
+    return 'Los cambios en $files no se han guardado.';
+  }
+
+  @override
+  String get discard => 'Descartar';
+
+  @override
+  String get noFileOpen => 'Elige un archivo para editar.';
+
+  @override
+  String get find => 'Buscar';
+
+  @override
+  String get findNext => 'Siguiente coincidencia';
+
+  @override
+  String get findPrevious => 'Coincidencia anterior';
+
+  @override
+  String get replaceWith => 'Reemplazar por';
+
+  @override
+  String get replaceAll => 'Reemplazar todo';
+
+  @override
+  String get reload => 'Recargar';
+
+  @override
+  String get fullPreview => 'Vista previa completa';
+
+  @override
+  String get resize => 'Cambiar tamaño';
 }

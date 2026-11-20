@@ -66,6 +66,13 @@ class AppController extends ChangeNotifier {
     return report;
   }
 
+  /// A new project with a starter page, stylesheet and script.
+  Future<ImportReport> createBlank(String name, String applicationId) async {
+    final report = await store.createBlank(name: name, applicationId: applicationId);
+    refresh();
+    return report;
+  }
+
   Future<ImportReport> importFiles(List<String> paths, String name, String applicationId) async {
     final report = await store.importFiles(paths: paths, name: name, applicationId: applicationId);
     refresh();

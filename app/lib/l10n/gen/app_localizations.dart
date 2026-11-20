@@ -2881,6 +2881,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 file} other{{count} files}}'**
   String fileCount(int count);
+
+  /// No description provided for @editCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit code'**
+  String get editCode;
+
+  /// No description provided for @editCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the HTML, CSS and JavaScript with a live preview.'**
+  String get editCodeHint;
+
+  /// No description provided for @newBlankSite.
+  ///
+  /// In en, this message translates to:
+  /// **'New blank site'**
+  String get newBlankSite;
+
+  /// No description provided for @newBlankSiteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a page, a stylesheet and a script, and write it here.'**
+  String get newBlankSiteHint;
+
+  /// No description provided for @files.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get files;
+
+  /// No description provided for @newFile.
+  ///
+  /// In en, this message translates to:
+  /// **'New file'**
+  String get newFile;
+
+  /// No description provided for @fileName.
+  ///
+  /// In en, this message translates to:
+  /// **'File name'**
+  String get fileName;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get moreOptions;
+
+  /// No description provided for @deleteFileQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file?'**
+  String get deleteFileQ;
+
+  /// No description provided for @deleteFileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{path} will be deleted from the project. This cannot be undone.'**
+  String deleteFileBody(String path);
+
+  /// No description provided for @fileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {path}'**
+  String fileSaved(String path);
+
+  /// No description provided for @unsaved.
+  ///
+  /// In en, this message translates to:
+  /// **'unsaved'**
+  String get unsaved;
+
+  /// No description provided for @unsavedChangesQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unsaved changes?'**
+  String get unsavedChangesQ;
+
+  /// No description provided for @discardChangesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes to {files} have not been saved.'**
+  String discardChangesBody(String files);
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @noFileOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a file to edit.'**
+  String get noFileOpen;
+
+  /// No description provided for @find.
+  ///
+  /// In en, this message translates to:
+  /// **'Find'**
+  String get find;
+
+  /// No description provided for @findNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next match'**
+  String get findNext;
+
+  /// No description provided for @findPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous match'**
+  String get findPrevious;
+
+  /// No description provided for @replaceWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with'**
+  String get replaceWith;
+
+  /// No description provided for @replaceAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all'**
+  String get replaceAll;
+
+  /// No description provided for @reload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get reload;
+
+  /// No description provided for @fullPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Full preview'**
+  String get fullPreview;
+
+  /// No description provided for @resize.
+  ///
+  /// In en, this message translates to:
+  /// **'Resize'**
+  String get resize;
 }
 
 class _AppLocalizationsDelegate

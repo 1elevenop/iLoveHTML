@@ -1644,4 +1644,85 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => '코드 편집';
+
+  @override
+  String get editCodeHint => '실시간 미리보기로 HTML, CSS, JavaScript를 수정합니다.';
+
+  @override
+  String get newBlankSite => '빈 사이트 만들기';
+
+  @override
+  String get newBlankSiteHint => '페이지, 스타일시트, 스크립트로 시작해 여기에서 작성합니다.';
+
+  @override
+  String get files => '파일';
+
+  @override
+  String get newFile => '새 파일';
+
+  @override
+  String get fileName => '파일 이름';
+
+  @override
+  String get rename => '이름 바꾸기';
+
+  @override
+  String get moreOptions => '추가 옵션';
+
+  @override
+  String get deleteFileQ => '파일을 삭제할까요?';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path 파일이 프로젝트에서 삭제됩니다. 되돌릴 수 없습니다.';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '$path 저장됨';
+  }
+
+  @override
+  String get unsaved => '저장 안 됨';
+
+  @override
+  String get unsavedChangesQ => '저장하지 않은 변경 사항을 버릴까요?';
+
+  @override
+  String discardChangesBody(String files) {
+    return '$files의 변경 사항이 저장되지 않았습니다.';
+  }
+
+  @override
+  String get discard => '버리기';
+
+  @override
+  String get noFileOpen => '수정할 파일을 고르세요.';
+
+  @override
+  String get find => '찾기';
+
+  @override
+  String get findNext => '다음 일치 항목';
+
+  @override
+  String get findPrevious => '이전 일치 항목';
+
+  @override
+  String get replaceWith => '바꿀 내용';
+
+  @override
+  String get replaceAll => '모두 바꾸기';
+
+  @override
+  String get reload => '새로고침';
+
+  @override
+  String get fullPreview => '전체 미리보기';
+
+  @override
+  String get resize => '크기 조정';
 }

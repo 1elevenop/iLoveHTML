@@ -1697,4 +1697,88 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => 'Modifier le code';
+
+  @override
+  String get editCodeHint =>
+      'Modifiez le HTML, le CSS et le JavaScript avec un aperçu en direct.';
+
+  @override
+  String get newBlankSite => 'Nouveau site vierge';
+
+  @override
+  String get newBlankSiteHint =>
+      'Partez d’une page, d’une feuille de style et d’un script, et écrivez-le ici.';
+
+  @override
+  String get files => 'Fichiers';
+
+  @override
+  String get newFile => 'Nouveau fichier';
+
+  @override
+  String get fileName => 'Nom du fichier';
+
+  @override
+  String get rename => 'Renommer';
+
+  @override
+  String get moreOptions => 'Plus d’options';
+
+  @override
+  String get deleteFileQ => 'Supprimer le fichier ?';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path sera supprimé du projet. Action irréversible.';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '$path enregistré';
+  }
+
+  @override
+  String get unsaved => 'non enregistré';
+
+  @override
+  String get unsavedChangesQ =>
+      'Abandonner les modifications non enregistrées ?';
+
+  @override
+  String discardChangesBody(String files) {
+    return 'Les modifications de $files n’ont pas été enregistrées.';
+  }
+
+  @override
+  String get discard => 'Abandonner';
+
+  @override
+  String get noFileOpen => 'Choisissez un fichier à modifier.';
+
+  @override
+  String get find => 'Rechercher';
+
+  @override
+  String get findNext => 'Résultat suivant';
+
+  @override
+  String get findPrevious => 'Résultat précédent';
+
+  @override
+  String get replaceWith => 'Remplacer par';
+
+  @override
+  String get replaceAll => 'Tout remplacer';
+
+  @override
+  String get reload => 'Recharger';
+
+  @override
+  String get fullPreview => 'Aperçu complet';
+
+  @override
+  String get resize => 'Redimensionner';
 }

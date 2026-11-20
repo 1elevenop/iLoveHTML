@@ -1682,4 +1682,87 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => 'Edit code';
+
+  @override
+  String get editCodeHint =>
+      'Change the HTML, CSS and JavaScript with a live preview.';
+
+  @override
+  String get newBlankSite => 'New blank site';
+
+  @override
+  String get newBlankSiteHint =>
+      'Start from a page, a stylesheet and a script, and write it here.';
+
+  @override
+  String get files => 'Files';
+
+  @override
+  String get newFile => 'New file';
+
+  @override
+  String get fileName => 'File name';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get moreOptions => 'More options';
+
+  @override
+  String get deleteFileQ => 'Delete file?';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path will be deleted from the project. This cannot be undone.';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return 'Saved $path';
+  }
+
+  @override
+  String get unsaved => 'unsaved';
+
+  @override
+  String get unsavedChangesQ => 'Discard unsaved changes?';
+
+  @override
+  String discardChangesBody(String files) {
+    return 'Changes to $files have not been saved.';
+  }
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get noFileOpen => 'Pick a file to edit.';
+
+  @override
+  String get find => 'Find';
+
+  @override
+  String get findNext => 'Next match';
+
+  @override
+  String get findPrevious => 'Previous match';
+
+  @override
+  String get replaceWith => 'Replace with';
+
+  @override
+  String get replaceAll => 'Replace all';
+
+  @override
+  String get reload => 'Reload';
+
+  @override
+  String get fullPreview => 'Full preview';
+
+  @override
+  String get resize => 'Resize';
 }
