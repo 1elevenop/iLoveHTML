@@ -160,21 +160,24 @@ class FolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final e = context.eleven;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          margin: const EdgeInsets.only(left: 12),
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
-          constraints: const BoxConstraints(minWidth: 56, minHeight: 22),
-          decoration: BoxDecoration(
-            color: tabColor ?? e.block,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(Eleven.radius - 2)),
-            border: Border(top: e.strokeSide, left: e.strokeSide, right: e.strokeSide),
-          ),
-          child: DefaultTextStyle.merge(
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black),
-            child: tab ?? const SizedBox.shrink(),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Container(
+            margin: const EdgeInsets.only(left: 12),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+            constraints: const BoxConstraints(minWidth: 56, minHeight: 22),
+            decoration: BoxDecoration(
+              color: tabColor ?? e.block,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(Eleven.radius - 2)),
+              border: Border(top: e.strokeSide, left: e.strokeSide, right: e.strokeSide),
+            ),
+            child: DefaultTextStyle.merge(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black),
+              child: tab ?? const SizedBox.shrink(),
+            ),
           ),
         ),
         Flexible(
