@@ -1622,4 +1622,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get noChanges => '前回の保存から変更はありません。';
+
+  @override
+  String projectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件のプロジェクト',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ファイル',
+    );
+    return '$_temp0';
+  }
 }

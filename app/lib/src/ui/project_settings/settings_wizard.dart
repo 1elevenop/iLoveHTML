@@ -465,29 +465,36 @@ class _ProjectSettingsWizardState extends State<ProjectSettingsWizard> with Auto
         const SizedBox(height: 16),
         Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: SizedBox.square(
-                dimension: 64,
-                child: icon != null && File(icon).existsSync()
-                    ? Image.file(File(icon), fit: BoxFit.cover, key: ValueKey(File(icon).lastModifiedSync()))
-                    : ColoredBox(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        child: const Icon(Icons.android, size: 32),
-                      ),
+            Container(
+              width: 64,
+              height: 64,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: context.eleven.block,
+                borderRadius: BorderRadius.circular(Eleven.radius + 4),
+                border: Border.all(color: context.eleven.ink, width: Eleven.stroke),
               ),
+              child: icon != null && File(icon).existsSync()
+                  ? Image.file(File(icon), fit: BoxFit.cover, key: ValueKey(File(icon).lastModifiedSync()))
+                  : Icon(Icons.android, size: 32, color: context.eleven.onBlock),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                icon == null ? context.l10n.defaultIcon : context.l10n.customIcon,
-                style: Theme.of(context).textTheme.bodyMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    icon == null ? context.l10n.defaultIcon : context.l10n.customIcon,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _pickIcon,
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(context.l10n.chooseImage),
+                  ),
+                ],
               ),
-            ),
-            OutlinedButton.icon(
-              onPressed: _pickIcon,
-              icon: const Icon(Icons.image_outlined),
-              label: Text(context.l10n.chooseImage),
             ),
           ],
         ),

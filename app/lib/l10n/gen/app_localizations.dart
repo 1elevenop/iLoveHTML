@@ -2869,6 +2869,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No changes since the last save.'**
   String get noChanges;
+
+  /// No description provided for @projectCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 project} other{{count} projects}}'**
+  String projectCount(int count);
+
+  /// No description provided for @fileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file} other{{count} files}}'**
+  String fileCount(int count);
 }
 
 class _AppLocalizationsDelegate

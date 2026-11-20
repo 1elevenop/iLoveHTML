@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../app_controller.dart';
 import '../app_settings.dart';
 import 'ascii.dart';
+import 'brutal.dart';
 import 'app_settings_screen.dart';
 import 'project_screen.dart';
 import 'l10n.dart';
@@ -25,7 +26,7 @@ class ProjectsScreen extends StatelessWidget {
     final projects = controller.projects;
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.l10n.projects),
+        title: const Wordmark(),
         actions: [
           IconButton(
             tooltip: context.l10n.restoreBackup,
@@ -38,8 +39,8 @@ class ProjectsScreen extends StatelessWidget {
             child: IconButton(
               tooltip: context.l10n.settings,
               icon: const Icon(Icons.settings_outlined),
-              onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => AppSettingsScreen(controller: controller))),
+              onPressed: () =>
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => AppSettingsScreen(controller: controller))),
             ),
           ),
         ],
@@ -49,28 +50,59 @@ class ProjectsScreen extends StatelessWidget {
         icon: const Icon(Icons.add),
         label: Text(context.l10n.newApp),
       ),
-      body: projects.isEmpty && controller.brokenProjects.isEmpty
-          ? _EmptyState(
-              buildsWindowsApps: controller.desktopEngine != null,
-              animate: animationsOn(context, controller.settings),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              children: [
-                for (final project in projects) ...[
-                  _ProjectCard(controller: controller, project: project),
-                  const SizedBox(height: 12),
-                ],
-                for (final broken in controller.brokenProjects)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.error_outline),
-                      title: Text(context.l10n.unreadableProject(p.basename(broken.directory))),
-                      subtitle: Text('${broken.error}'),
-                    ),
-                  ),
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final side = box.maxWidth > 1032 ? (box.maxWidth - 1000) / 2 : 16.0;
+          final columns = box.maxWidth >= 900 ? 3 : 2;
+          final cardWidth = (box.maxWidth - 2 * side - (columns - 1) * 12) / columns;
+          final t = Theme.of(context).textTheme;
+          return ListView(
+            padding: EdgeInsets.fromLTRB(side, 20, side, 96),
+            children: [
+              Text(context.l10n.projects, style: t.headlineLarge),
+              if (projects.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  context.l10n.projectCount(projects.length),
+                  style: t.bodyMedium?.copyWith(color: context.eleven.mute),
+                ),
               ],
-            ),
+              const SizedBox(height: 20),
+              if (projects.isEmpty && controller.brokenProjects.isEmpty)
+                _EmptyState(
+                  buildsWindowsApps: controller.desktopEngine != null,
+                  animate: animationsOn(context, controller.settings),
+                )
+              else
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 16,
+                  children: [
+                    for (final (i, project) in projects.indexed)
+                      SizedBox(
+                        width: cardWidth,
+                        child: _ProjectCard(
+                          controller: controller,
+                          project: project,
+                          colour: brutalBlocks[i % brutalBlocks.length],
+                        ),
+                      ),
+                  ],
+                ),
+              for (final broken in controller.brokenProjects) ...[
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.error_outline),
+                    title: Text(context.l10n.unreadableProject(p.basename(broken.directory))),
+                    subtitle: Text('${broken.error}'),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -80,26 +112,29 @@ extension on ProjectsScreen {
     final choice = await showModalBottomSheet<String>(
       context: context,
       builder: (c) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: const Icon(Icons.html),
-            title: Text(context.l10n.htmlFiles),
-            subtitle: Text(context.l10n.htmlFilesHint),
-            onTap: () => Navigator.pop(c, 'files'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.folder_zip_outlined),
-            title: Text(context.l10n.websiteZip),
-            subtitle: Text(context.l10n.websiteZipHint),
-            onTap: () => Navigator.pop(c, 'zip'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(context.l10n.websiteUrl),
-            subtitle: Text(context.l10n.websiteUrlHint),
-            onTap: () => Navigator.pop(c, 'url'),
-          ),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.html),
+              title: Text(context.l10n.htmlFiles),
+              subtitle: Text(context.l10n.htmlFilesHint),
+              onTap: () => Navigator.pop(c, 'files'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_zip_outlined),
+              title: Text(context.l10n.websiteZip),
+              subtitle: Text(context.l10n.websiteZipHint),
+              onTap: () => Navigator.pop(c, 'zip'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(context.l10n.websiteUrl),
+              subtitle: Text(context.l10n.websiteUrlHint),
+              onTap: () => Navigator.pop(c, 'url'),
+            ),
+          ],
+        ),
       ),
     );
     if (!context.mounted) return;
@@ -108,9 +143,17 @@ extension on ProjectsScreen {
     } else if (choice == 'zip') {
       await importZip(context, controller);
     } else if (choice == 'url') {
-      final id = await showDialog<String>(context: context, builder: (_) => UrlImportDialog(controller: controller));
+      final id = await showDialog<String>(
+        context: context,
+        builder: (_) => UrlImportDialog(controller: controller),
+      );
       if (id != null && context.mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: id)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProjectScreen(controller: controller, projectId: id),
+          ),
+        );
       }
     }
   }
@@ -150,61 +193,63 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _ProjectCard extends StatelessWidget {
-  const _ProjectCard({required this.controller, required this.project});
+  const _ProjectCard({required this.controller, required this.project, required this.colour});
 
   final AppController controller;
   final ProjectHandle project;
+  final Color colour;
 
   @override
   Widget build(BuildContext context) {
     final m = project.manifest;
+    final l = context.l10n;
+    final t = Theme.of(context).textTheme;
     final last = controller.store.buildHistory(project).firstOrNull;
-    final scheme = Theme.of(context).colorScheme;
     final icon = project.iconFile;
-    return Card(
-      child: InkWell(
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: m.id))),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox.square(
-                  dimension: 48,
-                  child: icon != null && File(icon).existsSync()
-                      ? Image.file(File(icon), fit: BoxFit.cover)
-                      : ColoredBox(color: scheme.primaryContainer, child: Icon(Icons.android, color: scheme.onPrimaryContainer)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(m.name, style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 2),
-                    Text(m.android.applicationId, style: monoStyle(context, size: 12), overflow: TextOverflow.ellipsis),
-                    if (m.source.type == SourceType.url)
-                      Text(Uri.parse(m.source.entry).host,
-                          style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 6),
-                    Text(
-                      controller.building.contains(m.id)
-                          ? context.l10n.building
-                          : last == null
-                              ? context.l10n.notBuiltYet(m.android.versionName)
-                              : context.l10n.lastBuild(m.android.versionName, last.status, _ago(context, last.time)),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
-            ],
-          ),
+    final local = m.source.type == SourceType.local;
+    final tab = local
+        ? l.fileCount(Directory(project.sourceDir).existsSync() ? listRelativeFiles(project.sourceDir).length : 0)
+        : Uri.parse(m.source.entry).host;
+    return FolderCard(
+      tab: Text(tab, overflow: TextOverflow.ellipsis),
+      tabColor: colour,
+      semanticLabel: m.name,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProjectScreen(controller: controller, projectId: m.id),
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null && File(icon).existsSync())
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Eleven.radius - 2),
+                border: Border.all(color: context.eleven.ink, width: 2),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.file(File(icon), fit: BoxFit.cover),
+            )
+          else
+            BrutalIconTile(icon: local ? Icons.html : Icons.language, color: colour),
+          const SizedBox(height: 12),
+          Text(m.name, style: t.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(m.android.applicationId, style: monoStyle(context, size: 11.5), overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 8),
+          Text(
+            controller.building.contains(m.id)
+                ? l.building
+                : last == null
+                ? l.notBuiltYet(m.android.versionName)
+                : l.lastBuild(m.android.versionName, last.status, _ago(context, last.time)),
+            style: t.bodySmall,
+          ),
+        ],
       ),
     );
   }
@@ -236,8 +281,12 @@ Future<void> restoreBackup(BuildContext context, AppController controller) async
     final project = await controller.restoreBackup(path);
     if (!context.mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(l.restored(project.manifest.name))));
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: project.manifest.id)));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProjectScreen(controller: controller, projectId: project.manifest.id),
+      ),
+    );
   } on Object catch (e) {
     final text = switch (e) {
       ArchiveRejectedException(:final message) => l.notUsableBackup(message),
@@ -254,7 +303,9 @@ Future<void> restoreBackup(BuildContext context, AppController controller) async
 Future<void> importZip(BuildContext context, AppController controller) async {
   final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['zip']);
   if (file == null || !context.mounted) return;
-  await _importFlow(context, controller, [file], (dir, paths, name, id) => controller.importZip(paths.single, name, id));
+  await _importFlow(context, controller, [
+    file,
+  ], (dir, paths, name, id) => controller.importZip(paths.single, name, id));
 }
 
 /// Picks one or more website files (an .html page plus, optionally, CSS,
@@ -264,8 +315,7 @@ Future<void> importHtmlFiles(BuildContext context, AppController controller) asy
   final files = await FilePicker.pickFiles();
   if (files.isEmpty || !context.mounted) return;
   if (!files.any((f) => RegExp(r'\.html?$', caseSensitive: false).hasMatch(f.name))) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.selectHtmlFile)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.selectHtmlFile)));
     await FilePicker.clearTemporaryFiles();
     return;
   }
@@ -288,8 +338,10 @@ Future<void> _importFlow(
       paths.add(target);
     }
     if (!context.mounted) return;
-    final main = files.firstWhere((f) => RegExp(r'\.(zip|html?)$', caseSensitive: false).hasMatch(f.name),
-        orElse: () => files.first);
+    final main = files.firstWhere(
+      (f) => RegExp(r'\.(zip|html?)$', caseSensitive: false).hasMatch(f.name),
+      orElse: () => files.first,
+    );
     var baseName = p.basenameWithoutExtension(main.name).replaceAll(RegExp(r'[_-]+'), ' ').trim();
     if (baseName.toLowerCase() == 'index') baseName = '';
     final details = await showDialog<(String, String)>(
@@ -307,10 +359,17 @@ Future<void> _importFlow(
       return;
     }
     if (!context.mounted) return;
-    await showModalBottomSheet<void>(context: context, builder: (_) => _ImportSummary(report: report));
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => _ImportSummary(report: report),
+    );
     if (!context.mounted) return;
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => ProjectScreen(controller: controller, projectId: report.project.manifest.id)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProjectScreen(controller: controller, projectId: report.project.manifest.id),
+      ),
+    );
   } finally {
     tmp.deleteSync(recursive: true);
     await FilePicker.clearTemporaryFiles();
@@ -405,11 +464,16 @@ class _ImportSummary extends StatelessWidget {
             Text(context.l10n.importedFiles(report.fileCount), style: t.titleLarge),
             const SizedBox(height: 12),
             Text(context.l10n.startPageIs(report.project.manifest.source.entry)),
-            if (report.entryCandidates.length > 1)
-              Text(context.l10n.htmlPagesFound(report.entryCandidates.length)),
+            if (report.entryCandidates.length > 1) Text(context.l10n.htmlPagesFound(report.entryCandidates.length)),
             const SizedBox(height: 12),
             if (missing.isEmpty)
-              Row(children: [Icon(Icons.check_circle_outline, size: 18), SizedBox(width: 8), Text(context.l10n.noMissingFiles)])
+              Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 18),
+                  SizedBox(width: 8),
+                  Text(context.l10n.noMissingFiles),
+                ],
+              )
             else ...[
               Text(context.l10n.filesMissing(missing.length), style: t.titleSmall),
               const SizedBox(height: 4),

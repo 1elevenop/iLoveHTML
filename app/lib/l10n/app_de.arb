@@ -459,5 +459,7 @@
   "groupEngagement": "Interaktion",
   "groupAdvanced": "Erweitert",
   "changesTitle": "Ungespeicherte Änderungen",
-  "noChanges": "Keine Änderungen seit dem letzten Speichern."
+  "noChanges": "Keine Änderungen seit dem letzten Speichern.",
+  "projectCount": "{count, plural, =1{1 Projekt} other{{count} Projekte}}",
+  "fileCount": "{count, plural, =1{1 Datei} other{{count} Dateien}}"
 }

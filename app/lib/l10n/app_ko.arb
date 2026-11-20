@@ -459,5 +459,7 @@
   "groupEngagement": "참여",
   "groupAdvanced": "고급",
   "changesTitle": "저장되지 않은 변경 사항",
-  "noChanges": "마지막 저장 이후 변경 사항이 없습니다."
+  "noChanges": "마지막 저장 이후 변경 사항이 없습니다.",
+  "projectCount": "{count, plural, other{프로젝트 {count}개}}",
+  "fileCount": "{count, plural, other{파일 {count}개}}"
 }

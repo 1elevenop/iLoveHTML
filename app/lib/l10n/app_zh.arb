@@ -459,5 +459,7 @@
   "groupEngagement": "互动",
   "groupAdvanced": "高级",
   "changesTitle": "未保存的更改",
-  "noChanges": "自上次保存以来没有更改。"
+  "noChanges": "自上次保存以来没有更改。",
+  "projectCount": "{count, plural, other{{count} 个项目}}",
+  "fileCount": "{count, plural, other{{count} 个文件}}"
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../app_settings.dart';
+import 'brutal.dart';
 import 'theme.dart';
 
 /// The iLoveHTML logo in ASCII.
@@ -100,27 +101,20 @@ class _AsciiSplashState extends State<AsciiSplash> with SingleTickerProviderStat
                 animation: _anim,
                 builder: (context, _) {
                   final t = math.min(1.0, _anim.value / _typing);
-                  final shown = (asciiLogo.length * t).floor();
-                  final cursorOn = (_anim.value * 12).floor().isEven;
-                  return FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text.rich(
-                          TextSpan(children: [
-                            TextSpan(text: asciiLogo.substring(0, shown)),
-                            TextSpan(text: cursorOn ? '█' : ' ', style: TextStyle(color: e.acc)),
-                          ]),
-                          style: _asciiStyle(context, size: 13),
-                        ),
-                        const SizedBox(height: 14),
-                        Opacity(
-                          opacity: t >= 1 ? 1 : 0,
-                          child: Text(asciiTagline, style: _asciiStyle(context, size: 13, color: e.acc)),
-                        ),
-                      ],
-                    ),
+                  final drop = Curves.easeOutBack.transform(t);
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Opacity(
+                        opacity: t.clamp(0.0, 1.0),
+                        child: Transform.translate(offset: Offset(0, -24 * (1 - drop)), child: const Wordmark(size: 40)),
+                      ),
+                      const SizedBox(height: 18),
+                      Opacity(
+                        opacity: t >= 1 ? 1 : 0,
+                        child: Text(asciiTagline, style: _asciiStyle(context, size: 14, color: e.fg)),
+                      ),
+                    ],
                   );
                 },
               ),

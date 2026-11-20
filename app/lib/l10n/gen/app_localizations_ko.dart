@@ -1624,4 +1624,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get noChanges => '마지막 저장 이후 변경 사항이 없습니다.';
+
+  @override
+  String projectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '프로젝트 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '파일 $count개',
+    );
+    return '$_temp0';
+  }
 }
