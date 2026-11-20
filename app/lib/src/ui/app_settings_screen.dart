@@ -219,8 +219,7 @@ class _AccentSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final colour = dark ? accent.dark : accent.light;
+    final colour = accent.block;
     final selected = settings.accent == accent;
     final e = context.eleven;
     return Semantics(
@@ -231,17 +230,18 @@ class _AccentSwatch extends StatelessWidget {
         message: _accentName(context, accent),
         child: InkWell(
           onTap: () => settings.accent = accent,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(Eleven.radius),
           child: AnimatedContainer(
             duration: settings.animations ? const Duration(milliseconds: 200) : Duration.zero,
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: colour,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: selected ? e.fg : e.line2, width: selected ? 2 : 1),
+              borderRadius: BorderRadius.circular(Eleven.radius),
+              border: Border.all(color: e.ink, width: selected ? Eleven.stroke + 1.5 : Eleven.stroke),
+              boxShadow: selected ? e.shadow : null,
             ),
-            child: selected ? Icon(Icons.check, color: dark ? accent.darkOn : Colors.white, size: 20) : null,
+            child: selected ? Icon(Icons.check, color: accent.onBlock, size: 22) : null,
           ),
         ),
       ),
@@ -252,10 +252,10 @@ class _AccentSwatch extends StatelessWidget {
 String _accentName(BuildContext context, AccentPreset a) {
   final l = context.l10n;
   return switch (a) {
-    AccentPreset.orange => l.accentOrange,
-    AccentPreset.green => l.accentGreen,
-    AccentPreset.cyan => l.accentCyan,
-    AccentPreset.violet => l.accentViolet,
+    AccentPreset.yellow => l.accentYellow,
     AccentPreset.pink => l.accentPink,
+    AccentPreset.purple => l.accentPurple,
+    AccentPreset.teal => l.accentTeal,
+    AccentPreset.green => l.accentGreen,
   };
 }

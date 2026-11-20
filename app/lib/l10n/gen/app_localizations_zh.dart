@@ -1060,16 +1060,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accentColour => '强调色';
 
   @override
-  String get accentOrange => '橙色';
+  String get accentYellow => '黄色';
 
   @override
-  String get accentGreen => '终端绿';
+  String get accentGreen => '绿色';
 
   @override
-  String get accentCyan => '青色';
+  String get accentTeal => '青色';
 
   @override
-  String get accentViolet => '紫罗兰';
+  String get accentPurple => '紫色';
 
   @override
   String get accentPink => '粉色';
@@ -1564,4 +1564,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tryAgain => '重试';
+
+  @override
+  String get stepBasics => '基本';
+
+  @override
+  String get stepLook => '外观';
+
+  @override
+  String get stepFeatures => '功能';
+
+  @override
+  String get stepFinish => '安全与完成';
+
+  @override
+  String get back => '上一步';
+
+  @override
+  String get next => '下一步';
+
+  @override
+  String get groupCore => '核心';
+
+  @override
+  String get groupNavigation => '导航';
+
+  @override
+  String get groupMediaFiles => '媒体与文件';
+
+  @override
+  String get groupEngagement => '互动';
+
+  @override
+  String get groupAdvanced => '高级';
+
+  @override
+  String get changesTitle => '未保存的更改';
+
+  @override
+  String get noChanges => '自上次保存以来没有更改。';
 }

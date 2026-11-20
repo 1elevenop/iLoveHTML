@@ -1099,16 +1099,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accentColour => 'Accent colour';
 
   @override
-  String get accentOrange => 'Orange';
+  String get accentYellow => 'Yellow';
 
   @override
-  String get accentGreen => 'Terminal green';
+  String get accentGreen => 'Green';
 
   @override
-  String get accentCyan => 'Cyan';
+  String get accentTeal => 'Teal';
 
   @override
-  String get accentViolet => 'Violet';
+  String get accentPurple => 'Purple';
 
   @override
   String get accentPink => 'Pink';
@@ -1621,4 +1621,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryAgain => 'Try again';
+
+  @override
+  String get stepBasics => 'Basics';
+
+  @override
+  String get stepLook => 'Look';
+
+  @override
+  String get stepFeatures => 'Features';
+
+  @override
+  String get stepFinish => 'Security & finish';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get groupCore => 'Core';
+
+  @override
+  String get groupNavigation => 'Navigation';
+
+  @override
+  String get groupMediaFiles => 'Media & files';
+
+  @override
+  String get groupEngagement => 'Engagement';
+
+  @override
+  String get groupAdvanced => 'Advanced';
+
+  @override
+  String get changesTitle => 'Unsaved changes';
+
+  @override
+  String get noChanges => 'No changes since the last save.';
 }

@@ -1075,16 +1075,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get accentColour => '강조 색상';
 
   @override
-  String get accentOrange => '주황';
+  String get accentYellow => '노랑';
 
   @override
-  String get accentGreen => '터미널 초록';
+  String get accentGreen => '초록';
 
   @override
-  String get accentCyan => '청록';
+  String get accentTeal => '청록';
 
   @override
-  String get accentViolet => '보라';
+  String get accentPurple => '보라';
 
   @override
   String get accentPink => '분홍';
@@ -1585,4 +1585,43 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get tryAgain => '다시 시도';
+
+  @override
+  String get stepBasics => '기본';
+
+  @override
+  String get stepLook => '모양';
+
+  @override
+  String get stepFeatures => '기능';
+
+  @override
+  String get stepFinish => '보안 및 마무리';
+
+  @override
+  String get back => '이전';
+
+  @override
+  String get next => '다음';
+
+  @override
+  String get groupCore => '핵심';
+
+  @override
+  String get groupNavigation => '탐색';
+
+  @override
+  String get groupMediaFiles => '미디어 및 파일';
+
+  @override
+  String get groupEngagement => '참여';
+
+  @override
+  String get groupAdvanced => '고급';
+
+  @override
+  String get changesTitle => '저장되지 않은 변경 사항';
+
+  @override
+  String get noChanges => '마지막 저장 이후 변경 사항이 없습니다.';
 }
