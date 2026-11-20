@@ -1623,4 +1623,85 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => '编辑代码';
+
+  @override
+  String get editCodeHint => '在实时预览中修改 HTML、CSS 和 JavaScript。';
+
+  @override
+  String get newBlankSite => '新建空白网站';
+
+  @override
+  String get newBlankSiteHint => '从一个页面、一个样式表和一个脚本开始，在这里编写。';
+
+  @override
+  String get files => '文件';
+
+  @override
+  String get newFile => '新建文件';
+
+  @override
+  String get fileName => '文件名';
+
+  @override
+  String get rename => '重命名';
+
+  @override
+  String get moreOptions => '更多选项';
+
+  @override
+  String get deleteFileQ => '删除文件？';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path 将从项目中删除，且无法撤销。';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '已保存 $path';
+  }
+
+  @override
+  String get unsaved => '未保存';
+
+  @override
+  String get unsavedChangesQ => '放弃未保存的更改？';
+
+  @override
+  String discardChangesBody(String files) {
+    return '$files 的更改尚未保存。';
+  }
+
+  @override
+  String get discard => '放弃';
+
+  @override
+  String get noFileOpen => '选择要编辑的文件。';
+
+  @override
+  String get find => '查找';
+
+  @override
+  String get findNext => '下一个匹配';
+
+  @override
+  String get findPrevious => '上一个匹配';
+
+  @override
+  String get replaceWith => '替换为';
+
+  @override
+  String get replaceAll => '全部替换';
+
+  @override
+  String get reload => '重新加载';
+
+  @override
+  String get fullPreview => '完整预览';
+
+  @override
+  String get resize => '调整大小';
 }

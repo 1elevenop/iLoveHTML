@@ -9,6 +9,7 @@ import '../app_controller.dart';
 import '../app_settings.dart';
 import 'ascii.dart';
 import 'brutal.dart';
+import 'editor/editor_screen.dart';
 import 'app_settings_screen.dart';
 import 'project_screen.dart';
 import 'l10n.dart';
@@ -128,6 +129,12 @@ extension on ProjectsScreen {
               onTap: () => Navigator.pop(c, 'zip'),
             ),
             ListTile(
+              leading: const Icon(Icons.code),
+              title: Text(context.l10n.newBlankSite),
+              subtitle: Text(context.l10n.newBlankSiteHint),
+              onTap: () => Navigator.pop(c, 'blank'),
+            ),
+            ListTile(
               leading: const Icon(Icons.language),
               title: Text(context.l10n.websiteUrl),
               subtitle: Text(context.l10n.websiteUrlHint),
@@ -142,6 +149,8 @@ extension on ProjectsScreen {
       await importHtmlFiles(context, controller);
     } else if (choice == 'zip') {
       await importZip(context, controller);
+    } else if (choice == 'blank') {
+      await _newBlankSite(context);
     } else if (choice == 'url') {
       final id = await showDialog<String>(
         context: context,
@@ -154,6 +163,37 @@ extension on ProjectsScreen {
             builder: (_) => ProjectScreen(controller: controller, projectId: id),
           ),
         );
+      }
+    }
+  }
+}
+
+extension on ProjectsScreen {
+  Future<void> _newBlankSite(BuildContext context) async {
+    final details = await showDialog<(String, String)>(
+      context: context,
+      builder: (_) => _ImportDialog(initialName: context.l10n.defaultAppName, create: true),
+    );
+    if (details == null || !context.mounted) return;
+    try {
+      final report = await controller.createBlank(details.$1, details.$2);
+      if (!context.mounted) return;
+      final id = report.project.manifest.id;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProjectScreen(controller: controller, projectId: id),
+        ),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EditorScreen(controller: controller, projectId: id),
+        ),
+      );
+    } on Exception catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.importFailed('$e'))));
       }
     }
   }
@@ -377,9 +417,12 @@ Future<void> _importFlow(
 }
 
 class _ImportDialog extends StatefulWidget {
-  const _ImportDialog({required this.initialName});
+  const _ImportDialog({required this.initialName, this.create = false});
 
   final String initialName;
+
+  /// A new blank site: the button says Create instead of Import.
+  final bool create;
 
   @override
   State<_ImportDialog> createState() => _ImportDialogState();
@@ -438,7 +481,7 @@ class _ImportDialogState extends State<_ImportDialog> {
           onPressed: () {
             if (_form.currentState!.validate()) Navigator.pop(context, (_name.text.trim(), _id.text.trim()));
           },
-          child: Text(context.l10n.importButton),
+          child: Text(widget.create ? context.l10n.create : context.l10n.importButton),
         ),
       ],
     );

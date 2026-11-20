@@ -1688,4 +1688,87 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => 'Editar código';
+
+  @override
+  String get editCodeHint =>
+      'Altere o HTML, CSS e JavaScript com pré-visualização ao vivo.';
+
+  @override
+  String get newBlankSite => 'Novo site em branco';
+
+  @override
+  String get newBlankSiteHint =>
+      'Comece com uma página, uma folha de estilo e um script, e escreva aqui.';
+
+  @override
+  String get files => 'Arquivos';
+
+  @override
+  String get newFile => 'Novo arquivo';
+
+  @override
+  String get fileName => 'Nome do arquivo';
+
+  @override
+  String get rename => 'Renomear';
+
+  @override
+  String get moreOptions => 'Mais opções';
+
+  @override
+  String get deleteFileQ => 'Excluir arquivo?';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path será excluído do projeto. Não é possível desfazer.';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '$path salvo';
+  }
+
+  @override
+  String get unsaved => 'não salvo';
+
+  @override
+  String get unsavedChangesQ => 'Descartar alterações não salvas?';
+
+  @override
+  String discardChangesBody(String files) {
+    return 'As alterações em $files não foram salvas.';
+  }
+
+  @override
+  String get discard => 'Descartar';
+
+  @override
+  String get noFileOpen => 'Escolha um arquivo para editar.';
+
+  @override
+  String get find => 'Localizar';
+
+  @override
+  String get findNext => 'Próxima ocorrência';
+
+  @override
+  String get findPrevious => 'Ocorrência anterior';
+
+  @override
+  String get replaceWith => 'Substituir por';
+
+  @override
+  String get replaceAll => 'Substituir tudo';
+
+  @override
+  String get reload => 'Recarregar';
+
+  @override
+  String get fullPreview => 'Pré-visualização completa';
+
+  @override
+  String get resize => 'Redimensionar';
 }

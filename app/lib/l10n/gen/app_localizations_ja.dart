@@ -1642,4 +1642,85 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get editCode => 'コードを編集';
+
+  @override
+  String get editCodeHint => 'ライブプレビューを見ながら HTML・CSS・JavaScript を編集します。';
+
+  @override
+  String get newBlankSite => '空のサイトを作成';
+
+  @override
+  String get newBlankSiteHint => 'ページ・スタイルシート・スクリプトから始めて、ここで書きます。';
+
+  @override
+  String get files => 'ファイル';
+
+  @override
+  String get newFile => '新しいファイル';
+
+  @override
+  String get fileName => 'ファイル名';
+
+  @override
+  String get rename => '名前を変更';
+
+  @override
+  String get moreOptions => 'その他のオプション';
+
+  @override
+  String get deleteFileQ => 'ファイルを削除しますか？';
+
+  @override
+  String deleteFileBody(String path) {
+    return '$path をプロジェクトから削除します。元に戻せません。';
+  }
+
+  @override
+  String fileSaved(String path) {
+    return '$path を保存しました';
+  }
+
+  @override
+  String get unsaved => '未保存';
+
+  @override
+  String get unsavedChangesQ => '未保存の変更を破棄しますか？';
+
+  @override
+  String discardChangesBody(String files) {
+    return '$files の変更は保存されていません。';
+  }
+
+  @override
+  String get discard => '破棄';
+
+  @override
+  String get noFileOpen => '編集するファイルを選んでください。';
+
+  @override
+  String get find => '検索';
+
+  @override
+  String get findNext => '次の一致';
+
+  @override
+  String get findPrevious => '前の一致';
+
+  @override
+  String get replaceWith => '置換後の文字列';
+
+  @override
+  String get replaceAll => 'すべて置換';
+
+  @override
+  String get reload => '再読み込み';
+
+  @override
+  String get fullPreview => '全画面プレビュー';
+
+  @override
+  String get resize => 'サイズ変更';
 }
